@@ -37,8 +37,8 @@ def test_las_nueve_herramientas_responden_con_datos(tmp_path):
 
         todas = datos(h.red_interfaces("lab"))
         assert todas["interfaces"]["total"] >= resumen["interfaces"]["total"]
-        assert todas["agregaciones"]["no_probado"] is True and "error" not in todas["agregaciones"]
-        assert todas["vlan"]["no_probado"] is True and "error" not in todas["vlan"]
+        assert "error" not in todas["agregaciones"] and isinstance(todas["agregaciones"]["filas"], list)
+        assert "error" not in todas["vlan"] and isinstance(todas["vlan"]["filas"], list)
 
         una = datos(h.red_interfaces("lab", interfaz=fisicas[0]["interfaz"]))
         assert una["enlace"]["enlace"] is True and una["controlador"]["driver"]
@@ -49,7 +49,7 @@ def test_las_nueve_herramientas_responden_con_datos(tmp_path):
 
         rutas = datos(h.red_rutas("lab"))
         assert rutas["rutas"]["total"] >= 1 and rutas["reglas"]["total"] >= 3
-        assert rutas["estaticas"]["no_probado"] is True and "error" not in rutas["estaticas"]
+        assert "error" not in rutas["estaticas"] and isinstance(rutas["estaticas"]["filas"], list)
 
         servicios = datos(h.red_servicios("lab"))
         assert servicios["configurados"]["ssh"]["activo"] is True
@@ -61,7 +61,7 @@ def test_las_nueve_herramientas_responden_con_datos(tmp_path):
         cortafuegos = datos(h.red_cortafuegos("lab"))
         assert {t["tabla"] for t in cortafuegos["iptables"]} >= {"filter"}
         assert cortafuegos["bloqueo_ip"]["activo"] in (True, False)
-        assert cortafuegos["qufirewall"]["no_probado"] is True and "error" not in cortafuegos["qufirewall"]
+        assert "error" not in cortafuegos["qufirewall"] and "cortafuegos" in cortafuegos["qufirewall"]
 
         remoto = datos(h.red_acceso_remoto("lab"))
         assert remoto["upnp"]["activo"] in (True, False, None)

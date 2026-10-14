@@ -188,8 +188,19 @@ def test_bonding_de_qts_reconoce_el_modo_lacp():
     assert bonds[1]["lacp"] is None
 
 
+def test_bonding_real_con_dos_miembros_sin_cable():
+    # la creada desde la web en el NAS de laboratorio (2026-10-14): active-backup con eth2 y eth3
+    (bond,) = p.bonding(dato("bonding_miembros_hero"))
+    assert bond == {"interfaz": "bond0", "modo": "fault-tolerance (active-backup)", "estado_mii": "down",
+                    "activa": None, "politica_hash": None, "lacp": None, "miembros": [
+                        {"interfaz": "eth2", "estado_mii": "down", "velocidad_mbps": None, "duplex": None,
+                         "fallos_enlace": 0},
+                        {"interfaz": "eth3", "estado_mii": "down", "velocidad_mbps": None, "duplex": None,
+                         "fallos_enlace": 0}]}
+
+
 def test_bonding_con_miembros():
-    # escrito a mano con el formato del kernel: ningun NAS de pruebas tenia una agregacion en uso
+    # escrito a mano con el formato del kernel: una agregacion con enlace no se ha visto en real
     texto = (
         "== bond0\nEthernet Channel Bonding Driver: v5.10.60-qnap\n\n"
         "Bonding Mode: fault-tolerance (active-backup)\nPrimary Slave: None\n"
@@ -213,6 +224,11 @@ def test_vlan_sin_redes_virtuales():
     assert p.vlan(dato("vlan_hero")) == []
     assert p.vlan(dato("vlan_qts")) == []
     assert p.vlan("") == []
+
+
+def test_vlan_real():
+    # la creada desde la web en el NAS de laboratorio (2026-10-14)
+    assert p.vlan(dato("vlan_con_vlan_hero")) == [{"interfaz": "eth1.10", "id": 10, "padre": "eth1"}]
 
 
 def test_vlan_con_redes_virtuales():
@@ -315,11 +331,29 @@ def test_rutas_estaticas_ignora_la_seccion_global():
     assert p.rutas_estaticas("") == []
 
 
-def test_rutas_estaticas_devuelve_cada_seccion_con_sus_campos():
-    # escrito a mano: ningun NAS de pruebas tenia rutas estaticas; se devuelve tal cual
-    texto = dato("rutas_estaticas_hero") + "[ruta1]\ndestino = 198.51.100.0\nmascara = 255.255.255.0\n"
+def test_rutas_estaticas_da_destino_via_interfaz_metrica_y_si_esta_activa():
+    # la ruta creada desde la web en el NAS de laboratorio (2026-10-14), con la puerta cambiada
+    assert p.rutas_estaticas(dato("rutas_estaticas_ruta_hero")) == [
+        {"destino": "198.51.100.0/24", "via": "192.0.2.1", "interfaz": "interface0", "metrica": 10,
+         "activa": True}]
+
+
+def test_una_ruta_estatica_desactivada_sin_metrica_y_con_mascara_de_puntos():
+    # escrito a mano a partir de la real
+    texto = ("[global]\ncustom_table_id = 19498\n\n[static_route_2]\nfamily = 4\nip = 203.0.113.0\n"
+             "netmask = 255.255.255.128\nnexthop_address = 192.0.2.1\nnexthop_if = interface1\nstatus = 0\n")
     assert p.rutas_estaticas(texto) == [
-        {"seccion": "ruta1", "campos": {"destino": "198.51.100.0", "mascara": "255.255.255.0"}}]
+        {"destino": "203.0.113.0/25", "via": "192.0.2.1", "interfaz": "interface1", "metrica": None,
+         "activa": False}]
+
+
+@pytest.mark.parametrize("seccion", [
+    "[static_route_1]\nfamily = 4\nnexthop_address = 192.0.2.1\n",          # sin destino
+    "[static_route_1]\nip = 198.51.100.0\nnetmask = 33\n",                    # mascara imposible
+    "[static_route_1]\nip = 198.51.100.0\nnetmask = 24\nmetric = diez\n"])    # metrica que no es numero
+def test_una_ruta_estatica_que_no_se_entiende_no_se_inventa(seccion):
+    with pytest.raises(ValueError):
+        p.rutas_estaticas(dato("rutas_estaticas_hero") + "\n" + seccion)
 
 
 # --- DNS y DHCP ----------------------------------------------------------------------------------
@@ -505,9 +539,24 @@ def test_bloqueo_ip_con_listas():
 
 
 def test_qufirewall_dice_si_el_paquete_esta_activo():
-    assert p.qufirewall(dato("qufirewall_hero")) == {"activo": None}      # no instalado en el NAS de pruebas
-    assert p.qufirewall("activo=TRUE\n") == {"activo": True}
-    assert p.qufirewall("activo=FALSE\n") == {"activo": False}
+    vacio = {"activo": None, "cortafuegos": None, "perfil_activo": None}
+    assert p.qufirewall(dato("qufirewall_hero")) == vacio            # no instalado: no hay QuFirewall.conf
+    assert p.qufirewall("activo=TRUE\n") == dict(vacio, activo=True)
+    assert p.qufirewall("activo=FALSE\n") == dict(vacio, activo=False)
+
+
+def test_qufirewall_instalado_no_es_lo_mismo_que_encendido():
+    # visto en el NAS de laboratorio (2026-10-14): recien instalado el paquete esta activo, pero el
+    # cortafuegos esta apagado y sin perfil hasta pasar el asistente
+    assert p.qufirewall("activo=TRUE\ncortafuegos=0\nperfil=\n") == {
+        "activo": True, "cortafuegos": False, "perfil_activo": False}
+    assert p.qufirewall(dato("qufirewall_activo_hero")) == {
+        "activo": True, "cortafuegos": True, "perfil_activo": True}
+
+
+def test_qufirewall_con_un_estado_que_no_se_conoce_no_se_inventa():
+    with pytest.raises(ValueError):
+        p.qufirewall("activo=TRUE\ncortafuegos=2\nperfil=\n")
 
 
 # --- acceso remoto ----------------------------------------------------------------------------------------

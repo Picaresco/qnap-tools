@@ -413,17 +413,53 @@ def test_los_motores_de_registro_en_marcha():
         p.motores("")                                # ps no respondio
 
 
-def test_los_volcados_de_cuelgues_guardados():
+def test_los_volcados_guardados_y_como_acabo_cada_arranque():
+    # captura real de nas1 tras un reinicio ordenado desde la web: los tres acaban igual
     v = p.volcados(dato("volcados_hero"))
-    assert v["volcados"][0] == {"fichero": "pstore_1_202608270120.log", "fecha": "2026-08-27 01:20", "bytes": 504645}
+    assert v["volcados"][0] == {"fichero": "pstore_1_202610142254.log", "fecha": "2026-10-14 22:54", "bytes": 126254,
+                                "cierre": "reinicio", "fallos_del_kernel": 0, "matados_por_memoria": 0}
     assert [x["fecha"] for x in v["volcados"]] == sorted((x["fecha"] for x in v["volcados"]), reverse=True)
-    assert v["procesos_forzados_al_apagar"] == {"fecha": "2026-09-28T22:17:00Z", "bytes": 126}
+    assert [x["matados_por_memoria"] for x in v["volcados"]] == [0, 15, 0]
+    assert v["procesos_forzados_al_apagar"] == {"fecha": "2026-10-14T20:51:37Z", "bytes": 126}
     q = p.volcados(dato("volcados_qts"))
     assert len(q["volcados"]) == 4 and q["volcados"][-1]["fecha"] == "2020-09-25 18:06"
-    sin = p.volcados("4096 1635186683 /etc/logs/qsync\n")
+    # el de 2020 no es un .log: se lista sin leerlo
+    assert q["volcados"][-1]["cierre"] is None and q["volcados"][-1]["fallos_del_kernel"] is None
+    sin = p.volcados("4096 1635186683 /etc/logs/qsync\n==cierres\n")
     assert sin == {"volcados": [], "procesos_forzados_al_apagar": None}
+
+
+def con_cierre(final, fallos=0, oom=0):
+    return ("126254 1792011253 /etc/logs/pstore_1_202610142254.log\n==cierres\n"
+            "==volcado pstore_1_202610142254.log %d %d\n%s" % (fallos, oom, final))
+
+
+@pytest.mark.parametrize("final, fallos, cierre", [
+    ("[107055.898074] reboot: machine restart\n", 0, "reinicio"),
+    ("[107055.894322] reboot: Restarting system\n", 0, "reinicio"),
+    ("[  812.004105] reboot: Power down\n", 0, "apagado"),
+    ("[  812.004105] reboot: System halted\n", 0, "apagado"),
+    # un fallo del kernel manda aunque despues reinicie
+    ("[107055.898074] reboot: machine restart\n", 2, "fallo"),
+    ("[ 9210.118230] ---[ end Kernel panic - not syncing: Fatal exception ]---\n", 1, "fallo"),
+    # se corta sin apagado: cuelgue sin mensaje, vigilante o boton de reinicio
+    ("[ 9210.118230] eth0: link up\n", 0, "sin_cierre"),
+    ("", 0, "sin_cierre"),                           # volcado vacio
+])
+def test_el_cierre_de_un_volcado_sale_de_su_ultima_linea(final, fallos, cierre):
+    v = p.volcados(con_cierre(final, fallos))["volcados"][0]
+    assert v["cierre"] == cierre and v["fallos_del_kernel"] == fallos
+
+
+@pytest.mark.parametrize("texto", [
+    "",                                              # stat no listo nada
+    "4096 1635186683 /etc/logs/qsync\n",             # sin la seccion de cierres: no se leyeron
+    con_cierre("x\n").replace(" 0 0\n", " 0\n"),     # falta una cuenta
+    con_cierre("x\n").replace("pstore_1_202610142254.log 0", "pstore_9_202610142254.log 0"),  # no listado
+])
+def test_los_volcados_rechazan_lo_que_no_reconocen(texto):
     with pytest.raises(ValueError):
-        p.volcados("")                               # stat no listo nada
+        p.volcados(texto)
 
 
 # ==== alertas ===================================================================================

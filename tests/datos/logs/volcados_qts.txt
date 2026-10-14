@@ -32,3 +32,10 @@
 1 1787551329 /etc/logs/shutdown.log.1
 4096 1791945602 /etc/logs/storage_usage_history
 671 1782335636 /etc/logs/.force_kill_in_shutdown.log
+==cierres
+==volcado pstore_1_202606242316.log 0 0
+[ 1093.502114] reboot: machine restart
+==volcado pstore_2_202606242303.log 0 0
+[  841.220871] reboot: machine restart
+==volcado pstore_3_202606242244.log 0 0
+[86012.731905] reboot: machine restart

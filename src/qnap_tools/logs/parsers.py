@@ -549,26 +549,61 @@ def motores(texto):
 PSTORE = re.compile(r"pstore_(?:[a-z_]+_)?[0-9]+_([0-9]{4})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})(?:\.log)?")
 FICHERO_STAT = re.compile(r"([0-9]+) ([0-9]+) /etc/logs/(.+)")
 FORZADOS = ".force_kill_in_shutdown.log"
+CIERRES = "==cierres"
+VOLCADO_LEIDO = re.compile(r"==volcado (\S+) ([0-9]+) ([0-9]+)")
+# la ultima linea que escribe el kernel al reiniciar o apagar de forma ordenada
+FINAL_REINICIO = re.compile(r"reboot: (Restarting system|machine restart)$")
+FINAL_APAGADO = re.compile(r"reboot: (Power down|System halted)$")
+
+
+def _cierre(fallos, final):
+    if fallos:
+        return "fallo"
+    if FINAL_REINICIO.search(final):
+        return "reinicio"
+    if FINAL_APAGADO.search(final):
+        return "apagado"
+    return "sin_cierre"
 
 
 def volcados(texto):
+    """Los volcados de pstore (la consola del arranque anterior, guardada en cada reinicio en
+    caliente) con como acabo ese arranque: 'reinicio' o 'apagado' ordenados, 'fallo' (el kernel
+    dejo un panic, Oops o BUG) o 'sin_cierre' (se corto sin apagado); None si no es un .log y no
+    se leyo."""
     que = "los volcados"
     lineas = [linea.strip() for linea in texto.splitlines() if linea.strip()]
     if not lineas:
         raise ValueError("%s: no se pudo listar /etc/logs" % que)
-    salida, forzados = [], None
-    for linea in lineas:
+    if CIERRES not in lineas:
+        raise ValueError("%s: no se pudo leer como acaba cada volcado" % que)
+    corte = lineas.index(CIERRES)
+    salida, forzados = {}, None
+    for linea in lineas[:corte]:
         m = FICHERO_STAT.fullmatch(linea)
         if not m:
             raise _no_reconocida(que, linea)
         nombre, bytes_ = m.group(3), int(m.group(1))
         volcado = PSTORE.fullmatch(nombre)
         if volcado:
-            salida.append({"fichero": nombre, "fecha": "%s-%s-%s %s:%s" % volcado.groups(), "bytes": bytes_})
+            salida[nombre] = {"fichero": nombre, "fecha": "%s-%s-%s %s:%s" % volcado.groups(), "bytes": bytes_,
+                              "cierre": None, "fallos_del_kernel": None, "matados_por_memoria": None}
         elif nombre == FORZADOS:
             forzados = {"fecha": fecha_utc(int(m.group(2))), "bytes": bytes_}
-    salida.sort(key=lambda x: x["fecha"], reverse=True)
-    return {"volcados": salida, "procesos_forzados_al_apagar": forzados}
+    resto = lineas[corte + 1:]
+    for i, linea in enumerate(resto):
+        if not linea.startswith("==volcado"):
+            continue
+        m = VOLCADO_LEIDO.fullmatch(linea)
+        if not m or m.group(1) not in salida:
+            raise _no_reconocida(que, linea)
+        siguiente = resto[i + 1] if i + 1 < len(resto) else ""
+        final = "" if siguiente.startswith("==volcado") else siguiente
+        fallos = int(m.group(2))
+        salida[m.group(1)].update(cierre=_cierre(fallos, final), fallos_del_kernel=fallos,
+                                  matados_por_memoria=int(m.group(3)))
+    return {"volcados": sorted(salida.values(), key=lambda x: x["fecha"], reverse=True),
+            "procesos_forzados_al_apagar": forzados}
 
 
 # --- alertas ---------------------------------------------------------------------------------

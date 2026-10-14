@@ -119,6 +119,8 @@ def memoria_de(x, e):
 def avisos_de_vms(vms, memoria_nas):
     avisos = ["la maquina virtual %s esta %s" % (x["nombre"] or x["uuid"], e["estado"])
               for x, e in vms if e["estado_codigo"] not in (EN_MARCHA, APAGADA)]
+    avisos += ["la maquina virtual %s esta suspendida: su memoria esta guardada en disco y al reanudarla "
+               "sigue donde estaba" % (x["nombre"] or x["uuid"]) for x, e in vms if e["estado"] == "suspendida"]
     avisos += ["la maquina virtual %s: %s" % (x["nombre"] or x["uuid"], x["error"]) for x, _ in vms if x.get("error")]
     avisos = acotar_avisos(avisos, "maquinas virtuales")
     asignada = sum(memoria_de(x, e) or 0 for x, e in con_proceso(vms))
@@ -271,7 +273,8 @@ class Herramientas(servidor.Base):
         estan activos y con su servicio en marcha, CPU y memoria del NAS, cuantas maquinas
         virtuales y contenedores hay y en que estado, vCPU y memoria asignadas a las maquinas en
         marcha, instancias de LXD, y 'avisos' con lo que conviene mirar (servicio parado, maquina
-        en pausa o caida, contenedor reiniciandose o que no pasa su comprobacion de salud, mas
+        suspendida, en pausa o caida, contenedor reiniciandose o que no pasa su comprobacion de
+        salud, mas
         memoria asignada que la que tiene el NAS). Es el punto de partida.
 
         nas: nombre de un NAS del inventario, o 'todos'."""

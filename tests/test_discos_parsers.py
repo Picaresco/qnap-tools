@@ -714,10 +714,34 @@ CON_LUN = (
 def test_el_iscsi_de_hero_lista_destinos_y_lun_si_los_hay():
     iscsi = p.zfs_iscsi(CON_LUN)
     assert iscsi["servicio"] == {"activo": False, "puerto": 3260, "prefijo_iqn": None}
-    assert iscsi["destinos"] == [{"id": 0, "nombre": "iqn.2004-04.com.example:destino-1", "alias": "destino"}]
+    assert iscsi["destinos"] == [{"id": 0, "nombre": "iqn.2004-04.com.example:destino-1", "alias": "destino",
+                                  "activo": None, "estado": None, "portales": [], "lun": [],
+                                  "acl_iniciador": None}]
     assert [(x["id"], x["nombre"]) for x in iscsi["lun"]] == [(0, "lun_0"), (3, "copias")]
     assert iscsi["lun"][0]["alias"] is None
     assert iscsi["iniciadores"] == []
+
+
+def test_el_iscsi_de_hero_con_un_destino_y_un_lun_reales():
+    # creados desde la web en el NAS de laboratorio (2026-10-14): la orden saca tambien las claves
+    # que cuelgan mas hondo (el grupo de acceso y los LUN de cada destino)
+    iscsi = p.zfs_iscsi(dato("zfs_iscsi_destino_hero"))
+    assert iscsi["servicio"] == {"activo": True, "puerto": 3260, "prefijo_iqn": "iqn.2004-04.com.example:destino-1"}
+    assert iscsi["destinos"] == [{
+        "id": 1, "nombre": "iqn.2004-04.com.example:destino-3", "alias": "prueba", "activo": True, "estado": 0,
+        "portales": ["192.0.2.10"], "lun": ["LUN_prueba"], "acl_iniciador": 0}]
+    assert iscsi["lun"] == [{"id": 1, "nombre": "LUN_prueba", "alias": None, "capacidad": 2 ** 30, "fino": True,
+                             "estado": 1, "dataset": "zpool1/zfs274"}]
+    assert iscsi["iniciadores"] == [
+        {"id": 0, "nombre": "iqn.2004-04.com.example:destino-2", "alias": "Default Policy"}]
+
+
+def test_una_clave_de_iscsi_mas_honda_que_no_se_conoce_se_ignora_dentro_de_una_entrada():
+    # escrito a mano: un objeto nuevo dentro de un destino cuyo nombre no se pide no tumba la lectura
+    texto = dato("zfs_iscsi_destino_hero").replace(
+        '      "interfaces"', '        "name":"de un objeto que no se pide"\n          "1":{\n'
+                              '            "alias":"tampoco"\n      "interfaces"')
+    assert p.zfs_iscsi(texto)["destinos"][0]["nombre"] == "iqn.2004-04.com.example:destino-3"
 
 
 def test_el_alias_que_escribe_un_tercero_llega_acotado():

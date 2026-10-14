@@ -90,7 +90,7 @@ def test_las_nueve_herramientas_responden_con_datos(tmp_path):
         assert any(c["uso"] for c in carpetas["carpetas"]["filas"])
 
         iscsi = datos(h.iscsi("lab"))
-        assert iscsi["no_probado"] is True and "errores" not in iscsi
+        assert "no_probado" not in iscsi and "errores" not in iscsi
 
         rendimiento = datos(h.rendimiento_discos("lab"))
         assert 4.0 <= rendimiento["segundos"] <= 8.0

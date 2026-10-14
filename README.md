@@ -42,7 +42,7 @@ claude plugin install qnap-tools@qnap-tools
 ```
 
 Cada servidor se lanza con `uvx` desde PyPI con la versión exacta del plugin
-(`uvx --from qnap-tools==0.4.1 qnap-tools-redes`, etc.); `uv` lo descarga y lo deja en su caché
+(`uvx --from qnap-tools==0.4.2 qnap-tools-redes`, etc.); `uv` lo descarga y lo deja en su caché
 la primera vez, y no vuelve a consultar PyPI en cada arranque.
 
 Al activarlo, Claude Code pide el **usuario SSH** y su **contraseña**. Se cambian después en
@@ -135,10 +135,10 @@ nada.
 | `red_resumen` | Interfaces activas con IP, velocidad y MTU, puerta de enlace y DNS |
 | `red_interfaces` | Estado, contadores, errores y caudal de cada interfaz; con `interfaz`, enlace negociado, controlador y firmware |
 | `red_conmutadores` | Conmutadores virtuales (puentes), sus puertos y las MAC aprendidas |
-| `red_rutas` | Rutas, reglas de encaminamiento, rutas estáticas y vecinos ARP |
+| `red_rutas` | Rutas, reglas de encaminamiento, rutas estáticas configuradas (destino, puerta, adaptador, métrica y si están activas) y vecinos ARP |
 | `red_servicios` | Servicios configurados y puertos en escucha con su proceso |
 | `red_dhcp_dns` | DNS, servidor DHCP del NAS y concesiones |
-| `red_cortafuegos` | Resumen de iptables, bloqueo por IP y QuFirewall |
+| `red_cortafuegos` | Resumen de iptables, bloqueo por IP y QuFirewall (si el paquete está activo, si el cortafuegos está encendido, si tiene perfil y cuántas reglas aplica) |
 | `red_acceso_remoto` | DDNS/myQNAPcloud, UPnP y presencia de VPN |
 | `red_diagnostico` | `ping`, `traceroute` o consulta `dns` lanzados desde el NAS |
 
@@ -160,7 +160,7 @@ nada.
 
 | Herramienta | Qué da |
 |---|---|
-| `virtualizacion_resumen` | Si Virtualization Station y Container Station están activos y con su servicio en marcha, CPU y memoria del NAS, cuántas máquinas virtuales y contenedores hay y en qué estado, vCPU y memoria asignadas a las máquinas en marcha, y los `avisos`: servicio parado, máquina en pausa o caída, contenedor reiniciándose o que no pasa su comprobación de salud, más memoria asignada que la del NAS |
+| `virtualizacion_resumen` | Si Virtualization Station y Container Station están activos y con su servicio en marcha, CPU y memoria del NAS, cuántas máquinas virtuales y contenedores hay y en qué estado, vCPU y memoria asignadas a las máquinas en marcha, y los `avisos`: servicio parado, máquina suspendida, en pausa o caída, contenedor reiniciándose o que no pasa su comprobación de salud, más memoria asignada que la del NAS |
 | `vm_lista` | Cada máquina virtual, también las apagadas: nombre, UUID, estado, vCPU, memoria, sistema declarado, arranque automático y discos |
 | `vm_detalle` | Una máquina (`vm`: nombre o UUID): descripción, firmware, TPM, orden de arranque, discos con su fichero, formato, tamaño y capas, interfaces con MAC, modelo y conmutador virtual, direcciones IP que el NAS conozca y consola (nunca su clave) |
 | `vm_uso` | Consumo de las máquinas en marcha medido durante 5 segundos: CPU, memoria y actividad de cada disco y de cada interfaz de red |
@@ -184,12 +184,11 @@ las herramientas de esa mitad responden `activo: false` y no ejecutan nada en el
 | `avisos` | Los últimos avisos del centro de notificaciones del escritorio (gravedad, origen, texto, aplicación y código) y cuántos hay de cada gravedad y origen |
 | `kernel` | Mensajes del kernel: cuántos guarda el NAS de cada nivel y desde cuándo, las últimas líneas de un `nivel` (0 a 7; por defecto 3, errores) o más graves y la cola del registro en vivo (`lineas`, 1 a 200) |
 | `salud_hardware` | Temperatura de CPU y del sistema y vueltas de cada ventilador (con `sudo`), cabinas con su estado, cuántas fuentes tiene el modelo y si son redundantes, el SAI configurado y si su servicio responde, y los `avisos`: ventilador parado, cabina en un estado que no es el normal, SAI activado que no responde |
-| `sistema_estado` | Modelo, tiempo encendido, carga, hilos y memoria, firmware instalado con la última comprobación y la última actualización, política de actualización automática, aplicaciones de registro y seguridad con su versión, motores de registro en marcha y volcados del kernel guardados tras cuelgues, y los `avisos`: motor de registro parado, volcados de los últimos 30 días (los anteriores solo se listan) |
+| `sistema_estado` | Modelo, tiempo encendido, carga, hilos y memoria, firmware instalado con la última comprobación y la última actualización, política de actualización automática, aplicaciones de registro y seguridad con su versión, motores de registro en marcha y volcados del kernel con cómo acabó cada arranque (el NAS guarda uno en cada reinicio, también en uno ordenado), y los `avisos`: motor de registro parado, volcados de los últimos 30 días que no acaban en un reinicio o apagado ordenado, procesos matados por falta de memoria |
 | `alertas_config` | Nivel de alerta, zumbador, aviso de espacio libre, avisos SMART por valor y el servidor syslog del NAS (nunca destinatarios ni credenciales de notificación) |
 
-Los bloques marcados `no_probado: true` (agregación de puertos, VLAN, rutas estáticas,
-QuFirewall, iSCSI, avisos SMART configurados) leen el formato visto pero no se han validado
-con un NAS que use esa función.
+Los bloques marcados `no_probado: true` (iSCSI de QTS, avisos SMART configurados) leen el
+formato visto pero no se han validado con un NAS que use esa función.
 
 ## Qué significa "solo lectura"
 
@@ -270,9 +269,11 @@ protegerías la contraseña.
 - Las herramientas de discos se han probado en real contra QuTS hero h6.0.2 (dos pools ZFS,
   NVMe y caché) y contra QTS 5.2.9 (RAID 6 de 7 discos con repuesto, caché SSD, 27
   instantáneas y 34 carpetas; ahí `carpetas_compartidas` ronda los 22 KB).
-- No se han podido validar con un NAS real: una cabina de expansión, un volumen cifrado, y un
-  pool o un grupo RAID degradado o reconstruyéndose (se prueban con salidas escritas con el
-  formato del sistema). iSCSI se lee, pero ningún NAS de pruebas tenía destinos ni LUN.
+- Validados en QuTS hero con cambios hechos a propósito: iSCSI con un destino y un LUN, y una
+  carpeta cifrada abierta (`cifrado: true`).
+- No se han podido validar con un NAS real: una cabina de expansión, una carpeta cifrada
+  bloqueada, iSCSI en QTS y un pool o un grupo RAID degradado o reconstruyéndose (se prueban
+  con salidas escritas con el formato del sistema).
 - `carpetas_compartidas` da los permisos de Samba (`smb.conf`) y las exportaciones NFS. No da
   los permisos avanzados (ACL) ni los de subcarpetas, ni el tamaño real de una subcarpeta: eso
   exigiría recorrer el disco.
@@ -327,9 +328,14 @@ protegerías la contraseña.
   llegan recortadas a 400 caracteres y sin caracteres de control, y son datos, no instrucciones.
   Un fallo de `docker` al pedirlas se distingue por su código de salida, no por el texto: una
   línea del programa que empiece por "Error" se devuelve como lo que es.
-- No se han podido validar con un NAS real: un paquete activo con su servicio parado, una
-  máquina en pausa o caída, un contenedor reiniciándose y las instancias de LXD (se prueban
-  con salidas escritas con el formato de cada herramienta).
+- Una máquina suspendida desde Virtualization Station (guarda su memoria en disco y se para)
+  sale como `suspendida`, no como apagada, y con su aviso: validado en un NAS real.
+- Validados en un NAS real: un paquete activo con su servicio parado (Container Station
+  arrancando y el NAS recién reiniciado), un contenedor reiniciándose, uno "unhealthy" y uno
+  enlazado con `--link`.
+- No se han podido validar con un NAS real: una máquina en pausa en memoria (`en pausa`) o
+  caída y las instancias de LXD (se prueban con salidas escritas con el formato de cada
+  herramienta).
 
 - Las herramientas de registros y estado se han probado en real contra QuTS hero h6.0.2; con
   QTS 5.2.9 se han validado sus órdenes y sus salidas reales (capturadas con el producto).

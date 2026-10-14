@@ -38,7 +38,7 @@ INSTRUCCIONES = (
     "los ultimos, del mas reciente al mas antiguo, con un limite de 1 a 200 por consulta. Ademas: "
     "mensajes del kernel (kernel), sensores, cabinas, fuentes y SAI (salud_hardware; las "
     "temperaturas necesitan sudo), tiempo encendido, carga, firmware, aplicaciones y motores de "
-    "registro y volcados de cuelgues (sistema_estado), y la configuracion de alertas, umbrales "
+    "registro y volcados del kernel con como acabo cada arranque (sistema_estado), y la configuracion de alertas, umbrales "
     "SMART y servidor syslog (alertas_config). No se leen los destinatarios ni las credenciales de "
     "notificacion, ni el historial de QuLog Center. Las fechas de eventos, accesos y kernel van en la "
     "hora local del NAS; las de avisos y del ultimo apagado forzado, en UTC (acaban en Z). Los "
@@ -63,8 +63,9 @@ NOTA_FUENTES = "es lo que tiene el modelo: el estado en vivo de cada fuente no s
 # motores de registro que se esperan siempre, y los de una aplicacion si esta activa
 MOTORES_SIEMPRE = ("rsyslogd", "qLogEngined", "qNoticeEngined")
 MOTORES_DE_APP = {"QuLog": ("qulogd", "qulogdb"), "NotificationCenter": ("ncdb",)}
-# un volcado de cuelgue se avisa si es de los ultimos dias; los anteriores solo se listan
+# un volcado que no acaba en orden se avisa si es de los ultimos dias; los anteriores solo se listan
 DIAS_VOLCADO = 30
+CIERRES_ORDENADOS = ("reinicio", "apagado")
 
 
 def ahora():
@@ -143,10 +144,18 @@ def avisos_de_sistema(apps, motores, volcados):
                 avisos.append("el motor de registro %s no esta en marcha" % m)
     if volcados:
         limite = (ahora() - timedelta(days=DIAS_VOLCADO)).strftime("%Y-%m-%d %H:%M")
-        v = [x for x in volcados["volcados"] if x["fecha"] >= limite]
+        recientes = [x for x in volcados["volcados"] if x["fecha"] >= limite]
+        # el NAS guarda un volcado en cada reinicio: solo se avisa del que no acaba en orden
+        v = [x for x in recientes if x["cierre"] not in CIERRES_ORDENADOS]
         if v:
-            avisos.append("hay %d %s del kernel de los ultimos %d dias (tras cuelgues); el mas reciente es del %s"
-                          % (len(v), "volcado" if len(v) == 1 else "volcados", DIAS_VOLCADO, v[0]["fecha"]))
+            avisos.append("hay %d %s del kernel de los ultimos %d dias que no acaban en un reinicio o apagado "
+                          "ordenado (%s); el mas reciente es del %s"
+                          % (len(v), "volcado" if len(v) == 1 else "volcados", DIAS_VOLCADO,
+                             ", ".join(sorted({x["cierre"] or "sin leer" for x in v})), v[0]["fecha"]))
+        for x in recientes:
+            if x["matados_por_memoria"]:
+                avisos.append("el kernel mato procesos por falta de memoria %d veces en el arranque que se guardo "
+                              "el %s (%s)" % (x["matados_por_memoria"], x["fecha"], x["fichero"]))
     return avisos
 
 
@@ -314,9 +323,12 @@ class Herramientas(servidor.Base):
         """Estado del sistema: modelo, tiempo encendido, carga, hilos de CPU y memoria (en
         bytes), firmware instalado con la ultima comprobacion y la ultima actualizacion, politica
         de actualizacion automatica, aplicaciones de registro y seguridad con su version, motores
-        de registro en marcha y volcados del kernel guardados tras cuelgues, y 'avisos' (motor de
-        registro parado, volcados de los ultimos 30 dias; los anteriores solo se listan). No dice si
-        hay firmware nuevo: el NAS no lo guarda.
+        de registro en marcha, volcados del kernel y 'avisos' (motor de registro parado, volcado de
+        los ultimos 30 dias que no acaba en un reinicio o apagado ordenado, procesos matados por
+        falta de memoria). Un volcado es la consola del arranque anterior: el NAS guarda uno en cada
+        reinicio en caliente, tambien en uno ordenado; 'cierre' dice como acabo ('reinicio',
+        'apagado', 'fallo' si el kernel dejo un panic, Oops o BUG, 'sin_cierre' si se corto, null
+        si no se leyo). No dice si hay firmware nuevo: el NAS no lo guarda.
 
         nas: nombre de un NAS del inventario, o 'todos'."""
         def uno(n):

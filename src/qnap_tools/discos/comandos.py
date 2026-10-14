@@ -100,17 +100,19 @@ SNAPSHOTS_PROG_HERO = Comando(
     sistema="hero", valida=rc_cero)
 # De los dos JSON de iSCSI (una clave por linea), solo estas claves: ni CHAP ni nada que no se
 # haya visto. grep -o saca la clave y su valor, no la linea: si el fichero viniera en una sola
-# linea no saldria nada (y la orden fallaria) en vez de salir entero. Ningun NAS de pruebas
-# tenia destinos ni LUN: sin validar.
+# linea no saldria nada (y la orden fallaria) en vez de salir entero. Validado con un destino y
+# un LUN creados en el NAS de laboratorio; acl_group y target_lun cuelgan de cada destino.
 CLAVES_ISCSI_HERO = ("lun", "portal", "target", "initiator", "service_enable", "service_port",
-                     "iqn_prefix", "initiator_id", "name", "alias", "[0-9]+")
+                     "iqn_prefix", "initiator_id", "name", "alias", "[0-9]+", "status", "thin",
+                     "capacity", "blkdev_name", "target_enable", "interfaces", "acl_group",
+                     "target_lun")
 LUNS_HERO = Comando(
     "zfs_iscsi",
     "for f in /etc/config/hero_zfs_lun.json /etc/config/hero_iscsi_scst.json; do"
     " [ ! -s $f ] || echo \"== $f\"; [ ! -s $f ] ||"
     " grep -o -E '^[[:space:]]*\"(%s)\":(\"[^\"]*\"|[a-z0-9.-]+|[{][}]?)' $f; done"
     % "|".join(CLAVES_ISCSI_HERO),
-    sistema="hero", valida=rc_cero, no_probado=True)
+    sistema="hero", valida=rc_cero)
 
 
 # --- QTS: grupos md, volumenes, pools ligeros, instantaneas e iSCSI -----------------------------

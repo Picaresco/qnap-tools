@@ -118,13 +118,29 @@ def test_interfaces_da_estado_contadores_y_caudal_de_todas(tmp_path):
     assert por(d["interfaces"]["filas"], "interfaz", "vnet0")["tipo"] == "virtual"
 
 
-def test_interfaces_marca_agregaciones_y_vlan_como_no_probadas(tmp_path):
+def test_interfaces_da_las_agregaciones_y_las_vlan(tmp_path):
     h, _ = uno_solo(tmp_path)
     (r,) = h.red_interfaces("casa")
     d = r["datos"]
-    assert d["agregaciones"]["no_probado"] is True
     assert [b["interfaz"] for b in d["agregaciones"]["filas"]] == ["bond0", "bond1", "bond2", "bond3"]
-    assert d["vlan"] == {"no_probado": True, "filas": []}
+    assert d["agregaciones"]["total"] == 4 and "no_probado" not in d["agregaciones"]
+    assert d["vlan"] == {"filas": [], "total": 0, "truncado": False}
+
+
+def test_interfaces_da_las_vlan_y_su_tipo(tmp_path):
+    # como la creada desde la web en el NAS de laboratorio (2026-10-14) sobre un puerto sin cable
+    mundo = nas_hero()
+    mundo.respuestas[rc.VLAN.plantilla] = dato("vlan_con_vlan_hero")
+    mundo.respuestas[rc.SYS_RED.plantilla] = dato("sys_red_hero") + (
+        "eth1.10 estado=lowerlayerdown vel= dup= mtu=1500 mac=00:11:22:33:44:99 carrier=\n")
+    trafico = dato("trafico_hero")
+    (eth1,) = set(re.findall(r"^  eth1:.*$", trafico, re.M))
+    mundo.respuestas[rc.TRAFICO.plantilla] = trafico.replace(eth1, eth1 + "\n" + eth1.replace("  eth1:", "eth1.10:"))
+    h, _ = uno_solo(tmp_path, mundo)
+    (r,) = h.red_interfaces("casa")
+    d = r["datos"]
+    assert d["vlan"]["filas"] == [{"interfaz": "eth1.10", "id": 10, "padre": "eth1"}]
+    assert por(d["interfaces"]["filas"], "interfaz", "eth1.10")["tipo"] == "vlan"
 
 
 def test_interfaces_sin_sudo_da_el_error_en_el_bloque_de_vlan_y_no_pierde_lo_demas(tmp_path):
@@ -133,8 +149,7 @@ def test_interfaces_sin_sudo_da_el_error_en_el_bloque_de_vlan_y_no_pierde_lo_dem
     h, _ = uno_solo(tmp_path, mundo)
     (r,) = h.red_interfaces("casa")
     assert r["ok"] is True and r["datos"]["interfaces"]["total"] == 18
-    assert r["datos"]["vlan"]["no_probado"] is True and "Permission denied" in r["datos"]["vlan"]["error"]
-    assert "filas" not in r["datos"]["vlan"]
+    assert "Permission denied" in r["datos"]["vlan"]["error"] and "filas" not in r["datos"]["vlan"]
 
 
 def test_interfaces_si_sudo_no_acepta_la_contrasena_solo_falla_el_bloque_que_lo_necesita(tmp_path):
@@ -143,7 +158,7 @@ def test_interfaces_si_sudo_no_acepta_la_contrasena_solo_falla_el_bloque_que_lo_
     h, _ = uno_solo(tmp_path, mundo)
     (r,) = h.red_interfaces("casa")
     assert r["ok"] is True and r["datos"]["interfaces"]["total"] == 18
-    assert "sudo" in r["datos"]["vlan"]["error"] and r["datos"]["vlan"]["no_probado"] is True
+    assert "sudo" in r["datos"]["vlan"]["error"]
 
 
 def test_interfaces_de_una_sola_da_enlace_controlador_y_errores(tmp_path):
@@ -244,7 +259,26 @@ def test_rutas_da_rutas_reglas_vecinos_y_estaticas(tmp_path):
     assert d["rutas"]["total"] == 9 and d["rutas"]["filas"][0]["via"] == "192.0.2.36"
     assert d["reglas"]["total"] == 26 and d["reglas"]["filas"][0]["tabla"] == "local"
     assert d["vecinos"]["total"] == 10
-    assert d["estaticas"] == {"no_probado": True, "filas": []}
+    assert d["estaticas"] == {"filas": [], "total": 0, "truncado": False}
+
+
+def test_rutas_estaticas_ilegibles_dan_su_error_sin_perder_el_resto(tmp_path):
+    mundo = nas_hero()
+    mundo.respuestas[rc.RUTAS_ESTATICAS.plantilla] = (1, "", "cat: staticroute.conf: Permission denied\n")
+    h, _ = uno_solo(tmp_path, mundo)
+    (r,) = h.red_rutas("casa")
+    assert r["ok"] and "rutas_estaticas" in r["datos"]["estaticas"]["error"]
+    assert r["datos"]["rutas"]["total"] >= 1
+
+
+def test_rutas_da_las_estaticas_configuradas(tmp_path):
+    mundo = nas_hero()
+    mundo.respuestas[rc.RUTAS_ESTATICAS.plantilla] = dato("rutas_estaticas_ruta_hero")
+    h, _ = uno_solo(tmp_path, mundo)
+    (r,) = h.red_rutas("casa")
+    assert r["datos"]["estaticas"]["filas"] == [
+        {"destino": "198.51.100.0/24", "via": "192.0.2.1", "interfaz": "interface0", "metrica": 10,
+         "activa": True}]
 
 
 def test_una_orden_que_no_devuelve_nada_es_un_error_y_no_datos_vacios(tmp_path):
@@ -358,10 +392,24 @@ def test_cortafuegos_si_no_se_puede_leer_el_bloqueo_por_ip_lo_dice_en_su_bloque(
     assert "error" in r["datos"]["bloqueo_ip"] and "activo" not in r["datos"]["bloqueo_ip"]
 
 
-def test_cortafuegos_marca_qufirewall_como_no_probado(tmp_path):
+def test_cortafuegos_sin_qufirewall(tmp_path):
     h, _ = uno_solo(tmp_path)
     (r,) = h.red_cortafuegos("casa")
-    assert r["datos"]["qufirewall"] == {"no_probado": True, "activo": None}
+    assert r["datos"]["qufirewall"] == {"activo": None, "cortafuegos": None, "perfil_activo": None,
+                                        "reglas": None}
+
+
+def test_cortafuegos_con_qufirewall_encendido_cuenta_las_reglas_de_su_cadena(tmp_path):
+    # como en el NAS de laboratorio con el perfil de solo redes locales
+    mundo = nas_hero()
+    mundo.respuestas[rc.QUFIREWALL.plantilla] = dato("qufirewall_activo_hero")
+    reglas = "".join("-A QUFIREWALL -s 192.0.2.0/24 -j ACCEPT\n" for _ in range(3))
+    mundo.respuestas[rc.IPTABLES.plantilla] = dato("iptables_hero").replace(
+        "COMMIT", ":QUFIREWALL - [0:0]\n" + reglas + "COMMIT", 1)
+    h, _ = uno_solo(tmp_path, mundo)
+    (r,) = h.red_cortafuegos("casa")
+    assert r["datos"]["qufirewall"] == {"activo": True, "cortafuegos": True, "perfil_activo": True,
+                                        "reglas": 3}
 
 
 # --- red_acceso_remoto ---------------------------------------------------------------------------------

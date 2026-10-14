@@ -145,7 +145,8 @@ def test_hal_app_solo_enumera_y_ninguna_orden_pide_ayuda(nombre):
 
 @pytest.mark.parametrize("nombre", sorted(todos()))
 def test_todo_recorte_con_tail_lleva_antes_su_cuenta(nombre):
-    plantilla = todos()[nombre].plantilla
+    # "tail -n 1" lee la ultima linea de un fichero (como acaba un volcado): no recorta una lista
+    plantilla = todos()[nombre].plantilla.replace("tail -n 1 ", "")
     if "tail" in plantilla:
         assert "==lineas" in plantilla.split("tail")[0], nombre
 

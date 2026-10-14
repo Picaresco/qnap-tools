@@ -772,12 +772,20 @@ def test_las_carpetas_que_no_estan_en_smb_se_listan_aparte(tmp_path):
 def test_iscsi_en_hero_da_el_servicio_y_los_volumenes_de_bloques(tmp_path):
     h, _ = uno(tmp_path)
     d = datos(h.iscsi("hero"))
-    assert d["no_probado"] is True
+    assert "no_probado" not in d
     assert d["servicio"] == {"activo": True, "puerto": 3260, "prefijo_iqn": "iqn.2004-04.com.example:destino-1"}
     assert d["destinos"] == [] and d["lun"] == [] and len(d["iniciadores"]) == 1
     assert d["volumenes_de_bloques"] == [
         {"dataset": "zpool1/zvol_cs_docker", "usado": 4469821440, "referido": 4469821440},
         {"dataset": "zpool1/zvol_cs_system-docker", "usado": 970743808, "referido": 970743808}]
+
+
+def test_iscsi_en_hero_con_un_destino_y_un_lun(tmp_path):
+    h, _ = uno(tmp_path, cambios={dc.LUNS_HERO.plantilla: dato("zfs_iscsi_destino_hero")})
+    d = datos(h.iscsi("hero"))
+    assert [(x["alias"], x["lun"], x["portales"]) for x in d["destinos"]] == [
+        ("prueba", ["LUN_prueba"], ["192.0.2.10"])]
+    assert [(x["nombre"], x["capacidad"], x["fino"]) for x in d["lun"]] == [("LUN_prueba", 2 ** 30, True)]
 
 
 def test_iscsi_en_qts_da_el_servicio_y_los_iniciadores(tmp_path):

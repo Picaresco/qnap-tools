@@ -392,6 +392,17 @@ def test_una_vm_en_pausa_bloqueada_o_caida_sale_en_los_avisos(tmp_path, codigo, 
     assert algun(d["avisos"], "vm1", estado) and d["maquinas_virtuales"]["por_estado"][estado] == 1
 
 
+def test_una_vm_suspendida_sale_como_tal_y_en_los_avisos(tmp_path):
+    # como Neptuno en el NAS de laboratorio tras suspenderla desde Virtualization Station
+    h, _ = uno(tmp_path, cambios={vc.VM_ESTADISTICAS.plantilla: estadisticas_con(
+        "hero", VM1_HERO, state_state=5, state_reason=5)})
+    d = datos(h.virtualizacion_resumen("hero"))
+    assert d["maquinas_virtuales"]["por_estado"] == {"en marcha": 1, "apagada": 4, "suspendida": 1}
+    assert d["maquinas_virtuales"]["vcpus_en_marcha"] == 2           # no corre: no cuenta
+    assert algun(d["avisos"], "vm1", "suspendida", "disco")
+    assert por(datos(h.vm_lista("hero"))["vms"]["filas"], "nombre", "vm1")["estado"] == "suspendida"
+
+
 def test_el_resumen_avisa_si_las_vms_en_marcha_tienen_mas_memoria_que_el_nas(tmp_path):
     poca = dato("anfitrion_hero").replace("MemTotal:       32771296 kB", "MemTotal:        6291456 kB")
     h, _ = uno(tmp_path, cambios={vc.ANFITRION.plantilla: poca})

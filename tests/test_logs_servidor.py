@@ -525,24 +525,37 @@ def test_sistema_estado_da_carga_firmware_aplicaciones_motores_y_volcados(tmp_pa
     assert {a["nombre"] for a in d["aplicaciones"] if a["instalada"]} == {"QuLog", "NotificationCenter",
                                                                           "MalwareRemover", "ResourceMonitor"}
     assert d["motores"]["qLogEngined"] == 1
-    assert len(d["volcados"]["volcados"]) == 3
-    # del 27-08 y del 06-08 (26 dias); el del 27-07 ya no cuenta para el aviso
-    assert algun(d["avisos"], "2 volcados", "ultimos 30 dias", "2026-08-27 01:20")
+    assert [v["cierre"] for v in d["volcados"]["volcados"]] == ["reinicio"] * 3
+    # el NAS guarda un volcado en cada reinicio: uno ordenado no es un aviso (aunque sea reciente)
+    assert not algun(d["avisos"], "del kernel de los ultimos")
+
+
+def test_un_volcado_reciente_que_no_acaba_en_un_reinicio_ordenado_sale_en_los_avisos(tmp_path, monkeypatch):
+    monkeypatch.setattr(logs_srv, "ahora", lambda: datetime(2026, 10, 15, 9, 0))
+    roto = dato("volcados_hero").replace("pstore_1_202610142254.log 0 0\n[107055.898074] reboot: machine restart",
+                                         "pstore_1_202610142254.log 1 0\n[107055.898074] Kernel panic - not syncing")
+    h, _ = uno(tmp_path, cambios={lc.VOLCADOS.render(): roto})
+    d = datos(h.sistema_estado("hero"))
+    assert d["volcados"]["volcados"][0]["cierre"] == "fallo"
+    assert algun(d["avisos"], "1 volcado del kernel", "ultimos 30 dias", "ordenado", "fallo", "2026-10-14 22:54")
 
 
 def test_los_volcados_antiguos_se_listan_sin_aviso(tmp_path, monkeypatch):
-    monkeypatch.setattr(logs_srv, "ahora", lambda: datetime(2026, 10, 14, 20, 0))
-    h, _ = uno(tmp_path)
+    monkeypatch.setattr(logs_srv, "ahora", lambda: datetime(2026, 12, 20, 0, 0))
+    roto = dato("volcados_hero").replace("[107055.898074] reboot: machine restart", "[107055.898074] eth0: link up")
+    h, _ = uno(tmp_path, cambios={lc.VOLCADOS.render(): roto})
     d = datos(h.sistema_estado("hero"))
-    assert len(d["volcados"]["volcados"]) == 3
+    assert d["volcados"]["volcados"][0]["cierre"] == "sin_cierre"
     assert not algun(d["avisos"], "volcado")
 
 
-def test_un_solo_volcado_reciente_se_dice_en_singular(tmp_path, monkeypatch):
-    monkeypatch.setattr(logs_srv, "ahora", lambda: datetime(2026, 9, 20, 0, 0))
+def test_procesos_matados_por_falta_de_memoria_en_un_arranque_reciente_salen_en_los_avisos(tmp_path, monkeypatch):
+    monkeypatch.setattr(logs_srv, "ahora", lambda: datetime(2026, 9, 1, 12, 0))
     h, _ = uno(tmp_path)
     d = datos(h.sistema_estado("hero"))
-    assert algun(d["avisos"], "1 volcado del kernel", "2026-08-27 01:20")
+    # el de agosto (real) acabo en un reinicio ordenado, pero antes el kernel mato 15 procesos
+    assert algun(d["avisos"], "falta de memoria", "15", "2026-08-27 01:20")
+    assert not algun(d["avisos"], "ordenado")
 
 
 def test_un_motor_de_registro_parado_sale_en_los_avisos(tmp_path):

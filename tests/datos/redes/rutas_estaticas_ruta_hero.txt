@@ -1,0 +1,13 @@
+[global]
+custom_table_id = 19498
+dbversion = 0.0.1
+
+[static_route_1]
+family = 4
+ip = 198.51.100.0
+metric = 10
+netmask = 24
+nexthop_address = 192.0.2.1
+nexthop_if = interface0
+status = 1
+

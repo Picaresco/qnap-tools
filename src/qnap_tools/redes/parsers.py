@@ -7,6 +7,7 @@ ni una lista vacia por no haber entendido el texto. Solo devuelven vacio las ord
 que "no hay nada" es una respuesta valida (sin agregaciones, sin VLAN, sin vecinos, sin
 servidor DHCP, sin rutas estaticas).
 """
+import ipaddress
 import re
 
 from .comandos import LINEAS_LEASES, SERVICIOS_BLOQUEO
@@ -432,10 +433,26 @@ def vecinos(texto):
 
 
 def rutas_estaticas(texto):
-    """Secciones de staticroute.conf, salvo la general. Se devuelven tal cual: sin validar con
-    datos reales, ningun NAS de pruebas tenia rutas estaticas."""
-    return [{"seccion": nombre, "campos": campos}
-            for nombre, campos in _ini(texto, "staticroute.conf") if nombre != "global"]
+    """Rutas de staticroute.conf (una seccion por ruta, salvo la general). 'interfaz' es el
+    nombre interno de QNAP del adaptador (interface0, ...) y 'activa' su campo status."""
+    que = "staticroute.conf"
+    rutas = []
+    for nombre, campos in _ini(texto, que):
+        if nombre == "global":
+            continue
+        try:
+            red = ipaddress.ip_interface("%s/%s" % (campos["ip"], campos["netmask"]))
+            via = campos.get("nexthop_address") or None
+            metrica = campos.get("metric") or None
+            rutas.append({
+                "destino": "%s/%d" % (red.ip, red.network.prefixlen),
+                "via": str(ipaddress.ip_address(via)) if via else None,
+                "interfaz": _nombre_de_equipo(campos.get("nexthop_if") or ""),
+                "metrica": int(metrica) if metrica else None,
+                "activa": campos.get("status") == "1"})
+        except (KeyError, ValueError):
+            raise _no_reconocida(que, nombre)
+    return rutas
 
 
 # --- DNS y DHCP -------------------------------------------------------------------------------------
@@ -636,7 +653,20 @@ def _activo(texto, que):
 
 
 def qufirewall(texto):
-    return _activo(texto, "QuFirewall")
+    """Si el paquete esta activo, si el cortafuegos esta encendido y si tiene un perfil en uso
+    (sin QuFirewall.conf, las dos ultimas no se saben)."""
+    que = "QuFirewall"
+    estado = dict(_activo(texto, que), cortafuegos=None, perfil_activo=None)
+    encendido = re.search(r"^cortafuegos=(.*)$", texto, re.M)
+    if encendido:
+        valor = encendido.group(1).strip()
+        if valor not in ("", "0", "1"):
+            raise _no_reconocida(que, encendido.group(0))
+        estado["cortafuegos"] = None if valor == "" else valor == "1"
+    perfil = re.search(r"^perfil=(.*)$", texto, re.M)
+    if perfil:
+        estado["perfil_activo"] = bool(perfil.group(1).strip())
+    return estado
 
 
 # --- acceso remoto ----------------------------------------------------------------------------------------

@@ -1,34 +1,42 @@
 4096 1635186683 /etc/logs/QcloudSSLCertificate
 4096 1790030752 /etc/logs/SnapshotManager
 4096 1781122102 /etc/logs/codesigning
-2836480 1791945756 /etc/logs/conn.log
-1767424 1791939661 /etc/logs/event.log
-422526 1791939659 /etc/logs/kmsg
+2836480 1792011746 /etc/logs/conn.log
+56024 1792011753 /etc/logs/conn.log-journal
+1800192 1792011441 /etc/logs/event.log
+642673 1792011574 /etc/logs/kmsg
 366911 1790544037 /etc/logs/kmsg.1.gz
 383912 1787784330 /etc/logs/kmsg.2.gz
-4096 1791904231 /etc/logs/network
-301056 1791941400 /etc/logs/notice.log
-475312 1791909648 /etc/logs/nvs_event.log
+4096 1792011300 /etc/logs/network
+301056 1792011533 /etc/logs/notice.log
+512955 1792011602 /etc/logs/nvs_event.log
 2260 1781807128 /etc/logs/nvs_event.log.1
-540428 1791909648 /etc/logs/nvs_redis_event.log
+557916 1792011601 /etc/logs/nvs_redis_event.log
 1048566 1715630347 /etc/logs/nvs_redis_event.log.1
-79505 1790633819 /etc/logs/porter.log
-504645 1787786418 /etc/logs/pstore_1_202608270120.log
-103815 1785967235 /etc/logs/pstore_2_202608060000.log
-102873 1785179330 /etc/logs/pstore_3_202607272108.log
-5377 1790633819 /etc/logs/qid.log
+15178 1792011096 /etc/logs/porter.log
+126254 1792011253 /etc/logs/pstore_1_202610142254.log
+504645 1787786418 /etc/logs/pstore_2_202608270120.log
+103815 1785967235 /etc/logs/pstore_3_202608060000.log
+99050 1792011096 /etc/logs/qid.log
 4096 1635186612 /etc/logs/qlicense
 4096 1776680768 /etc/logs/qsgateway
 1443 1787786201 /etc/logs/qsgateway_rc.log
-4096 1791904319 /etc/logs/qsnaprep
+4096 1792011390 /etc/logs/qsnaprep
 4096 1635186880 /etc/logs/qsnapsync
 4096 1705834667 /etc/logs/qsync
 0 1635542297 /etc/logs/qsync_device.refresh_flag
-27244 1790633780 /etc/logs/qsys.log
-28254 1790573103 /etc/logs/qsys.log.1
-4096 1791939641 /etc/logs/rfsd
+36937 1792011057 /etc/logs/qsys.log
+27244 1790633780 /etc/logs/qsys.log.1
+4096 1792011575 /etc/logs/rfsd
 1665120 1790633819 /etc/logs/shutdown.log
-1620497 1790573142 /etc/logs/shutdown.log.1
-4096 1761768725 /etc/logs/storage_usage_history
+1578667 1792011096 /etc/logs/shutdown.log.1
+4096 1792009868 /etc/logs/storage_usage_history
 4096 1790573181 /etc/logs/zfs_logs
-126 1790633820 /etc/logs/.force_kill_in_shutdown.log
+126 1792011097 /etc/logs/.force_kill_in_shutdown.log
+==cierres
+==volcado pstore_1_202610142254.log 0 0
+[107055.898074] reboot: machine restart
+==volcado pstore_2_202608270120.log 0 15
+[13044.479532] reboot: machine restart
+==volcado pstore_3_202608060000.log 0 0
+[ 5795.604655] reboot: machine restart

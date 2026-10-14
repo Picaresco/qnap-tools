@@ -38,15 +38,16 @@ ETHTOOL = Comando("ethtool", "ethtool {iface}", {"iface": "interfaz"}, valida=no
 ETHTOOL_DRIVER = Comando("ethtool_driver", "ethtool -i {iface}", {"iface": "interfaz"}, valida=no_vacia)
 ETHTOOL_STATS = Comando("ethtool_stats", "ethtool -S {iface}", {"iface": "interfaz"}, valida=None)
 
-# Sin validar con datos reales: ningun NAS de pruebas tenia agregaciones activas ni VLAN.
+# Validado con una agregacion de dos puertos sin cable (active-backup) y con las de 802.3ad de
+# un QTS; una agregacion con enlace no se ha visto en real (el formato es el del kernel).
 BONDING = Comando(
     "bonding",
     "for f in /proc/net/bonding/*; do [ -f $f ] && echo == ${f##*/} && cat $f; done; true",
-    valida=None, no_probado=True)
+    valida=None)
 # El fichero de VLAN solo existe con el modulo cargado y solo lo lee root: si no existe no
 # hay VLAN (salida vacia); si existe y no se puede leer, es un error y no "no hay".
 VLAN = Comando("vlan", "[ ! -e /proc/net/vlan/config ] || cat /proc/net/vlan/config",
-               sudo=True, valida=rc_cero, no_probado=True)
+               sudo=True, valida=rc_cero)
 
 # --- conmutadores virtuales -------------------------------------------------------------
 
@@ -58,10 +59,13 @@ PUENTES_MAC = Comando("puentes_mac", "brctl showmacs {iface}", {"iface": "interf
 RUTAS = Comando("rutas", "ip route")
 REGLAS = Comando("reglas", "ip rule")
 VECINOS = Comando("vecinos", "ip neigh", valida=rc_cero)
+# La carpeta de la configuracion de red, como la elige el guion de red del NAS: con
+# /etc/QTS_ZFS_HA (QuTS hero) es /etc/config.local, y en /etc/config quedan copias viejas.
+CARPETA_RED = "c=/etc/config; [ ! -e /etc/QTS_ZFS_HA ] || c=/etc/config.local; "
 # Si el fichero no existe no hay rutas estaticas (salida vacia); si existe y no se puede leer
-# es un error, no "no hay".
+# es un error, no "no hay". El kernel las pone en la tabla custom_table_id, no en la principal.
 RUTAS_ESTATICAS = Comando(
-    "rutas_estaticas", "[ ! -e /etc/config/staticroute.conf ] || cat /etc/config/staticroute.conf",
+    "rutas_estaticas", CARPETA_RED + "[ ! -e $c/staticroute.conf ] || cat $c/staticroute.conf",
     valida=rc_cero)
 
 # --- DNS y DHCP -----------------------------------------------------------------------------
@@ -126,10 +130,15 @@ BLOQUEO_IP = Comando(
     + "; echo ==permitidas; cat /etc/config/ipsec_allow.conf 2>/dev/null"
     + "; echo ==denegadas; cat /etc/config/ipsec_deny.conf 2>/dev/null; true")
 
-# Solo si el paquete QuFirewall esta activo; sus reglas, si las hay, salen en IPTABLES.
-# Sin validar con datos reales: ningun NAS de pruebas lo tenia instalado.
+# Que el paquete QuFirewall este activo no quiere decir que el cortafuegos este encendido:
+# recien instalado sigue apagado y sin perfil (validado en el NAS de laboratorio). Eso lo dice
+# QuFirewall.conf ([Global] firewall_status y enable_profile); sus reglas salen en IPTABLES.
+QUFIREWALL_CONF = "/etc/config/QuFirewall.conf"
 QUFIREWALL = Comando(
-    "qufirewall", "echo activo=$(getcfg QuFirewall Enable -f /etc/config/qpkg.conf)", no_probado=True)
+    "qufirewall",
+    "echo activo=$(getcfg QuFirewall Enable -f /etc/config/qpkg.conf); "
+    "[ ! -e %(f)s ] || echo cortafuegos=$(getcfg Global firewall_status -f %(f)s); "
+    "[ ! -e %(f)s ] || echo perfil=$(getcfg Global enable_profile -f %(f)s)" % {"f": QUFIREWALL_CONF})
 
 # --- acceso remoto ----------------------------------------------------------------------------------
 
@@ -137,11 +146,11 @@ QUFIREWALL = Comando(
 # el resto (usuario, URL de actualizacion) no sale del NAS.
 DDNS = Comando(
     "ddns",
-    "echo ==myqnapcloud; "
+    CARPETA_RED + "echo ==myqnapcloud; "
     + _campos("/etc/config/qnapddns.conf", [
         ("QNAP DDNS Service", "Enable"), ("QNAP DDNS Service", "Host Name"),
         ("QNAP DDNS Service", "Domain Name Server")])
-    + "; echo ==ddns; grep -E '^\\[|^(enable|hostname) *=' /etc/config/ddns.conf 2>/dev/null; true")
+    + "; echo ==ddns; grep -E '^\\[|^(enable|hostname) *=' $c/ddns.conf 2>/dev/null; true")
 UPNP = Comando("upnp", "echo activo=$(getcfg 'UPnP Service' Enable -f %s)" % ULINUX)
 # Solo si el paquete QVPN esta activo. Los tuneles levantados salen de ENLACES; la
 # configuracion de las VPN son claves y no se lee.

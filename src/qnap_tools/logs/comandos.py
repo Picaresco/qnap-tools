@@ -191,11 +191,17 @@ MOTORES = Comando(
     timeout=20, valida=rc_cero)
 
 # Los ficheros de /etc/logs con su tamano y su fecha: los volcados del kernel que guarda pstore
-# tras un cuelgue (pstore_N_AAAAMMDDhhmm.log) y el registro de procesos matados al apagar.
+# (pstore_N_AAAAMMDDhhmm.log) y el registro de procesos matados al apagar. Un volcado es la
+# consola del arranque anterior y el NAS lo guarda en CADA reinicio en caliente, tambien en uno
+# ordenado (visto en nas1): tras "==cierres" va, de cada uno, cuantas lineas de fallo del
+# kernel y de procesos matados por falta de memoria tiene, y su ultima linea, que dice como acabo.
 VOLCADOS = Comando(
     "volcados",
     "stat -c '%s %Y %n' /etc/logs/*; [ ! -e /etc/logs/.force_kill_in_shutdown.log ] "
-    "|| stat -c '%s %Y %n' /etc/logs/.force_kill_in_shutdown.log",
+    "|| stat -c '%s %Y %n' /etc/logs/.force_kill_in_shutdown.log; echo ==cierres; "
+    "ls /etc/logs | grep -E '^pstore_[0-9]+_[0-9]+[.]log$' | while read -r f; do "
+    "echo ==volcado $f $(grep -c -E 'Kernel panic|Oops:|BUG:' /etc/logs/$f) "
+    "$(grep -c 'invoked oom-killer' /etc/logs/$f); tail -n 1 /etc/logs/$f | cut -c1-200; done",
     timeout=20, valida=rc_cero)
 
 # --- alertas ---------------------------------------------------------------------------------------

@@ -1,0 +1,3 @@
+activo=TRUE
+cortafuegos=1
+perfil=perfil1

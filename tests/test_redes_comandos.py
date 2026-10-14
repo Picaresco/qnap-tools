@@ -71,7 +71,7 @@ def test_solo_estos_comandos_van_con_sudo():
 
 
 def test_las_funciones_sin_validar_con_datos_reales_estan_marcadas():
-    assert {n for n, c in todos().items() if c.no_probado} == {"BONDING", "VLAN", "QUFIREWALL"}
+    assert {n for n, c in todos().items() if c.no_probado} == set()
 
 
 def test_vlan_distingue_que_no_haya_de_que_no_se_pueda_leer():
@@ -81,9 +81,18 @@ def test_vlan_distingue_que_no_haya_de_que_no_se_pueda_leer():
     assert rc.VLAN.valida(1, "") is not None
 
 
-def test_rutas_estaticas_distingue_que_no_haya_de_que_no_se_pueda_leer():
+def test_rutas_estaticas_y_ddns_se_leen_de_donde_las_guarda_el_nas():
+    # visto en el NAS de laboratorio (2026-10-14): con /etc/QTS_ZFS_HA (QuTS hero) el guion de red
+    # del NAS guarda staticroute.conf y ddns.conf en /etc/config.local, y /etc/config tiene copias
+    # viejas; sin ese fichero (QTS), en /etc/config
+    elegir = "c=/etc/config; [ ! -e /etc/QTS_ZFS_HA ] || c=/etc/config.local; "
     assert rc.RUTAS_ESTATICAS.plantilla == (
-        "[ ! -e /etc/config/staticroute.conf ] || cat /etc/config/staticroute.conf")
+        elegir + "[ ! -e $c/staticroute.conf ] || cat $c/staticroute.conf")
+    assert rc.DDNS.plantilla.startswith(elegir) and "$c/ddns.conf" in rc.DDNS.plantilla
+    assert "/etc/config/ddns.conf" not in rc.DDNS.plantilla
+
+
+def test_rutas_estaticas_distingue_que_no_haya_de_que_no_se_pueda_leer():
     assert rc.RUTAS_ESTATICAS.valida(0, "") is None
     assert rc.RUTAS_ESTATICAS.valida(1, "") is not None
 

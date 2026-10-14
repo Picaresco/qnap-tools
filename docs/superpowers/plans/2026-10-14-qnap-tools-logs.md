@@ -231,3 +231,19 @@ Resueltos en la 0.4.1 (2026-10-14): M6 (solo se avisa de los volcados de los ult
 - Final: minor (deferred): M7 kernel es todo o nada por KMSG_LINEAS; sensores, por cualquier campo.
 - Final: minor (deferred): M8 KMSG_NIVELES (campo 4) y KMSG_LINEAS (patron en toda la linea) cuentan con criterios distintos.
 - Final: minor (deferred): M9 pasada real por nas3 de las 8 herramientas pendiente (VPN caida); tiempos de eventos_resumen y accesos en un QTS grande sin medir.
+
+### Validacion con un reinicio de nas1 (2026-10-14, version 0.4.2)
+
+- Falso aviso hallado al reiniciar nas1 desde la web: el NAS guarda un `pstore_N_*.log` (la
+  consola del arranque anterior) en CADA reinicio en caliente, tambien en uno ordenado; los tres
+  de nas1 acaban en `reboot: machine restart`. `sistema_estado` los daba por "volcados tras
+  cuelgues". Arreglo: VOLCADOS anade una seccion `==cierres` con, de cada .log, las lineas de
+  fallo (`Kernel panic|Oops:|BUG:`), las de `invoked oom-killer` y la ultima linea; cada volcado
+  lleva `cierre` (reinicio, apagado, fallo, sin_cierre; None si no es .log) y solo se avisa del
+  que no acaba en orden o del arranque con procesos matados por falta de memoria (el de agosto
+  de nas1: 15). Pruebas RED->GREEN (parser y servidor); `volcados_hero.txt` recapturado; la
+  seccion de cierres de `volcados_qts.txt` esta escrita a mano (sin acceso a los QTS).
+  `test_real_logs` ok; efectos `--producto logs` en nas1: 22 ordenes, 0 confirmadas
+  (`efectos_producto_logs_042.json`).
+- Validado de paso tras el arranque: motores de registro parados los primeros minutos (aviso
+  correcto, arrancan solos).

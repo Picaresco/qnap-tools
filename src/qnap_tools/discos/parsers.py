@@ -364,6 +364,7 @@ MILES = {"": 1, "K": 10 ** 3, "M": 10 ** 6, "G": 10 ** 9, "T": 10 ** 12}
 SECCION_PROG = re.compile(r"^\[(Global|Retention|Schedule)([0-9]*)\]$")
 LINEA_JSON = re.compile(r'^( *)"([^"]+)":(.*)$')
 LISTAS_ISCSI = {"target": "destinos", "lun": "lun", "initiator": "iniciadores"}
+GIB = 2 ** 30                       # la capacidad de un LUN de QuTS hero va en GiB
 SIN_CONTROL = re.compile(r"[\x00-\x1f\x7f]")
 
 
@@ -595,53 +596,95 @@ def snapshots_prog(texto):
     return resultado
 
 
+def _arbol_iscsi(lineas, que):
+    """Lineas '"clave":valor' con la sangria del fichero (2 espacios por nivel) -> diccionario
+    anidado. La orden solo saca las claves elegidas: una linea cuyo padre no salio se descarta,
+    con lo que cuelga de ella, si esta dentro de una entrada numerada; si no, es un error."""
+    raiz = {}
+    pila = [(0, raiz)]                              # (sangria de la clave, su diccionario)
+    for linea in lineas:
+        m = LINEA_JSON.match(linea)
+        if not m or len(m.group(1)) < 2 or len(m.group(1)) % 2:
+            raise _no_reconocida(que, linea)
+        sangria, clave, crudo = len(m.group(1)), m.group(2), m.group(3).strip().rstrip(",")
+        while pila[-1][0] >= sangria:
+            pila.pop()
+        nivel, padre = pila[-1]
+        if padre is None or nivel != sangria - 2:    # su padre no salio en la orden
+            if padre is not None and nivel < 4:
+                raise _no_reconocida(que, linea)
+            if crudo == "{":
+                pila.append((sangria, None))
+        elif crudo == "{":
+            padre[clave] = {}
+            pila.append((sangria, padre[clave]))
+        else:
+            padre[clave] = {} if crudo == "{}" else _json(crudo, que)
+    return raiz
+
+
+def _entrada_iscsi(seccion, numero, campos, que):
+    if not numero.isdigit() or not isinstance(campos, dict):
+        raise _no_reconocida(que, numero)
+
+    def texto(clave, maximo):
+        valor = campos.get(clave)
+        return None if valor is None else _acotado(str(valor), maximo)
+
+    def entero(clave):
+        valor = campos.get(clave)
+        return None if valor is None else _entero(str(valor), clave)
+
+    entrada = {"id": int(numero), "nombre": texto("name", MAX_NOMBRE), "alias": texto("alias", MAX_TEXTO)}
+    if seccion == "target":
+        habilitado, lun = entero("target_enable"), campos.get("target_lun") or {}
+        portales = campos.get("interfaces")
+        entrada.update({
+            "activo": None if habilitado is None else habilitado == 1, "estado": entero("status"),
+            "portales": [_acotado(x, MAX_NOMBRE) for x in str(portales or "").split(",") if x],
+            "lun": [_acotado(str(x.get("name")), MAX_NOMBRE) for x in lun.values() if isinstance(x, dict)],
+            "acl_iniciador": _entero(str(campos["acl_group"]["initiator_id"]), "initiator_id")
+            if isinstance(campos.get("acl_group"), dict) and "initiator_id" in campos["acl_group"] else None})
+    elif seccion == "lun":
+        capacidad, fino = entero("capacity"), campos.get("thin")
+        entrada.update({
+            "capacidad": None if capacidad is None else capacidad * GIB,
+            "fino": fino if isinstance(fino, bool) else None, "estado": entero("status"),
+            "dataset": texto("blkdev_name", MAX_NOMBRE)})
+    return entrada
+
+
 def zfs_iscsi(texto):
     """Las claves elegidas de los dos JSON de iSCSI de QuTS hero, tal como las da la orden: una
-    por linea, con la sangria del fichero (2 espacios por nivel)."""
+    por linea, con la sangria del fichero (2 espacios por nivel). Validado con un destino y un
+    LUN reales."""
     que = "la configuracion de iSCSI"
     resultado = {"servicio": None, "destinos": [], "lun": [], "iniciadores": []}
-    en_fichero, lineas, seccion, entrada = False, 0, None, None
-
-    def cierra():
-        if en_fichero and not lineas:
-            raise _no_reconocida(que, "fichero sin ninguna clave reconocida")
-
+    ficheros = []
     for linea in _lineas(texto):
         if linea.startswith("== "):
-            cierra()
-            en_fichero, lineas, seccion, entrada = True, 0, None, None
-            continue
-        m = LINEA_JSON.match(linea)
-        if not m or not en_fichero:
+            ficheros.append([])
+        elif not ficheros:
             raise _no_reconocida(que, linea)
-        lineas += 1
-        sangria, clave, crudo = len(m.group(1)), m.group(2), m.group(3).strip().rstrip(",")
-        if sangria == 2:
-            seccion, entrada = clave, None
-            if clave == "portal":
-                resultado["servicio"] = {"activo": None, "puerto": None, "prefijo_iqn": None}
-            elif clave not in LISTAS_ISCSI:
-                raise _no_reconocida(que, linea)
-        elif sangria == 4 and seccion == "portal":
-            valor = _json(crudo, que)
-            if clave == "service_enable":
-                resultado["servicio"]["activo"] = bool(valor)
-            elif clave == "service_port":
-                resultado["servicio"]["puerto"] = _entero(str(valor), "el puerto")
-            elif clave == "iqn_prefix":
-                resultado["servicio"]["prefijo_iqn"] = _acotado(valor, MAX_NOMBRE)
-        elif sangria == 4 and seccion in LISTAS_ISCSI and clave.isdigit():
-            entrada = {"id": int(clave), "nombre": None, "alias": None}
-            resultado[LISTAS_ISCSI[seccion]].append(entrada)
-        elif sangria == 6 and entrada is not None:
-            valor = _json(crudo, que)
-            if clave == "name":
-                entrada["nombre"] = _acotado(valor, MAX_NOMBRE)
-            elif clave == "alias":
-                entrada["alias"] = _acotado(valor, MAX_TEXTO)
         else:
-            raise _no_reconocida(que, linea)
-    cierra()
+            ficheros[-1].append(linea)
+    for lineas in ficheros:
+        arbol = _arbol_iscsi(lineas, que)
+        if not arbol:
+            raise _no_reconocida(que, "fichero sin ninguna clave reconocida")
+        for seccion, contenido in arbol.items():
+            if seccion == "portal" and isinstance(contenido, dict):
+                activo, puerto = contenido.get("service_enable"), contenido.get("service_port")
+                prefijo = contenido.get("iqn_prefix")
+                resultado["servicio"] = {
+                    "activo": None if activo is None else bool(activo),
+                    "puerto": None if puerto is None else _entero(str(puerto), "el puerto"),
+                    "prefijo_iqn": None if prefijo is None else _acotado(str(prefijo), MAX_NOMBRE)}
+            elif seccion in LISTAS_ISCSI and isinstance(contenido, dict):
+                resultado[LISTAS_ISCSI[seccion]].extend(
+                    _entrada_iscsi(seccion, numero, campos, que) for numero, campos in contenido.items())
+            else:
+                raise _no_reconocida(que, seccion)
     return resultado
 
 

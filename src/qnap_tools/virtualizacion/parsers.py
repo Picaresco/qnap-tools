@@ -21,7 +21,11 @@ MAX_RUTA = 400
 SIN_CONTROL = re.compile(r"[\x00-\x1f\x7f]")
 # virDomainState de libvirt
 ESTADOS_VM = {0: "sin estado", 1: "en marcha", 2: "bloqueada", 3: "en pausa", 4: "apagandose",
-              5: "apagada", 6: "caida", 7: "suspendida"}
+              5: "apagada", 6: "caida", 7: "en reposo"}
+# La "suspension" de Virtualization Station guarda la memoria en disco y para la VM: libvirt la
+# da por apagada (5) con el motivo "guardada" (VIR_DOMAIN_SHUTOFF_SAVED = 5). Visto en el NAS
+# de laboratorio; una apagada normal tiene el motivo 0.
+APAGADA, GUARDADA = 5, 5
 MEMORIA = {"MemTotal": "total", "MemFree": "libre", "MemAvailable": "disponible",
            "SwapTotal": "intercambio", "SwapFree": "intercambio_libre"}
 SOCKETS = {"/QVS/var/run/libvirt/libvirt-sock-ro": "libvirt", "/var/run/docker.sock": "docker",
@@ -156,8 +160,11 @@ def vm_estadisticas(texto):
         if "state.state" not in c:
             raise _no_reconocida(que, "VM %s sin estado" % uuid)
         codigo = _entero(c["state.state"], "el estado")
+        estado = ESTADOS_VM.get(codigo, "estado %d" % codigo)
+        if codigo == APAGADA and _numero(c, "state.reason", "el motivo del estado") == GUARDADA:
+            estado = "suspendida"
         vms.append({
-            "uuid": uuid, "estado": ESTADOS_VM.get(codigo, "estado %d" % codigo), "estado_codigo": codigo,
+            "uuid": uuid, "estado": estado, "estado_codigo": codigo,
             "cpu_ns": _numero(c, "cpu.time"), "vcpus": _numero(c, "vcpu.current"),
             "memoria": _kib(c, "balloon.current"), "memoria_max": _kib(c, "balloon.maximum"),
             "memoria_residente": _kib(c, "balloon.rss"),
@@ -554,6 +561,12 @@ def _puertos(texto, que):
     return puertos
 
 
+def _nombre_propio(nombres):
+    """Names de docker ps: si otro contenedor lo enlaza con --link, trae tambien "otro/alias"."""
+    propios = [n for n in nombres.split(",") if n and "/" not in n]
+    return propios[0] if propios else nombres
+
+
 def ct_lista(texto):
     """docker ps -a: cada contenedor con su imagen, estado, salud, puertos, redes y proyecto."""
     que = "la lista de contenedores"
@@ -562,7 +575,7 @@ def ct_lista(texto):
         nombre, imagen, estado, detalle, puertos, redes, creado, proyecto = _columnas(linea, 8, que)
         salud, salida = SALUD.search(detalle), SALIDA.match(detalle)
         contenedores.append({
-            "nombre": _acotado(nombre, MAX_NOMBRE), "imagen": _acotado(imagen, MAX_NOMBRE), "estado": estado,
+            "nombre": _acotado(_nombre_propio(nombre), MAX_NOMBRE), "imagen": _acotado(imagen, MAX_NOMBRE), "estado": estado,
             "detalle": _acotado(detalle, MAX_NOMBRE),
             "salud": salud.group(1).replace("health: ", "") if salud else None,
             "salida": int(salida.group(1)) if salida else None, "puertos": _puertos(puertos, que),

@@ -88,6 +88,21 @@ def test_un_estado_que_no_se_conoce_se_da_con_su_codigo():
     assert (vm["estado"], vm["estado_codigo"], vm["memoria"]) == ("estado 42", 42, None)
 
 
+def test_una_vm_suspendida_por_virtualization_station_no_sale_como_apagada():
+    # visto en el NAS de laboratorio (2026-10-14): la "suspension" de VS guarda la memoria en disco
+    # y libvirt da la VM por apagada (5) con el motivo 5, "guardada"; una apagada normal, motivo 0
+    (vm,) = p.vm_estadisticas(URI + "Domain: '%s'\n  state.state=5\n  state.reason=5\n" % VM1)
+    assert (vm["estado"], vm["estado_codigo"]) == ("suspendida", 5)
+    (vm,) = p.vm_estadisticas(URI + "Domain: '%s'\n  state.state=5\n  state.reason=0\n" % VM1)
+    assert vm["estado"] == "apagada"
+
+
+def test_un_invitado_dormido_en_memoria_no_se_confunde_con_una_suspendida():
+    # escrito a mano: el estado 7 de libvirt es el invitado en reposo (S3), no la suspension de VS
+    (vm,) = p.vm_estadisticas(URI + "Domain: '%s'\n  state.state=7\n  state.reason=0\n" % VM1)
+    assert (vm["estado"], vm["estado_codigo"]) == ("en reposo", 7)
+
+
 def test_sin_vms_la_lista_esta_vacia_pero_sin_respuesta_de_libvirt_es_un_error():
     assert p.vm_estadisticas(URI) == []
     # sin la conexion al libvirt del sistema la orden no dice a quien pregunto: no es "no hay"
@@ -460,6 +475,17 @@ def test_los_puertos_expuestos_sin_publicar_y_los_rangos():
         {"anfitrion": "::", "puerto": "8443", "interno": "443", "protocolo": "tcp"},
         {"anfitrion": "0.0.0.0", "puerto": "9000-9002", "interno": "9000-9002", "protocolo": "udp"}]
     assert (c["salud"], c["proyecto"], c["salida"]) == ("starting", None, None)
+
+
+def test_un_contenedor_enlazado_con_link_sale_con_su_nombre():
+    # visto en el NAS de laboratorio (2026-10-14): si otro contenedor lo enlaza con --link, docker ps
+    # da en Names tambien el alias del enlace ("otro/alias"); el nombre es el que no lleva barra
+    linea = ("prueba-base,prueba-enlace/base\tredis:7-alpine\trunning\tUp 8 seconds (unhealthy)\t6379/tcp\t"
+             "bridge\t2026-10-14 21:47:01 +0200 CEST\t\n")
+    (c,) = p.ct_lista(linea)
+    assert c["nombre"] == "prueba-base"
+    (c,) = p.ct_lista(linea.replace("prueba-base,prueba-enlace/base", "prueba-enlace/base,prueba-base"))
+    assert c["nombre"] == "prueba-base"
 
 
 def test_la_lista_de_contenedores_llega_con_el_texto_acotado():

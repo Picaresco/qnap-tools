@@ -563,6 +563,14 @@ lo que corrigio la revision final y lo que queda aplazado.
 
 Resueltos en la 0.4.1 (2026-10-14): M1 (las herramientas corren en un hilo), M7 (cryptography declarada), M10 (ToolAnnotations: readOnlyHint en las de consulta). Ya no aplican: M9 (se lanza desde PyPI) y M13 (la publicacion cambia esos datos).
 
+Validado en nas1 con una ruta creada desde la web (2026-10-14): las rutas estaticas NO se veian. En QuTS hero `/etc/config` es el dataset ZFS `zfsSync` y el guion de red del NAS (`/etc/init.d/network.sh`), si existe `/etc/QTS_ZFS_HA`, guarda nm.conf, staticroute.conf, staticroute6.conf y ddns.conf en `/etc/config.local` (= `/mnt/HDA_ROOT/.config`); en `/etc/config` quedan copias viejas. RUTAS_ESTATICAS y DDNS eligen ya la carpeta igual que ese guion; las rutas salen con destino, puerta, adaptador (nombre interno, interface0), metrica y si estan activas, y dejan de ser no_probado. El kernel las pone en la tabla custom_table_id (19498), no en la principal. Sin cubrir: las rutas IPv6 (staticroute6.conf).
+
+VLAN validada en nas1 (2026-10-14, VLAN 10 sobre eth1 desde la web): /proc/net/vlan/config da `eth1.10 | 10 | eth1` y el parser la lee bien; deja de ser no_probado. La interfaz eth1.10 salia con tipo "otra": ahora "vlan".
+
+Agregacion validada en nas1 (2026-10-14, Port Trunking active-backup con eth2 y eth3, sin cable): el parser lee bien modo, estado y miembros; con las de 802.3ad ya vistas en nas3 deja de ser no_probado. Sin ver en real: una agregacion con enlace (activa, velocidad). Al deshacerla, QNAP deja el dispositivo bond0 vacio en active-backup (antes round-robin).
+
+QuFirewall validado en nas1 (2026-10-14, 2.6.1.1087 instalado desde App Center, perfil "Include subnets only" y desinstalado): recien instalado el paquete esta activo (qpkg.conf Enable=TRUE) pero el cortafuegos esta APAGADO y sin perfil hasta pasar el asistente, y el plugin decia "activo: true". Ahora lee ademas /etc/config/QuFirewall.conf ([Global] firewall_status 0/1 y enable_profile, un UUID; los nombres de perfil estan en una base SQLite del paquete y no se leen) y cuenta las reglas de la cadena QUFIREWALL de iptables (16 con ese perfil). Deja de ser no_probado; ya no queda nada no_probado en redes. Al desinstalarlo quedan la cadena QUFIREWALL vacia y el salto desde INPUT hasta el siguiente arranque.
+
 - Final: minor (deferred): M1 las herramientas son sincronas y FastMCP las ejecuta en su bucle principal: el servidor no atiende otra cosa mientras dura una consulta larga.
 - Final: minor (deferred): M5 rutas con "via inet6 <ip>" dan via="inet6"; eth0.10 y bond0.10 salen como tipo "otra".
 - Final: minor (deferred): M6 listas sin tope: permitidas/denegadas de bloqueo_ip, interfaces por puente, agregaciones, vlan; tampoco hay tope de memoria para la salida de una orden.

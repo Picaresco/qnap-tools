@@ -31,7 +31,7 @@ SOLO_QTS = {"MDSTAT", "MD_SYS", "RAID_CONF", "VOLUMENES_CONF", "LVM_CONF", "DM_E
             "SNAPSHOTS_PROG_QTS", "ISCSI_QTS"}
 CON_SUDO = {"DISCOS_SALUD", "SMART_TODOS", "SMART_ATRIBUTOS", "DM_ESTADO"}
 # se leen con el formato visto, pero ningun NAS de pruebas tenia con que validarlas
-NO_PROBADO = {"LUNS_HERO", "ISCSI_QTS"}
+NO_PROBADO = {"ISCSI_QTS"}
 SH = shutil.which("sh")
 
 
