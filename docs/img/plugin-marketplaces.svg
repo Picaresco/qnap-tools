@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="392" viewBox="0 0 1000 392" role="img" aria-label="Claude Code, /plugin, pestaña Marketplaces con qnap-tools elegido">
+<title>Claude Code, /plugin, pestaña Marketplaces con qnap-tools elegido</title>
+<rect x="0.5" y="0.5" width="999" height="391" rx="10" fill="#0c0c0c" stroke="#3a3a3a"/>
+<rect x="0.5" y="0.5" width="999" height="30" rx="10" fill="#1f1f1f"/><rect x="0.5" y="20" width="999" height="11" fill="#1f1f1f"/>
+<text x="16" y="20" fill="#8a8a8a" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12">Claude Code  /plugin</text>
+<g font-family="Cascadia Mono, Consolas, DejaVu Sans Mono, Menlo, monospace" font-size="15">
+<text x="28.0" y="64.0" fill="#cccccc" textLength="63.0" lengthAdjust="spacingAndGlyphs">Plugins</text>
+<text x="109.0" y="64.0" fill="#cccccc" textLength="72.0" lengthAdjust="spacingAndGlyphs">Discover</text>
+<text x="208.0" y="64.0" fill="#cccccc" textLength="81.0" lengthAdjust="spacingAndGlyphs">Installed</text>
+<rect x="312.0" y="48.0" width="116.0" height="22" fill="#d6d6d6"/>
+<text x="316.0" y="64.0" fill="#0c0c0c" textLength="108.0" lengthAdjust="spacingAndGlyphs">Marketplaces</text>
+<text x="451.0" y="64.0" fill="#cccccc" textLength="54.0" lengthAdjust="spacingAndGlyphs">Errors</text>
+<text x="532.0" y="64.0" fill="#cccccc" textLength="45.0" lengthAdjust="spacingAndGlyphs">Stats</text>
+<text x="28.0" y="108.0" fill="#cccccc" textLength="171.0" lengthAdjust="spacingAndGlyphs">Manage marketplaces</text>
+<text x="46.0" y="152.0" fill="#cccccc" textLength="153.0" lengthAdjust="spacingAndGlyphs">+ Add Marketplace</text>
+<text x="46.0" y="196.0" fill="#8a8a8a" textLength="225.0" lengthAdjust="spacingAndGlyphs">● claude-plugins-official</text>
+<text x="64.0" y="218.0" fill="#8a8a8a" textLength="306.0" lengthAdjust="spacingAndGlyphs">anthropics/claude-plugins-official</text>
+<text x="64.0" y="240.0" fill="#8a8a8a" textLength="441.0" lengthAdjust="spacingAndGlyphs">315 available • 30 installed • Updated 14/10/2026</text>
+<text x="28.0" y="284.0" fill="#5cb8ff" textLength="9.0" lengthAdjust="spacingAndGlyphs" font-weight="bold">❯</text>
+<text x="46.0" y="284.0" fill="#cccccc" textLength="108.0" lengthAdjust="spacingAndGlyphs" font-weight="bold">● qnap-tools</text>
+<text x="64.0" y="306.0" fill="#cccccc" textLength="180.0" lengthAdjust="spacingAndGlyphs">Picaresco/qnap-tools</text>
+<text x="64.0" y="328.0" fill="#cccccc" textLength="414.0" lengthAdjust="spacingAndGlyphs">1 available • 1 installed • Updated 14/10/2026</text>
+<text x="28.0" y="372.0" fill="#8a8a8a" textLength="540.0" lengthAdjust="spacingAndGlyphs">Enter to select · u to update · d to remove · Esc to go back</text>
+<polyline points="371.0,72.0 371.0,81.0 700.0,81.0" fill="none" stroke="#5cb8ff" stroke-width="2" stroke-dasharray="5 4"/><circle cx="371.0" cy="72.0" r="4" fill="#5cb8ff"/><rect x="700.0" y="66.0" width="280" height="30" rx="6" fill="#5cb8ff"/><text x="712.0" y="86.0" fill="#06121c" font-weight="bold" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14">1. Pestaña Marketplaces (flechas)</text>
+<polyline points="164.0,279.0 164.0,279.0 700.0,279.0" fill="none" stroke="#5cb8ff" stroke-width="2" stroke-dasharray="5 4"/><circle cx="164.0" cy="279.0" r="4" fill="#5cb8ff"/><rect x="700.0" y="264.0" width="280" height="30" rx="6" fill="#5cb8ff"/><text x="712.0" y="284.0" fill="#06121c" font-weight="bold" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14">2. Elige qnap-tools y pulsa Enter</text>
+</g>
+</svg>

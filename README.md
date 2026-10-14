@@ -65,6 +65,21 @@ at the latest version"). Se conservan el usuario, la contraseña, el inventario 
 claves. `claude plugin list` dice qué versión está instalada; las novedades de cada una están en
 las [releases](https://github.com/Picaresco/qnap-tools/releases).
 
+#### Que se actualice solo
+
+Claude Code solo actualiza por su cuenta los marketplaces oficiales de Anthropic; los de terceros,
+como este, no, y un marketplace no puede pedirlo. Se activa una vez en cada ordenador, dentro de
+Claude Code: `/plugin` → pestaña **Marketplaces** → `qnap-tools` → **Enable auto-update**.
+
+![Claude Code, /plugin: pestaña Marketplaces con qnap-tools elegido](docs/img/plugin-marketplaces.svg)
+
+![Claude Code, /plugin: marketplace qnap-tools con la opción Enable auto-update](docs/img/plugin-auto-update.svg)
+
+Desde entonces, al empezar cada sesión (tras el primer mensaje y con un retraso de hasta 10
+minutos) Claude Code refresca el marketplace y descarga la versión nueva. La sesión en curso
+sigue con la que tenía: la nueva entra al reiniciar Claude Code o con `/reload-plugins`. En el
+mismo sitio se desactiva (**Disable auto-update**).
+
 Si tras actualizar `/mcp` da los servidores sin conectar y, lanzado a mano, `uvx` dice que no
 existe esa versión de `qnap-tools`, es la caché de `uv` con el índice de PyPI de antes de
 publicarse: `uvx --refresh-package qnap-tools --from qnap-tools==<versión> qnap-tools-flota`
