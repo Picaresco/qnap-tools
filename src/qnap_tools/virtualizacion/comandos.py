@@ -98,6 +98,18 @@ VM_SNAP_VS = Comando(
     "[ ! -d \"$m/snapshot\" ] || ls \"$m/snapshot\"; done; done" % (TODAS, VIRSH),
     timeout=40, valida=rc_cero)
 
+# Memoria guardada de cada VM: la "suspension" de VS la guarda en <carpeta de metadatos>/<uuid>.state.
+# libvirt dice "apagada, guardada" mientras no se reinicia; tras un reinicio del NAS solo dice
+# "apagada" y lo unico que queda es ese fichero (visto en el NAS de laboratorio).
+VM_GUARDADAS = Comando(
+    "vm_guardadas",
+    URI + "for d in %s; do echo \"== $d\"; "
+    "%s dumpxml $d | grep -o -E '<qvs:meta_path.[^<]+' | cut -c16- | while read -r m; do "
+    "[ -d \"$m\" ] || echo '!! sin carpeta de metadatos'; "
+    "[ ! -f \"$m/$d.state\" ] || stat -c 'guardada %%s %%Y' \"$m/$d.state\"; done; done"
+    % (TODAS, VIRSH),
+    timeout=40, valida=rc_cero)
+
 # --- contenedores (Container Station) -----------------------------------------------------------
 
 # La carpeta de Container Station cambia de un NAS a otro: sale de la configuracion del paquete.

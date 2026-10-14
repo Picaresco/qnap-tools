@@ -21,7 +21,7 @@ VETADO = re.compile(
     r"\blxc\b|\bcurl\b|\bwget\b|sqlite|screenshot|qemu-agent|guestinfo|--source agent|"
     r"\bdu |\bfind |ls -[A-Za-z]*R|\.Config\.Env|\.Config\.Cmd|\.Args|\.Path\b|\{\{ *json *\. *\}\}")
 DE_VM = {"ANFITRION", "VM_ESTADISTICAS", "VM_XML", "VM_IP", "VM_USO", "VM_IMAGENES", "VM_SNAP_LIBVIRT",
-         "VM_SNAP_VS"}
+         "VM_SNAP_VS", "VM_GUARDADAS"}
 DE_CONTENEDORES = {"CT_INFO", "CT_LISTA", "CT_COMPOSE", "CT_DETALLE", "CT_STATS", "CT_LOGS",
                    "CT_REDES", "CT_INTERNOS", "CT_LXD"}
 CON_SUDO = {"CT_LXD"}          # las carpetas de LXD solo las lee root

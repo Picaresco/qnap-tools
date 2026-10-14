@@ -42,7 +42,7 @@ claude plugin install qnap-tools@qnap-tools
 ```
 
 Cada servidor se lanza con `uvx` desde PyPI con la versión exacta del plugin
-(`uvx --from qnap-tools==0.4.2 qnap-tools-redes`, etc.); `uv` lo descarga y lo deja en su caché
+(`uvx --from qnap-tools==0.4.3 qnap-tools-redes`, etc.); `uv` lo descarga y lo deja en su caché
 la primera vez, y no vuelve a consultar PyPI en cada arranque.
 
 Al activarlo, Claude Code pide el **usuario SSH** y su **contraseña**. Se cambian después en
@@ -162,7 +162,7 @@ nada.
 |---|---|
 | `virtualizacion_resumen` | Si Virtualization Station y Container Station están activos y con su servicio en marcha, CPU y memoria del NAS, cuántas máquinas virtuales y contenedores hay y en qué estado, vCPU y memoria asignadas a las máquinas en marcha, y los `avisos`: servicio parado, máquina suspendida, en pausa o caída, contenedor reiniciándose o que no pasa su comprobación de salud, más memoria asignada que la del NAS |
 | `vm_lista` | Cada máquina virtual, también las apagadas: nombre, UUID, estado, vCPU, memoria, sistema declarado, arranque automático y discos |
-| `vm_detalle` | Una máquina (`vm`: nombre o UUID): descripción, firmware, TPM, orden de arranque, discos con su fichero, formato, tamaño y capas, interfaces con MAC, modelo y conmutador virtual, direcciones IP que el NAS conozca y consola (nunca su clave) |
+| `vm_detalle` | Una máquina (`vm`: nombre o UUID): descripción, firmware, TPM, orden de arranque, discos con su fichero, formato, tamaño y capas, interfaces con MAC, modelo y conmutador virtual, direcciones IP que el NAS conozca, consola (nunca su clave) y, si está suspendida, cuánto ocupa su memoria guardada y desde cuándo |
 | `vm_uso` | Consumo de las máquinas en marcha medido durante 5 segundos: CPU, memoria y actividad de cada disco y de cada interfaz de red |
 | `vm_snapshots` | Instantáneas de cada máquina con su fecha y si guardan la memoria, y la cadena de imágenes de cada disco con lo que ocupa cada capa |
 | `contenedores_lista` | Contenedores de Docker, también los parados: imagen, estado, salud, código de salida, puertos, redes y proyecto; y las aplicaciones (proyectos compose) |
@@ -329,7 +329,10 @@ protegerías la contraseña.
   Un fallo de `docker` al pedirlas se distingue por su código de salida, no por el texto: una
   línea del programa que empiece por "Error" se devuelve como lo que es.
 - Una máquina suspendida desde Virtualization Station (guarda su memoria en disco y se para)
-  sale como `suspendida`, no como apagada, y con su aviso: validado en un NAS real.
+  sale como `suspendida`, no como apagada, y con su aviso: validado en un NAS real. También
+  tras reiniciar el NAS, cuando libvirt ya solo la da por apagada: lo que lo dice entonces es
+  el fichero de su memoria guardada, que Virtualization Station borra al reanudarla (validado
+  con dos máquinas que el NAS suspendió al reiniciarse).
 - Validados en un NAS real: un paquete activo con su servicio parado (Container Station
   arrancando y el NAS recién reiniciado), un contenedor reiniciándose, uno "unhealthy" y uno
   enlazado con `--link`.

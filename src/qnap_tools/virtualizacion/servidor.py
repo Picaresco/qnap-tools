@@ -107,6 +107,18 @@ def inactivo(perfil, mitad):
     return {"activo": False, "motivo": "%s no esta instalado o esta desactivado en este NAS" % nombre}
 
 
+def guardada_en(guardada):
+    return " (%s, desde %s)" % (gib(guardada["bytes"]), guardada["fecha"]) if guardada else ""
+
+
+def con_memoria_guardada(e, guardada):
+    """El estado de una VM con lo que dice el fichero de su memoria guardada: tras un reinicio
+    del NAS, libvirt da por apagada (motivo 0) una VM que VS dejo suspendida."""
+    if guardada and e["estado_codigo"] == APAGADA:
+        e = dict(e, estado="suspendida")
+    return dict(e, memoria_guardada=guardada if e["estado"] == "suspendida" else None)
+
+
 def con_proceso(vms):
     """Las VMs que ocupan memoria del NAS: todas menos las apagadas y las caidas."""
     return [(x, e) for x, e in vms if e["estado_codigo"] not in (APAGADA, CAIDA)]
@@ -119,8 +131,9 @@ def memoria_de(x, e):
 def avisos_de_vms(vms, memoria_nas):
     avisos = ["la maquina virtual %s esta %s" % (x["nombre"] or x["uuid"], e["estado"])
               for x, e in vms if e["estado_codigo"] not in (EN_MARCHA, APAGADA)]
-    avisos += ["la maquina virtual %s esta suspendida: su memoria esta guardada en disco y al reanudarla "
-               "sigue donde estaba" % (x["nombre"] or x["uuid"]) for x, e in vms if e["estado"] == "suspendida"]
+    avisos += ["la maquina virtual %s esta suspendida: su memoria esta guardada en disco%s y al reanudarla "
+               "sigue donde estaba" % (x["nombre"] or x["uuid"], guardada_en(e.get("memoria_guardada")))
+               for x, e in vms if e["estado"] == "suspendida"]
     avisos += ["la maquina virtual %s: %s" % (x["nombre"] or x["uuid"], x["error"]) for x, _ in vms if x.get("error")]
     avisos = acotar_avisos(avisos, "maquinas virtuales")
     asignada = sum(memoria_de(x, e) or 0 for x, e in con_proceso(vms))
@@ -194,20 +207,22 @@ class Herramientas(servidor.Base):
             raise ErrorComando("%s: %s" % (n.nombre, PARADO % nombre))
         return None
 
-    def _vms(self, n):
+    def _vms(self, n, errores):
         """[(definicion, estado)] de cada VM. Las dos consultas tienen que ver las mismas
-        maquinas: una lista vacia junto a otra con maquinas no se da por buena."""
+        maquinas: una lista vacia junto a otra con maquinas no se da por buena. La memoria
+        guardada es accesoria: sin ella el estado es el de libvirt y se apunta en 'errores'."""
         estado = {v["uuid"]: v for v in self._leer(n, vc.VM_ESTADISTICAS, p.vm_estadisticas)}
         definicion = self._leer(n, vc.VM_XML, p.vm_xml)
         if set(estado) != {x["uuid"] for x in definicion}:
             raise ErrorComando(
                 "%s: libvirt no dio las mismas maquinas virtuales en dos consultas seguidas (%d y %d); "
                 "repite la consulta" % (n.nombre, len(estado), len(definicion)))
-        return [(x, estado[x["uuid"]]) for x in definicion]
+        guardadas = self._extra(n, errores, "memoria_guardada", vc.VM_GUARDADAS, p.vm_guardadas) or {}
+        return [(x, con_memoria_guardada(estado[x["uuid"]], guardadas.get(x["uuid"]))) for x in definicion]
 
-    def _vm(self, n, vm):
+    def _vm(self, n, vm, errores):
         """La VM pedida por nombre o por UUID. El valor solo se compara aqui: no va al NAS."""
-        vms = self._vms(n)
+        vms = self._vms(n, errores)
         pedida = vm.strip()
         if p.UUID.fullmatch(pedida):
             suyas = [par for par in vms if par[0]["uuid"] == pedida.lower()]
@@ -238,7 +253,7 @@ class Herramientas(servidor.Base):
         bloque = {"activo": True, "servicio": True, "total": None, "por_estado": None,
                   "vcpus_en_marcha": None, "memoria_en_marcha": None}
         try:
-            vms = self._vms(n)
+            vms = self._vms(n, errores)
         except ErrorComando as e:
             errores["maquinas_virtuales"] = self.ctx.sanear(str(e))
             return bloque
@@ -310,15 +325,20 @@ class Herramientas(servidor.Base):
             fuera = self._mitad(n, VS)
             if fuera:
                 return fuera
-            return {"activo": True, "vms": recortar([fila_de_vm(x, e) for x, e in self._vms(n)])}
+            errores = {}
+            datos = {"activo": True, "vms": recortar([fila_de_vm(x, e) for x, e in self._vms(n, errores)])}
+            if errores:
+                datos["errores"] = errores
+            return datos
         return self.ctx.por_nas(nas, uno)
 
     def vm_detalle(self, nas: str, vm: str) -> list[dict[str, Any]]:
         """Una maquina virtual al detalle: descripcion, estado, firmware (BIOS o UEFI), tipo de
         maquina, TPM, orden de arranque, vCPU y memoria, cada disco con su fichero, formato,
         tamano y numero de capas, cada interfaz de red con su MAC, modelo, conmutador virtual y
-        las direcciones IP que el NAS conozca (solo con la maquina en marcha), y la consola
-        (tipo, puerto y direccion; nunca su clave).
+        las direcciones IP que el NAS conozca (solo con la maquina en marcha), la consola
+        (tipo, puerto y direccion; nunca su clave) y, si esta suspendida, su memoria guardada en
+        disco (bytes y desde cuando).
 
         nas: nombre de un NAS del inventario, o 'todos'.
         vm: nombre o UUID de la maquina, como salen en vm_lista."""
@@ -328,17 +348,18 @@ class Herramientas(servidor.Base):
             fuera = self._mitad(n, VS)
             if fuera:
                 return fuera
-            x, e = self._vm(n, vm)
+            errores = {}
+            x, e = self._vm(n, vm, errores)
             if x.get("error"):
                 # sin su definicion no hay discos ni interfaces que dar: lo que sabe libvirt y el error
-                return {"activo": True, "vm": dict(
+                return dict({"errores": errores} if errores else {}, activo=True, vm=dict(
                     {k: None for k in ("descripcion", "sistema", "arquitectura", "firmware", "maquina", "tpm",
                                        "arranque", "arranque_automatico", "tipo_instantaneas", "discos",
                                        "interfaces", "consola", "dispositivos_pasados")},
                     nombre=x["nombre"], uuid=x["uuid"], estado=e["estado"], vcpus=e["vcpus"],
                     memoria=e["memoria_max"], memoria_actual=e["memoria"], memoria_residente=e["memoria_residente"],
-                    error=x["error"])}
-            errores, direcciones = {}, None
+                    memoria_guardada=e["memoria_guardada"], error=x["error"]))
+            direcciones = None
             if e["estado_codigo"] == EN_MARCHA:
                 direcciones = self._extra(n, errores, "direcciones", vc.VM_IP, p.vm_ip, {"uuid": x["uuid"]})
             medido = {d["dispositivo"]: d for d in e["discos"]}
@@ -358,7 +379,8 @@ class Herramientas(servidor.Base):
                 "maquina": x["maquina"], "tpm": x["tpm"], "arranque": x["arranque"],
                 "arranque_automatico": x["arranque_automatico"], "tipo_instantaneas": x["instantaneas"],
                 "vcpus": x["vcpus"], "memoria": x["memoria"], "memoria_actual": memoria_de(x, e),
-                "memoria_residente": e["memoria_residente"], "discos": discos, "interfaces": interfaces,
+                "memoria_residente": e["memoria_residente"], "memoria_guardada": e["memoria_guardada"],
+                "discos": discos, "interfaces": interfaces,
                 "consola": x["consola"], "dispositivos_pasados": x["dispositivos_pasados"]}}
             if errores:
                 datos["errores"] = errores

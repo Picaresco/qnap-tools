@@ -393,7 +393,7 @@ def test_una_vm_en_pausa_bloqueada_o_caida_sale_en_los_avisos(tmp_path, codigo, 
 
 
 def test_una_vm_suspendida_sale_como_tal_y_en_los_avisos(tmp_path):
-    # como Neptuno en el NAS de laboratorio tras suspenderla desde Virtualization Station
+    # como una VM del NAS de laboratorio tras suspenderla desde Virtualization Station
     h, _ = uno(tmp_path, cambios={vc.VM_ESTADISTICAS.plantilla: estadisticas_con(
         "hero", VM1_HERO, state_state=5, state_reason=5)})
     d = datos(h.virtualizacion_resumen("hero"))
@@ -401,6 +401,45 @@ def test_una_vm_suspendida_sale_como_tal_y_en_los_avisos(tmp_path):
     assert d["maquinas_virtuales"]["vcpus_en_marcha"] == 2           # no corre: no cuenta
     assert algun(d["avisos"], "vm1", "suspendida", "disco")
     assert por(datos(h.vm_lista("hero"))["vms"]["filas"], "nombre", "vm1")["estado"] == "suspendida"
+
+
+def con_memoria_guardada(sistema, uuid, linea="guardada 3252802928 1792011004"):
+    marca = "== %s\n" % uuid
+    texto = dato("vm_guardadas_" + sistema)
+    assert marca in texto
+    return texto.replace(marca, marca + linea + "\n")
+
+
+def test_una_vm_suspendida_antes_de_reiniciar_el_nas_sigue_saliendo_suspendida(tmp_path):
+    # como dos VMs del NAS de laboratorio (2026-10-14): VS las suspendio al reiniciar y,
+    # ya arrancado, libvirt solo dice "apagada" (motivo 0); queda su memoria en <uuid>.state
+    h, _ = uno(tmp_path, cambios={
+        vc.VM_ESTADISTICAS.plantilla: estadisticas_con("hero", VM1_HERO, state_state=5, state_reason=0),
+        vc.VM_GUARDADAS.plantilla: con_memoria_guardada("hero", VM1_HERO)})
+    d = datos(h.virtualizacion_resumen("hero"))
+    assert d["maquinas_virtuales"]["por_estado"] == {"en marcha": 1, "apagada": 4, "suspendida": 1}
+    assert algun(d["avisos"], "vm1", "suspendida", "disco", "3.0 GiB", "2026-10-14T20:50:04Z")
+    assert por(datos(h.vm_lista("hero"))["vms"]["filas"], "nombre", "vm1")["estado"] == "suspendida"
+    detalle = datos(h.vm_detalle("hero", "vm1"))["vm"]
+    assert detalle["estado"] == "suspendida"
+    assert detalle["memoria_guardada"] == {"bytes": 3252802928, "fecha": "2026-10-14T20:50:04Z"}
+
+
+def test_la_memoria_guardada_solo_cuenta_con_la_vm_apagada(tmp_path):
+    # en marcha manda libvirt, aunque quedara un fichero de una suspension anterior
+    h, _ = uno(tmp_path, cambios={vc.VM_GUARDADAS.plantilla: con_memoria_guardada("hero", VM1_HERO)})
+    d = datos(h.virtualizacion_resumen("hero"))
+    assert d["maquinas_virtuales"]["por_estado"] == {"en marcha": 2, "apagada": 4}
+    assert not algun(d["avisos"], "suspendida")
+
+
+def test_sin_poder_leer_la_memoria_guardada_las_vms_salen_con_lo_que_dice_libvirt_y_se_dice(tmp_path):
+    h, _ = uno(tmp_path, cambios={vc.VM_GUARDADAS.plantilla: (1, "", "error: failed to connect\n")})
+    d = datos(h.virtualizacion_resumen("hero"))
+    assert d["maquinas_virtuales"]["por_estado"] == {"en marcha": 2, "apagada": 4}
+    assert "memoria_guardada" in d["errores"]
+    filas = datos(h.vm_lista("hero"))
+    assert "memoria_guardada" in filas["errores"] and len(filas["vms"]["filas"]) == 6
 
 
 def test_el_resumen_avisa_si_las_vms_en_marcha_tienen_mas_memoria_que_el_nas(tmp_path):
@@ -566,7 +605,7 @@ def test_vm_detalle_dice_que_vms_hay_si_la_pedida_no_existe_y_no_lanza_nada_con_
     assert "vm1, vm2, vm3, vm4, vm5, vm6" in error
     # el valor pedido solo se compara: al NAS no va nada que lo lleve
     assert {orden for orden, _ in mundo.ordenes} == {
-        c.render() for c in (DETECCION, vc.ANFITRION, vc.VM_ESTADISTICAS, vc.VM_XML)}
+        c.render() for c in (DETECCION, vc.ANFITRION, vc.VM_ESTADISTICAS, vc.VM_XML, vc.VM_GUARDADAS)}
 
 
 def test_vm_detalle_con_un_nombre_repetido_pide_el_uuid(tmp_path):

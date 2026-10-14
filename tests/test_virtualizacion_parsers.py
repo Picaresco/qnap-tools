@@ -97,6 +97,32 @@ def test_una_vm_suspendida_por_virtualization_station_no_sale_como_apagada():
     assert vm["estado"] == "apagada"
 
 
+def test_la_memoria_guardada_de_cada_vm():
+    # formato visto en el NAS de laboratorio tras reiniciarlo con dos VMs suspendidas por VS
+    # (2026-10-14); en el dato versionado ninguna tiene memoria guardada
+    texto = URI + "== %s\n== %s\nguardada 3252802928 1792011004\n" % (VM1, VM2)
+    assert p.vm_guardadas(texto) == {VM1: None, VM2: {"bytes": 3252802928, "fecha": "2026-10-14T20:50:04Z"}}
+    assert set(p.vm_guardadas(dato("vm_guardadas_hero")).values()) == {None}
+    assert len(p.vm_guardadas(dato("vm_guardadas_qts"))) == 9
+    # sin carpeta de metadatos no puede haber memoria guardada
+    assert p.vm_guardadas(URI + "== %s\n!! sin carpeta de metadatos\n" % VM1) == {VM1: None}
+    assert p.vm_guardadas(URI) == {}
+
+
+@pytest.mark.parametrize("texto", [
+    "",                                                              # libvirt no respondio
+    "== %s\n" % VM1,
+    URI + "guardada 1 2\n",                                          # antes de ninguna VM
+    URI + "== %s\nguardada 3252802928\n" % VM1,                      # falta la fecha
+    URI + "== %s\nguardada mucho 1792011004\n" % VM1,
+    URI + "== %s\nguardada 1 2\nguardada 1 2\n" % VM1,               # dos ficheros para una VM
+    URI + "== %s\notra cosa\n" % VM1,
+])
+def test_la_memoria_guardada_rechaza_lo_que_no_reconoce(texto):
+    with pytest.raises(ValueError):
+        p.vm_guardadas(texto)
+
+
 def test_un_invitado_dormido_en_memoria_no_se_confunde_con_una_suspendida():
     # escrito a mano: el estado 7 de libvirt es el invitado en reposo (S3), no la suspension de VS
     (vm,) = p.vm_estadisticas(URI + "Domain: '%s'\n  state.state=7\n  state.reason=0\n" % VM1)

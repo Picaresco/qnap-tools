@@ -234,3 +234,22 @@ Resueltos despues (2026-10-14, validados en nas1): M8 (visto en real: "prueba-ba
 - Final: minor (deferred): M11 — en LXD, "no existe la carpeta" y "carpeta vacia" dan lo mismo (ninguna instancia).
 - Final: minor (deferred): M12 — qemu-img info --backing-chain sigue la imagen base declarada en la cabecera, que podria ser una URL (conexion saliente desde el NAS si alguien pone una imagen asi).
 - Final: minor (deferred): M13 — "cortadas" cuenta tambien las lineas de exactamente 400 caracteres.
+
+### VMs suspendidas tras reiniciar el NAS (2026-10-14, despues de publicar la 0.4.2)
+
+- Visto al reiniciar nas1 desde la web con dos VMs en marcha: Virtualization Station
+  las SUSPENDIO (guarda la memoria en `<qvs:meta_path>/<uuid>.state`: 3,25 y 1,84 GB) y, ya
+  arrancado el NAS, libvirt las da por apagadas con motivo 0 (pierde el "saved" = 5 que da
+  mientras no se reinicia). VS sigue diciendo "Suspendida" porque mira ese fichero. El plugin
+  (0.4.2) las daba por apagadas.
+- Arreglo: orden nueva VM_GUARDADAS (dumpxml de cada VM -> meta_path -> `stat -c 'guardada %s %Y'`
+  del `<uuid>.state` si existe; `!! sin carpeta` si falta la carpeta) y parser `vm_guardadas`. En
+  `_vms` es dato accesorio (`_extra`, clave `memoria_guardada` en `errores`): una VM apagada con
+  memoria guardada sale `suspendida`; en marcha manda libvirt. `vm_detalle` da `memoria_guardada`
+  {bytes, fecha UTC} y el aviso dice cuanto ocupa y desde cuando.
+- Comprobado al reanudarlas desde la web: VS BORRA el `.state` (no queda un fichero viejo) y
+  libvirt da en marcha con motivo 5 (restaurada), como la VM 2 del dato de QTS.
+- La guardia del laboratorio no admite `$( )` dentro de comillas dobles: el texto va en el formato
+  de `stat -c`. Pruebas RED->GREEN (parser, servidor y shell con carpeta con espacios); los datos
+  `vm_guardadas_*.txt` no tienen ninguna guardada (el de QTS, escrito a mano con las UUID de
+  `vm_snap_vs_qts.txt`); la captura real queda en `pruebas/resultados/nas1/`.

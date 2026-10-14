@@ -181,6 +181,26 @@ def vm_estadisticas(texto):
     return vms
 
 
+GUARDADA_EN_DISCO = re.compile(r"guardada ([0-9]+) ([0-9]+)")
+
+
+def vm_guardadas(texto):
+    """{uuid: {bytes, fecha} | None}: la memoria que Virtualization Station guardo al suspender
+    cada VM (<carpeta de metadatos>/<uuid>.state), o None si no hay."""
+    que = "la memoria guardada de las VMs"
+    salida = {}
+    for uuid, lineas in _por_vm(_de_libvirt(texto, que), que):
+        salida[uuid] = None
+        for linea in lineas:
+            if linea.startswith(SIN_LEER):
+                continue
+            m = GUARDADA_EN_DISCO.fullmatch(linea.strip())
+            if not m or salida[uuid] is not None:
+                raise _no_reconocida(que, linea)
+            salida[uuid] = {"bytes": int(m.group(1)), "fecha": fecha_utc(int(m.group(2)))}
+    return salida
+
+
 # ==== definicion (lineas elegidas de virsh dumpxml) =============================================
 
 def _atributos(linea):

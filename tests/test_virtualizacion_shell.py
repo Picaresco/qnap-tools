@@ -90,6 +90,29 @@ def test_una_carpeta_de_metadatos_que_no_existe_no_pasa_por_cero_instantaneas(tm
     assert rc == 0 and p.vm_snap_vs(salida) == [{"uuid": UUID, "instantaneas": None}]
 
 
+def test_la_memoria_guardada_de_una_vm_en_una_carpeta_con_espacios_se_lee(tmp_path):
+    meta = tmp_path / "Mis VMs" / "Windows 10 de pruebas" / ".meta"
+    (meta / "snapshot").mkdir(parents=True)
+    (meta / (UUID + ".state")).write_bytes(b"x" * 1234)
+    # la memoria de una instantanea no es la de la suspension
+    (meta / "snapshot" / "1790544225.state").write_bytes(b"x")
+    xml = "    <qvs:meta_path>%s</qvs:meta_path>\n" % posix(meta)
+    rc, salida = lanzar(vc.VM_GUARDADAS, tmp_path, xml=xml)
+    assert rc == 0
+    assert p.vm_guardadas(salida)[UUID]["bytes"] == 1234
+
+
+@pytest.mark.parametrize("con_carpeta", [True, False])
+def test_sin_memoria_guardada_o_sin_carpeta_la_vm_no_tiene_memoria_guardada(tmp_path, con_carpeta):
+    meta = tmp_path / "vm" / ".meta"
+    if con_carpeta:
+        meta.mkdir(parents=True)
+    xml = "    <qvs:meta_path>%s</qvs:meta_path>\n" % posix(meta)
+    rc, salida = lanzar(vc.VM_GUARDADAS, tmp_path, xml=xml)
+    assert rc == 0 and p.vm_guardadas(salida) == {UUID: None}
+    assert ("!! sin carpeta" in salida) is not con_carpeta
+
+
 def test_la_cadena_se_recorre_capa_a_capa_y_no_sigue_una_base_remota(tmp_path):
     discos = (" Type   Device   Target   Source\n" + "-" * 48 + "\n"
               " file   disk     vda      /share/Mis VMs/vm/disco 1.img.1790544225\n")
