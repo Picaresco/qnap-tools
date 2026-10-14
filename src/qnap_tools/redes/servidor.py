@@ -264,9 +264,7 @@ class Herramientas(servidor.Base):
 
 def construir(entorno=None, fabrica_conexion=Conexion):
     mcp, ctx = servidor.crear("qnap-redes", INSTRUCCIONES, entorno, fabrica_conexion)
-    herramientas = Herramientas(ctx)
-    for nombre in HERRAMIENTAS:
-        mcp.add_tool(getattr(herramientas, nombre))
+    servidor.registrar(mcp, Herramientas(ctx), HERRAMIENTAS)
     return mcp
 
 

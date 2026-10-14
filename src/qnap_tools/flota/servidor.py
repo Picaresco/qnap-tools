@@ -14,6 +14,8 @@ import threading
 from pathlib import Path
 from typing import Any
 
+from mcp.types import ToolAnnotations
+
 from .. import claves, inventario, servidor, transporte
 from ..comandos import Comando, ParametroInvalido
 from ..config import ConfigError
@@ -44,6 +46,15 @@ ERRORES = (ConfigError, InventarioInvalido, NasDesconocido, ErrorConexion, Error
            DeteccionFallida, ParametroInvalido)
 HERRAMIENTAS = ("nas_lista", "nas_comprobar", "nas_alta", "nas_enrolar", "nas_baja",
                 "inventario_exportar", "inventario_importar")
+# Las que escriben: en el NAS (la clave publica) o en este ordenador (inventario, exportacion).
+# Destructivas, las que pueden quitar o pisar algo que ya habia. Las demas, de solo lectura.
+ANOTACIONES = {
+    "nas_lista": ToolAnnotations(readOnlyHint=True, openWorldHint=False),
+    "nas_alta": ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=True),
+    "nas_enrolar": ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=True),
+    "nas_baja": ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=False),
+    "inventario_exportar": ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=False),
+    "inventario_importar": ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=False)}
 
 
 def orden_instalar_clave(publica):
@@ -304,9 +315,8 @@ class Herramientas:
 
 def construir(entorno=None, fabrica_conexion=transporte.Conexion):
     mcp, ctx = servidor.crear("qnap-flota", INSTRUCCIONES, entorno, fabrica_conexion)
-    herramientas = Herramientas(ctx)
-    for nombre in HERRAMIENTAS:
-        mcp.add_tool(getattr(herramientas, nombre))
+    # el inventario y known_hosts se leen, se cambian y se guardan: las herramientas de una en una
+    servidor.registrar(mcp, Herramientas(ctx), HERRAMIENTAS, ANOTACIONES, candado=threading.Lock())
     return mcp
 
 

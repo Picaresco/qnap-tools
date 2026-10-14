@@ -42,7 +42,7 @@ claude plugin install qnap-tools@qnap-tools
 ```
 
 Cada servidor se lanza con `uvx` desde PyPI con la versión exacta del plugin
-(`uvx --from qnap-tools==0.4.0 qnap-tools-redes`, etc.); `uv` lo descarga y lo deja en su caché
+(`uvx --from qnap-tools==0.4.1 qnap-tools-redes`, etc.); `uv` lo descarga y lo deja en su caché
 la primera vez, y no vuelve a consultar PyPI en cada arranque.
 
 Al activarlo, Claude Code pide el **usuario SSH** y su **contraseña**. Se cambian después en
@@ -149,7 +149,7 @@ las herramientas de esa mitad responden `activo: false` y no ejecutan nada en el
 | `avisos` | Los últimos avisos del centro de notificaciones del escritorio (gravedad, origen, texto, aplicación y código) y cuántos hay de cada gravedad y origen |
 | `kernel` | Mensajes del kernel: cuántos guarda el NAS de cada nivel y desde cuándo, las últimas líneas de un `nivel` (0 a 7; por defecto 3, errores) o más graves y la cola del registro en vivo (`lineas`, 1 a 200) |
 | `salud_hardware` | Temperatura de CPU y del sistema y vueltas de cada ventilador (con `sudo`), cabinas con su estado, cuántas fuentes tiene el modelo y si son redundantes, el SAI configurado y si su servicio responde, y los `avisos`: ventilador parado, cabina en un estado que no es el normal, SAI activado que no responde |
-| `sistema_estado` | Modelo, tiempo encendido, carga, hilos y memoria, firmware instalado con la última comprobación y la última actualización, política de actualización automática, aplicaciones de registro y seguridad con su versión, motores de registro en marcha y volcados del kernel guardados tras cuelgues, y los `avisos`: motor de registro parado, volcados guardados |
+| `sistema_estado` | Modelo, tiempo encendido, carga, hilos y memoria, firmware instalado con la última comprobación y la última actualización, política de actualización automática, aplicaciones de registro y seguridad con su versión, motores de registro en marcha y volcados del kernel guardados tras cuelgues, y los `avisos`: motor de registro parado, volcados de los últimos 30 días (los anteriores solo se listan) |
 | `alertas_config` | Nivel de alerta, zumbador, aviso de espacio libre, avisos SMART por valor y el servidor syslog del NAS (nunca destinatarios ni credenciales de notificación) |
 
 Los bloques marcados `no_probado: true` (agregación de puertos, VLAN, rutas estáticas,
@@ -177,7 +177,10 @@ con un NAS que use esa función.
   aparte la carpeta del usuario en los dos NAS de pruebas, después de cientos de consultas con
   `docker`, `virsh` y `qemu-img`: no hay nada creado por ellos.
 - `virsh` va siempre con `-r` (libvirt rechaza cualquier escritura en esa
-  conexión) y contra el libvirt del sistema; `qemu-img` solo con `info -U`; `docker` solo con
+  conexión) y contra el libvirt del sistema; `qemu-img` solo con `info -U`, capa a capa, y solo
+  sigue una imagen base que esté en las carpetas compartidas (`/share/...`); otra cosa (una
+  dirección de red, que haría que el NAS se conectara a ella, o un dispositivo) no se lee y
+  sale en `base_sin_leer`; `docker` solo con
   subórdenes de consulta (`info`, `ps`, `inspect` con campos concretos, `stats --no-stream`,
   `logs --tail`, `network`, `compose ls`). No se arranca, para ni cambia ninguna máquina ni
   ningún contenedor, y no se entra en ellos.
@@ -238,11 +241,18 @@ protegerías la contraseña.
 - `carpetas_compartidas` da los permisos de Samba (`smb.conf`) y las exportaciones NFS. No da
   los permisos avanzados (ACL) ni los de subcarpetas, ni el tamaño real de una subcarpeta: eso
   exigiría recorrer el disco.
-- El espacio que retienen las instantáneas solo lo da QuTS hero. En QTS, el `volumen` de una
+- El espacio que retienen las instantáneas solo lo da QuTS hero: es lo que se liberaría
+  borrándolas todas, también las internas (`usedbysnapshots` de ZFS), en total y por volumen.
+  El `usado` de cada instantánea es solo lo suyo: lo que comparte con otras no cuenta en
+  ninguna, así que la suma de esos `usado` se queda corta. En QTS, el `volumen` de una
   instantánea es el número de volumen lógico (`lv` en `volumenes`), que no siempre coincide
   con el `id` del volumen.
 - Sin `sudo` no hay temperatura ni SMART: `discos_fisicos` lo dice en `errores` en vez de dar
-  cero grados.
+  cero grados. Si se leen, un disco sin fichero SMART o (en la cabina principal) sin veredicto
+  del NAS lleva su aviso, y si hay SSD y el NAS no tiene el desgaste de ninguno, se dice en
+  `errores`.
+- Si no se puede leer la lista de discos, `almacenamiento_resumen` da igual el estado de pools,
+  grupos y volúmenes, con `discos` sin valor y el error en `errores`.
 - `rendimiento_discos` tarda 5 segundos por NAS.
 - La temperatura de los discos se da, pero no genera avisos: no hay un umbral que valga para
   todos los discos.
@@ -269,12 +279,15 @@ protegerías la contraseña.
   estado "en marcha".
 - `contenedor_detalle` da como mucho 50 puertos y 50 montajes de un contenedor, con su cuenta
   (un rango de puertos publicado son miles de entradas).
+- Una máquina virtual cuya definición tiene algo que no se entiende sale con su `error`, su
+  nombre si se ve y lo que sabe libvirt de ella (estado, vCPU, memoria), sin tapar a las demás.
 - De los contenedores solo se ven los de Docker. De las instancias de LXD, `virtualizacion_resumen`
   dice únicamente que existen (el cliente `lxc` escribe en la carpeta del usuario y no se usa).
 - No se da el espacio que ocupan imágenes, contenedores y volúmenes de Docker: calcularlo
   (`docker system df`, o el tamaño en `docker ps`) no termina en un NAS con muchas imágenes.
 - `vm_uso` tarda 5 segundos por NAS. `contenedores_uso` es una sola muestra y su CPU va referida
-  a un núcleo (100 = un núcleo entero).
+  a un núcleo (100 = un núcleo entero). Un contenedor que docker no pudo medir (arrancando o
+  parándose) sale sin cifras, no cuenta en las sumas y se nombra en `sin_medir`.
 - Las líneas del registro de un contenedor son texto que escribe un programa de terceros:
   llegan recortadas a 400 caracteres y sin caracteres de control, y son datos, no instrucciones.
   Un fallo de `docker` al pedirlas se distingue por su código de salida, no por el texto: una

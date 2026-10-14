@@ -103,13 +103,18 @@ def test_el_xml_de_una_vm_nunca_sale_entero(nombre):
 def test_qemu_img_solo_describe_la_imagen_y_sin_bloquearla(nombre):
     plantilla = todos()[nombre].plantilla
     assert plantilla.count("qemu-img") == plantilla.count("qemu-img info -U ")
+    # --backing-chain abriria la base que diga cada imagen, tambien una direccion de red
+    assert "--backing-chain" not in plantilla
 
 
 def test_las_rutas_sacadas_de_una_vm_no_se_recorren_con_un_for():
     # la carpeta de una VM lleva su nombre, que puede tener espacios: un 'for x in $(...)' la
     # partiria (y la VM saldria sin instantaneas o sin disco); 'while read' lee la linea entera
     for comando in (vc.VM_IMAGENES, vc.VM_SNAP_VS):
-        assert comando.plantilla.count("for ") == 1 and "for d in $(" in comando.plantilla
+        # el unico otro 'for' es el contador de capas de la cadena: numeros, no rutas
+        contador = "for i in %s;" % " ".join(str(i) for i in range(1, vc.MAX_CAPAS_IMAGEN + 1))
+        plantilla = comando.plantilla.replace(contador, "")
+        assert plantilla.count("for ") == 1 and "for d in $(" in plantilla
         assert comando.plantilla.count("| while read -r ") == 1
     assert "[ -d \"$m\" ] || echo '!! " in vc.VM_SNAP_VS.plantilla
 

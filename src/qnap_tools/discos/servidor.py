@@ -270,8 +270,10 @@ class Herramientas(servidor.Base):
         salud = self._extra(n, errores, "veredicto", dc.DISCOS_SALUD, p.discos_salud)
         vida = self._extra(n, errores, "vida_ssd", dc.SSD_VIDA, p.ssd_vida)
         reparto = {r["dispositivo"]: r for r in reparto or []}
-        smart = {(s["cabina"], s["bahia"]): s for s in smart or []}
-        salud = {s["bahia"]: s for s in salud or []}
+        # None si no se pudo leer (el error ya esta en 'errores'): entonces no se avisa disco a disco
+        smart = None if smart is None else {(s["cabina"], s["bahia"]): s for s in smart}
+        salud = None if salud is None else {s["bahia"]: s for s in salud}
+        hay_vida = vida is not None
         vida = {(v["cabina"], v["bahia"]): v["usado_pct"] for v in vida or []}
         discos, externos = [], []
         for d in detalle:
@@ -281,8 +283,13 @@ class Herramientas(servidor.Base):
                                                    "modelo", "bytes")})
                 continue
             clave = (d["cabina"], d["bahia"])
-            s, r = smart.get(clave), reparto.get(d["dispositivo"], {})
-            v = salud.get(d["bahia"]) if d["cabina"] == 0 else None    # getsysinfo solo ve la cabina 0
+            s, r = (smart or {}).get(clave), reparto.get(d["dispositivo"], {})
+            v = (salud or {}).get(d["bahia"]) if d["cabina"] == 0 else None    # getsysinfo solo ve la cabina 0
+            avisos = avisos_de_disco(d, s, v, vida.get(clave))
+            if smart is not None and s is None:
+                avisos.append("sin datos SMART: el NAS no tiene su fichero de atributos")
+            if salud is not None and d["cabina"] == 0 and v is None:
+                avisos.append("el NAS no da veredicto SMART de esta bahia")
             discos.append({
                 "cabina": d["cabina"], "bahia": d["bahia"], "puerto": fila["puerto"], "unidad": fila["cabina"],
                 "dispositivo": d["dispositivo"], "tipo": fila["tipo"], "uso": fila["uso"], "bus": d["bus"],
@@ -290,7 +297,10 @@ class Herramientas(servidor.Base):
                 "firmware": d["firmware"], "bytes": d["bytes"], "rpm": d["rpm"],
                 "temperatura": s["temperatura"] if s else None, "smart": v["smart"] if v else None,
                 "vida_usada_pct": vida.get(clave), "grupo": r.get("grupo"), "raid": r.get("raid"),
-                "pool": r.get("pool"), "avisos": avisos_de_disco(d, s, v, vida.get(clave))})
+                "pool": r.get("pool"), "avisos": avisos})
+        if hay_vida and not vida and any(x["tipo"] == "SSD" for x in discos):
+            # hay SSD y el NAS no tiene el desgaste de ninguno: no es "sin dato", es que no se pudo leer
+            errores["vida_ssd"] = "%s: el NAS no tiene fichero de desgaste de ningun SSD (/tmp/disk)" % n.nombre
         return discos, externos, errores
 
     def _raid_hero(self, n):
@@ -436,7 +446,13 @@ class Herramientas(servidor.Base):
             perfil = self.ctx.flota.perfil(n)
             hero = perfil.sistema == "hero"
             datos = {"sistema": perfil.sistema, "modelo": perfil.modelo, "firmware": perfil.firmware}
-            discos, externos, errores = self._discos(n)
+            try:
+                discos, externos, errores = self._discos(n)
+                resumen = resumen_discos(discos)
+            except servidor.FALLOS_DE_CONSULTA as e:
+                # sin la lista de discos se sigue: el estado de pools y grupos es lo que importa
+                discos, externos, resumen = [], [], None
+                errores = {"discos": self.ctx.sanear(str(e))}
             nombres = {}
             if hero:
                 avisos = self._raid_hero(n)["avisos"]
@@ -476,9 +492,9 @@ class Herramientas(servidor.Base):
                         m.group(1), " (%s)" % nombre if nombre else "", o["ocupacion_pct"]))
             for d in discos:
                 avisos += ["%s (%s): %s" % (donde(d["cabina"], d["bahia"]), d["modelo"], a) for a in d["avisos"]]
-            if "smart" in errores or "veredicto" in errores:
+            if errores.keys() & {"discos", "smart", "veredicto"}:
                 avisos.append("no se ha podido comprobar del todo el estado de los discos: ver 'errores'")
-            datos.update(volumenes=volumenes, discos=resumen_discos(discos), avisos=avisos)
+            datos.update(volumenes=volumenes, discos=resumen, avisos=avisos)
             return con_errores(datos, errores)
         return self.ctx.por_nas(nas, uno)
 
@@ -486,8 +502,9 @@ class Herramientas(servidor.Base):
         """Los discos de un NAS, uno por bahia (tambien los de las cabinas de expansion y los
         NVMe): puerto, modelo, numero de serie, capacidad, tipo (HDD o SSD) y uso (datos, cache,
         repuesto), temperatura, veredicto SMART del NAS, vida consumida si es SSD, a que grupo
-        RAID y pool pertenece, y los 'avisos' de cada uno (la temperatura se da, pero no genera
-        avisos). Los discos USB van aparte, en 'externos'."""
+        RAID y pool pertenece, y los 'avisos' de cada uno (tambien si el NAS no tiene sus datos
+        SMART; la temperatura se da, pero no genera avisos). Los discos USB van aparte, en
+        'externos'."""
         def uno(n):
             discos, externos, errores = self._discos(n)
             return con_errores({"discos": recortar(discos), "externos": externos,
@@ -554,8 +571,10 @@ class Herramientas(servidor.Base):
 
     def snapshots(self, nas: str) -> list[dict[str, Any]]:
         """Las instantaneas de un NAS: cuantas hay en total y por volumen, las mas recientes
-        (hasta 50, de la ultima hacia atras), el espacio que retienen (solo QuTS hero lo dice) y
-        la programacion y retencion configuradas. En QTS 'volumen' es el numero de volumen
+        (hasta 50, de la ultima hacia atras), el espacio que retienen (solo QuTS hero lo dice:
+        lo que se liberaria borrandolas todas, tambien las internas, en total y por volumen; el
+        'usado' de cada una es solo lo suyo y no suma lo que comparte con otras) y la
+        programacion y retencion configuradas. En QTS 'volumen' es el numero de volumen
         logico (el campo 'lv' de la herramienta volumenes, no su 'id') y va con su nombre."""
         def uno(n):
             errores = {}
@@ -566,7 +585,9 @@ class Herramientas(servidor.Base):
                 filas = [{"volumen": s["dataset"], "instantanea": s["instantanea"], "usado": s["usado"],
                           "referido": s["referido"], "creada": s["creada"]} for s in reversed(propias)]
                 por_volumen = [(s["dataset"], s) for s in propias]
-                retenido, nombres = sum(s["usado"] for s in todas), None
+                por_dataset = self._extra(n, errores, "retenido", dc.SNAPSHOTS_RETENIDO_HERO, p.zfs_retenido)
+                retenido = sum(por_dataset.values()) if por_dataset is not None else None
+                nombres = None
             else:
                 todas = propias = self._leer(n, dc.SNAPSHOTS_QTS, p.lvm_snapshots)["instantaneas"]
                 programa = self._leer(n, dc.SNAPSHOTS_PROG_QTS, p.snapshots_prog)
@@ -586,6 +607,8 @@ class Herramientas(servidor.Base):
                 fila = {"volumen": volumen, "instantaneas": cuenta[volumen], "ultima": ultima[volumen]["creada"]}
                 if nombres is not None:
                     fila["nombre_volumen"] = nombres.get(volumen)
+                else:
+                    fila["retenido_bytes"] = por_dataset.get(volumen) if por_dataset is not None else None
                 resumen.append(fila)
             return con_errores({
                 "total": len(todas), "internas": len(todas) - len(propias),
@@ -671,9 +694,7 @@ class Herramientas(servidor.Base):
 
 def construir(entorno=None, fabrica_conexion=Conexion):
     mcp, ctx = servidor.crear("qnap-discos", INSTRUCCIONES, entorno, fabrica_conexion)
-    herramientas = Herramientas(ctx)
-    for nombre in HERRAMIENTAS:
-        mcp.add_tool(getattr(herramientas, nombre))
+    servidor.registrar(mcp, Herramientas(ctx), HERRAMIENTAS)
     return mcp
 
 

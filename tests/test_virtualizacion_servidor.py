@@ -468,6 +468,35 @@ def test_si_una_consulta_ve_maquinas_y_la_otra_ninguna_es_un_error(tmp_path):
     assert datos(h.virtualizacion_resumen("hero"))["maquinas_virtuales"]["total"] == 0
 
 
+def xml_con_vm1_ilegible():
+    real = dato("vm_xml_hero")
+    marca = "== %s\n" % VM1_HERO
+    assert real.count(marca) == 1
+    return real.replace(marca, marca + "  <memory unit='MiB'>4096</memory>\n")
+
+
+def test_una_vm_con_una_definicion_que_no_se_entiende_no_tumba_a_las_demas(tmp_path):
+    h, _ = uno(tmp_path, cambios={vc.VM_XML.plantilla: xml_con_vm1_ilegible()})
+    vms = datos(h.vm_lista("hero"))["vms"]["filas"]
+    assert len(vms) == 6
+    rara = por(vms, "uuid", VM1_HERO)
+    assert rara["nombre"] == "vm1" and rara["estado"] == "en marcha" and "definicion" in rara["error"]
+    assert rara["discos"] is None and rara["capacidad"] is None
+    # lo que si sabe libvirt de ella sigue saliendo
+    assert rara["vcpus"] == 2 and rara["memoria"] == 4 * GIB
+    assert "error" not in por(vms, "nombre", "vm2")
+    d = datos(h.virtualizacion_resumen("hero"))
+    assert d["maquinas_virtuales"]["total"] == 6 and d["maquinas_virtuales"]["vcpus_en_marcha"] == 4
+    assert algun(d["avisos"], "vm1", "definicion")
+    assert datos(h.vm_detalle("hero", "vm2"))["vm"]["nombre"] == "vm2"
+    detalle = datos(h.vm_detalle("hero", "vm1"))["vm"]
+    assert detalle["error"] and detalle["discos"] is None and detalle["interfaces"] is None
+    assert detalle["estado"] == "en marcha"
+    instantaneas = datos(h.vm_snapshots("hero"))["vms"]["filas"]
+    assert len(instantaneas) == 6 and "definicion" in por(instantaneas, "uuid", VM1_HERO)["error"]
+    assert "error" not in por(instantaneas, "nombre", "vm2")
+
+
 def test_vm_detalle_vale_por_nombre_o_por_uuid(tmp_path):
     h, _ = uno(tmp_path)
     por_nombre = datos(h.vm_detalle("hero", "vm1"))
@@ -548,7 +577,8 @@ def test_vm_uso_da_las_vms_en_marcha_por_consumo_y_con_su_nombre(tmp_path):
 
 
 def test_vm_uso_sin_vms_en_marcha_responde_bien_y_vacio(tmp_path):
-    h, _ = uno(tmp_path, cambios={vc.VM_USO.plantilla: "100.00 200.00\n==5s\n105.00 210.00\n"})
+    h, _ = uno(tmp_path, cambios={vc.VM_USO.plantilla: "uri=qemu:///system\n100.00 200.00\n==rc 0\n==5s\n"
+                                                         "uri=qemu:///system\n105.00 210.00\n==rc 0\n"})
     assert datos(h.vm_uso("hero")) == {"activo": True, "segundos": 5.0, "vms": []}
 
 
@@ -557,6 +587,24 @@ def test_vm_uso_sin_poder_leer_los_nombres_da_las_cifras_con_el_uuid(tmp_path):
     d = datos(h.vm_uso("hero"))
     assert "nombres" in d["errores"] and len(d["vms"]) == 2
     assert all(v["nombre"] is None and v["uuid"] for v in d["vms"])
+
+
+def test_vm_uso_sin_respuesta_de_libvirt_en_la_primera_lectura_es_un_error(tmp_path):
+    # la primera lectura sin libvirt: antes salia "ninguna VM en marcha" con ok
+    real = dato("vm_uso_hero")
+    antes, marca, despues = real.partition("==5s")
+    sin_libvirt = "uri=\n" + antes.split("\n", 1)[1].split("Domain:", 1)[0] + "==rc 1\n" + marca + despues
+    h, _ = uno(tmp_path, cambios={vc.VM_USO.render(): sin_libvirt})
+    assert "libvirt" in fallo(h.vm_uso("hero"))
+
+
+def test_vm_uso_con_la_primera_lectura_de_domstats_fallida_es_un_error(tmp_path):
+    # libvirt responde a uri pero domstats falla: antes salia "ninguna VM en marcha" con ok
+    real = dato("vm_uso_hero")
+    antes, marca, despues = real.partition("==5s")
+    fallida = antes.split("Domain:", 1)[0] + "==rc 1\n" + marca + despues
+    h, _ = uno(tmp_path, cambios={vc.VM_USO.render(): fallida})
+    assert "domstats" in fallo(h.vm_uso("hero"))
 
 
 def test_vm_uso_que_no_termina_es_un_error(tmp_path):
@@ -584,6 +632,7 @@ def test_vm_snapshots_da_las_instantaneas_de_vs_y_la_cadena_de_cada_disco(tmp_pa
         ("vm3.1715862105_1", 2490585600, "2024-05-16T12:21:45Z"),
         ("vm3.img", 115389985280, None)]
     assert all(c["formato"] == "qcow2" and c["virtual"] == 322122547200 for c in disco["cadena"])
+    assert disco["base_sin_leer"] is None and disco["cortada"] is False
 
 
 def test_vm_snapshots_en_qts_distingue_las_tomadas_con_la_vm_en_marcha(tmp_path):
@@ -611,7 +660,23 @@ def test_un_disco_cuya_imagen_no_se_pudo_leer_sale_sin_cadena(tmp_path):
     cuerpo, sep, despues = resto.partition("== ")
     h, _ = uno(tmp_path, cambios={vc.VM_IMAGENES.plantilla: antes + marca + sep + despues})
     (disco,) = por(datos(h.vm_snapshots("hero"))["vms"]["filas"], "uuid", VM1_HERO)["discos"]
-    assert disco == {"fichero": "/share/ruta1/vm1/ruta10.1790544225", "capas": None, "ocupa": None, "cadena": None}
+    assert disco == {"fichero": "/share/ruta1/vm1/ruta10.1790544225", "capas": None, "ocupa": None, "cadena": None,
+                     "base_sin_leer": None, "cortada": False}
+
+
+def test_una_base_remota_no_se_sigue_y_el_disco_lo_dice(tmp_path):
+    # escrito a mano sobre la captura: la base de la imagen de vm1 pasa a ser una direccion de red
+    real = dato("vm_imagenes_hero")
+    base = '"full-backing-filename": "/share/ruta1/vm1/ruta10.img"'
+    assert real.count(base) == 1
+    marca = "-- /share/ruta1/vm1/ruta10.1790544225\n"
+    antes, _, resto = real.partition(marca)
+    capa, sep, despues = resto.partition("\n{")             # solo la primera capa: la base no se lee
+    texto = antes + marca + capa.replace(base, '"full-backing-filename": "nbd://192.0.2.9/x"') + "\n"
+    texto += despues[despues.index("== "):]
+    h, _ = uno(tmp_path, cambios={vc.VM_IMAGENES.plantilla: texto})
+    (disco,) = por(datos(h.vm_snapshots("hero"))["vms"]["filas"], "uuid", VM1_HERO)["discos"]
+    assert disco["capas"] == 1 and disco["base_sin_leer"] == "nbd://192.0.2.9/x"
 
 
 def test_una_vm_sin_carpeta_de_metadatos_sale_sin_instantaneas_conocidas_y_se_dice(tmp_path):
@@ -750,6 +815,17 @@ def test_contenedores_uso_ordena_por_cpu_y_suma(tmp_path):
     assert cpu == sorted(cpu, reverse=True)
     assert d["cpu_pct"] == round(sum(cpu), 2) and d["memoria"] == sum(f["memoria"] for f in filas)
     assert por(filas, "nombre", "contenedor3")["memoria_limite"] == 3 * GIB
+
+
+def test_contenedores_uso_no_suma_como_cero_lo_que_no_se_pudo_medir(tmp_path):
+    # escrito a mano: uno medido y otro que se para mientras docker lo mide
+    stats = ("web\t12.50%\t100MiB / 1GiB\t9.77%\t1kB / 2kB\t3MB / 4MB\t5\n"
+             "lento\t--\t-- / --\t--\t-- / --\t-- / --\t--\n")
+    h, _ = uno(tmp_path, "qts", cambios={vc.CT_STATS.render(): stats})
+    d = datos(h.contenedores_uso("qts"))
+    assert d["cpu_pct"] == 12.5 and d["memoria"] == 100 * 1024 ** 2
+    assert d["sin_medir"] == ["lento"]
+    assert [f["nombre"] for f in d["contenedores"]["filas"]] == ["web", "lento"]
 
 
 def test_contenedores_uso_sin_ninguno_en_marcha_responde_bien_y_vacio(tmp_path):

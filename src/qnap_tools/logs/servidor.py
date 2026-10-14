@@ -13,7 +13,7 @@ final de la utilidad distingue "no hay" de "no respondio".
 """
 import re
 from collections import Counter
-from datetime import date
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from .. import servidor
@@ -63,6 +63,13 @@ NOTA_FUENTES = "es lo que tiene el modelo: el estado en vivo de cada fuente no s
 # motores de registro que se esperan siempre, y los de una aplicacion si esta activa
 MOTORES_SIEMPRE = ("rsyslogd", "qLogEngined", "qNoticeEngined")
 MOTORES_DE_APP = {"QuLog": ("qulogd", "qulogdb"), "NotificationCenter": ("ncdb",)}
+# un volcado de cuelgue se avisa si es de los ultimos dias; los anteriores solo se listan
+DIAS_VOLCADO = 30
+
+
+def ahora():
+    """Hora local de este ordenador: la de los volcados es la del NAS (unas horas no cambian nada)."""
+    return datetime.now()
 
 
 # --- parametros -------------------------------------------------------------------------------
@@ -134,10 +141,12 @@ def avisos_de_sistema(apps, motores, volcados):
         for m in esperados:
             if motores.get(m) == 0:
                 avisos.append("el motor de registro %s no esta en marcha" % m)
-    if volcados and volcados["volcados"]:
-        v = volcados["volcados"]
-        avisos.append("hay %d volcados del kernel guardados tras cuelgues; el mas reciente es del %s"
-                      % (len(v), v[0]["fecha"]))
+    if volcados:
+        limite = (ahora() - timedelta(days=DIAS_VOLCADO)).strftime("%Y-%m-%d %H:%M")
+        v = [x for x in volcados["volcados"] if x["fecha"] >= limite]
+        if v:
+            avisos.append("hay %d %s del kernel de los ultimos %d dias (tras cuelgues); el mas reciente es del %s"
+                          % (len(v), "volcado" if len(v) == 1 else "volcados", DIAS_VOLCADO, v[0]["fecha"]))
     return avisos
 
 
@@ -306,7 +315,8 @@ class Herramientas(servidor.Base):
         bytes), firmware instalado con la ultima comprobacion y la ultima actualizacion, politica
         de actualizacion automatica, aplicaciones de registro y seguridad con su version, motores
         de registro en marcha y volcados del kernel guardados tras cuelgues, y 'avisos' (motor de
-        registro parado, volcados guardados). No dice si hay firmware nuevo: el NAS no lo guarda.
+        registro parado, volcados de los ultimos 30 dias; los anteriores solo se listan). No dice si
+        hay firmware nuevo: el NAS no lo guarda.
 
         nas: nombre de un NAS del inventario, o 'todos'."""
         def uno(n):
@@ -352,9 +362,7 @@ class Herramientas(servidor.Base):
 
 def construir(entorno=None, fabrica_conexion=Conexion):
     mcp, ctx = servidor.crear("qnap-logs", INSTRUCCIONES, entorno, fabrica_conexion)
-    herramientas = Herramientas(ctx)
-    for nombre in HERRAMIENTAS:
-        mcp.add_tool(getattr(herramientas, nombre))
+    servidor.registrar(mcp, Herramientas(ctx), HERRAMIENTAS)
     return mcp
 
 

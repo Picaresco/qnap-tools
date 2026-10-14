@@ -185,13 +185,28 @@ def test_sin_vms_no_hay_definiciones_y_sin_libvirt_es_un_error():
 
 @pytest.mark.parametrize("cuerpo", [
     "  <memory unit='KiB'>1</memory>\n",                                    # sin VM a la que colgarlo
-    "== %s\n" % VM1,                                                        # una VM sin ningun dato
-    "== %s\n  <memory unit='MiB'>1024</memory>\n  <vcpu>1</vcpu>\n" % VM1,  # unidad no prevista
-    "== %s\n  <memory unit='KiB'>mucha</memory>\n" % VM1,
     "== no-es-un-uuid\n  <memory unit='KiB'>1</memory>\n"])
 def test_la_definicion_no_se_inventa(cuerpo):
     with pytest.raises(ValueError):
         p.vm_xml(URI + cuerpo)
+
+
+@pytest.mark.parametrize("cuerpo", [
+    "",                                                                     # una VM sin ningun dato
+    "  <memory unit='MiB'>1024</memory>\n  <vcpu>1</vcpu>\n",               # unidad no prevista
+    "  <memory unit='KiB'>mucha</memory>\n",
+    "  <qvs:name>vm rara</qvs:name>\n  algo que no es un elemento\n"])
+def test_una_definicion_que_no_se_entiende_deja_esa_vm_con_su_error_y_sin_inventar(cuerpo):
+    vm, otra = p.vm_xml(URI + "== %s\n" % VM1 + cuerpo + "== %s\n  <memory unit='KiB'>1024</memory>\n"
+                        "  <vcpu>1</vcpu>\n" % VM2)
+    assert vm["uuid"] == VM1 and vm["error"] and "definicion" in vm["error"]
+    assert all(vm[c] is None for c in ("memoria", "vcpus", "discos", "interfaces", "firmware", "arranque"))
+    assert (otra["uuid"], otra["memoria"], otra["vcpus"]) == (VM2, 1024 * 1024, 1) and "error" not in otra
+
+
+def test_una_vm_ilegible_conserva_su_nombre_si_se_ve():
+    (vm,) = p.vm_xml(URI + "== %s\n  <qvs:name>vm rara</qvs:name>\n  <memory unit='KiB'>mucha</memory>\n" % VM1)
+    assert vm["nombre"] == "vm rara" and vm["error"]
 
 
 # ==== direcciones ===============================================================================
@@ -216,8 +231,10 @@ def test_las_direcciones_no_se_inventan(texto):
 
 # ==== uso (dos lecturas) ========================================================================
 
-def lecturas(antes, despues, t0="100.00 1.00", t1="105.00 2.00"):
-    return "%s\n%s==5s\n%s\n%s" % (t0, antes, t1, despues)
+def lecturas(antes, despues, t0="100.00 1.00", t1="105.00 2.00", uri0=URI, uri1=URI, rc0="==rc 0\n",
+             rc1="==rc 0\n"):
+    """Lo que da la orden: cada lectura dice antes a que libvirt habla y despues como termino domstats."""
+    return "%s%s\n%s%s==5s\n%s%s\n%s%s" % (uri0, t0, antes, rc0, uri1, t1, despues, rc1)
 
 
 def lectura(cpu, rx, tx, rd, wr, rd_reqs=0, wr_reqs=0, vcpus=2):
@@ -266,7 +283,13 @@ def test_el_uso_real_mide_las_vm_en_marcha():
 
 @pytest.mark.parametrize("texto", [
     "", "100.00 1.00\n", lecturas("", "", t1="100.00 2.00"), lecturas("", "", t1="99.00 2.00"),
-    lecturas("  cpu.time=1\n", ""), "sin reloj\n==5s\n105.00 1.00\n"])
+    lecturas("  cpu.time=1\n", ""), "sin reloj\n==5s\n105.00 1.00\n",
+    # sin respuesta del libvirt del sistema en una de las lecturas: no es "ninguna VM en marcha"
+    lecturas("", lectura(1, 1, 1, 1, 1), uri0="uri=\n"), lecturas(lectura(1, 1, 1, 1, 1), "", uri1="uri=\n"),
+    lecturas("", "", uri0="", uri1=""),
+    # domstats fallo en una lectura (libvirt respondio a uri): sin dominios no es "ninguna en marcha"
+    lecturas("", lectura(1, 1, 1, 1, 1), rc0="==rc 1\n"), lecturas(lectura(1, 1, 1, 1, 1), "", rc1="==rc 1\n"),
+    lecturas("", "", rc0="", rc1="")])
 def test_el_uso_no_se_inventa(texto):
     with pytest.raises(ValueError):
         p.vm_uso(texto)
@@ -296,19 +319,46 @@ def test_la_cadena_de_imagenes_de_qts():
 def test_un_disco_cuya_imagen_no_se_puede_leer_queda_sin_cadena_y_no_tumba_a_los_demas():
     # escrito a mano: qemu-img escribe su error por la salida de errores y aqui no llega nada
     vms = p.vm_imagenes(URI + "== %s\n-- /share/x/roto.img\n-- /share/x/bien.img\n"
-                        '[{"virtual-size": 10, "filename": "/share/x/bien.img", "format": "raw", "actual-size": 4}]\n'
+                        '{"virtual-size": 10, "filename": "/share/x/bien.img", "format": "raw", "actual-size": 4}\n'
                         "== %s\n" % (VM1, VM2))
     assert vms == [
         {"uuid": VM1, "discos": [
-            {"fichero": "/share/x/roto.img", "cadena": None},
+            {"fichero": "/share/x/roto.img", "cadena": None, "base_sin_leer": None, "cortada": False},
             {"fichero": "/share/x/bien.img", "cadena": [
-                {"fichero": "/share/x/bien.img", "formato": "raw", "virtual": 10, "ocupa": 4, "base": None}]}]},
+                {"fichero": "/share/x/bien.img", "formato": "raw", "virtual": 10, "ocupa": 4, "base": None}],
+             "base_sin_leer": None, "cortada": False}]},
         {"uuid": VM2, "discos": []}]
 
 
-@pytest.mark.parametrize("texto", ["", "uri=\n", URI + "-- /share/x.img\n[]\n",
-                                   URI + "== %s\n-- /share/x.img\n[{\"filename\": 3}]\n" % VM1,
-                                   URI + "== %s\n-- /share/x.img\n{no es json\n" % VM1])
+CAPA = '{"filename": "%s", "format": "qcow2", "virtual-size": 10, "actual-size": 4%s}\n'
+
+
+def test_una_imagen_base_que_no_es_un_fichero_local_no_se_sigue_y_se_dice():
+    # escrito a mano: la orden solo sigue las bases que son una ruta local; la ultima capa leida
+    # apunta a otra cosa y ahi se queda
+    base = ', "backing-filename": "nbd://192.0.2.9/x", "full-backing-filename": "nbd://192.0.2.9/x"'
+    (vm,) = p.vm_imagenes(URI + "== %s\n-- /share/x/capa.img\n" % VM1
+                          + CAPA % ("/share/x/capa.img", ', "full-backing-filename": "/share/x/base.img"')
+                          + CAPA % ("/share/x/base.img", base))
+    (disco,) = vm["discos"]
+    assert [c["fichero"] for c in disco["cadena"]] == ["/share/x/capa.img", "/share/x/base.img"]
+    assert disco["base_sin_leer"] == "nbd://192.0.2.9/x" and disco["cortada"] is False
+
+
+def test_una_cadena_mas_larga_de_lo_que_se_recorre_se_marca_cortada():
+    (vm,) = p.vm_imagenes(URI + "== %s\n-- /share/x/capa.img\n" % VM1
+                          + CAPA % ("/share/x/capa.img", ', "full-backing-filename": "/share/x/base.img"')
+                          + "!! cadena cortada\n")
+    (disco,) = vm["discos"]
+    assert disco["cortada"] is True and disco["base_sin_leer"] == "/share/x/base.img"
+
+
+@pytest.mark.parametrize("texto", ["", "uri=\n", URI + "-- /share/x.img\n{}\n",
+                                   URI + "== %s\n-- /share/x.img\n{\"filename\": 3}\n" % VM1,
+                                   URI + "== %s\n-- /share/x.img\n{no es json\n" % VM1,
+                                   # el formato de --backing-chain (una lista) ya no es el de la orden
+                                   URI + "== %s\n-- /share/x.img\n[{\"filename\": \"/share/x.img\"}]\n" % VM1,
+                                   URI + "== %s\n!! cadena cortada\n" % VM1])
 def test_la_cadena_de_imagenes_no_se_inventa(texto):
     with pytest.raises(ValueError):
         p.vm_imagenes(texto)
@@ -542,6 +592,15 @@ def test_las_unidades_de_docker_decimales_y_binarias():
 def test_un_contenedor_sin_cifras_las_da_sin_valor():
     # escrito a mano: lo que da docker stats de un contenedor que se para mientras lo mide
     (u,) = p.ct_stats("web\t--\t-- / --\t--\t-- / --\t-- / --\t--\n")
+    assert u == {"nombre": "web", "cpu_pct": None, "memoria": None, "memoria_limite": None, "memoria_pct": None,
+                 "red_recibido": None, "red_enviado": None, "disco_leido": None, "disco_escrito": None,
+                 "procesos": None}
+
+
+def test_una_memoria_de_cero_sobre_cero_es_que_no_se_midio():
+    # escrito a mano: lo que da docker stats de un contenedor que aun arranca o ya se ha parado
+    (u,) = p.ct_stats("web\t0.00%\t0B / 0B\t0.00%\t0B / 0B\t0B / 0B\t0\n")
+    # no es un contenedor parado a cero: no se midio, y nada de esa fila es una cifra
     assert u == {"nombre": "web", "cpu_pct": None, "memoria": None, "memoria_limite": None, "memoria_pct": None,
                  "red_recibido": None, "red_enviado": None, "disco_leido": None, "disco_escrito": None,
                  "procesos": None}

@@ -539,6 +539,15 @@ def datasets(texto):
     return resultado
 
 
+def zfs_retenido(texto):
+    """zfs list -H -p -o name,usedbysnapshots: los bytes que retienen las instantaneas de cada dataset."""
+    que = "lo retenido por las instantaneas"
+    filas = _tabulado(texto, 2, que)
+    if not filas:
+        raise _no_reconocida(que)
+    return {f[0]: _entero(f[1], "lo retenido") for f in filas}
+
+
 def zfs_snapshots(texto):
     """zfs list -H -p -t snapshot: las instantaneas, de la mas antigua a la mas reciente."""
     que = "la lista de instantaneas"

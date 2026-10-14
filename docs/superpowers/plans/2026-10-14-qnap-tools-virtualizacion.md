@@ -219,6 +219,8 @@ la revision final y lo que queda aplazado. Bateria final: 1719 pruebas.
 
 ### Menores aplazados (11)
 
+Resueltos en la 0.4.1 (2026-10-14): M5 (un contenedor sin medir no suma como cero: 'sin_medir'), M6 (una VM con una definicion que no se entiende sale con su 'error'), M9 (vm_uso comprueba el libvirt en cada lectura), M12 (la cadena se recorre capa a capa y solo sigue bases locales; 'base_sin_leer' y 'cortada'; en nas1, las 10 cadenas iguales que con --backing-chain).
+
 - Final: minor (deferred): M2 — atributos del XML de una VM (conmutador, modelo, interfaz, bus, formato, maquina, escucha) y driver/ambito de las redes de docker sin acotar en longitud.
 - Final: minor (deferred): M3 — una descripcion de VM de varias lineas sale sin valor (documentado en el README).
 - Final: minor (deferred): M4 — vcpus_en_marcha y memoria_en_marcha cuentan tambien las VMs en pausa o apagandose, y usan la memoria actual (balloon), no la maxima de vm_lista (documentado en el README).

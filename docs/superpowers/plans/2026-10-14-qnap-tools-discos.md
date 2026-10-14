@@ -259,6 +259,8 @@ lo que corrigio la revision final y lo que queda aplazado.
 
 ### Menores aplazados (7)
 
+Resueltos en la 0.4.1 (2026-10-14): M3 (sin ningun fichero de desgaste con SSD presentes, error en 'errores'), M5 (aviso de disco sin fichero SMART o sin veredicto del NAS), M7 (el resumen da pools y grupos aunque falle la lista de discos), M8 (lo retenido por instantaneas sale de usedbysnapshots, total y por volumen; en nas1 683 GB frente a los 620 de la suma de 'used'). Ya no aplica: M11 (la publicacion cambia esos nombres).
+
 - Final: minor (deferred): M3 ssd_vida sin ficheros en /tmp/disk deja la vida de todos los SSD sin valor y sin entrada en `errores`.
 - Final: minor (deferred): M4 un disco de enclosure_*.conf que qcli_storage -d no lista se clasifica como externo aunque sea SATA.
 - Final: minor (deferred): M5 un disco sin fichero SMART o sin veredicto no genera aviso "sin datos SMART".

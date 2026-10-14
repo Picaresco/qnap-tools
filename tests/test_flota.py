@@ -4,6 +4,7 @@ import os
 import re
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
 import paramiko
@@ -332,6 +333,52 @@ def test_enrolar_con_inventario_vacio_lo_dice(tmp_path):
     h, _ = montar(tmp_path, {})
     r = h.nas_enrolar()
     assert len(r) == 1 and r[0]["ok"] is False and "vacio" in r[0]["error"]
+
+
+def test_enrolar_varios_a_la_vez_no_pierde_ninguna_clave_de_host(tmp_path):
+    # enrolar conecta con los NAS en paralelo; cada conexion guarda known_hosts entero
+    mundos = {"192.0.2.%d" % i: nas_simulado(retardo_fijar=0.3) for i in (10, 20, 30)}
+    h, ctx = montar(tmp_path, mundos)
+    inv.guardar(ctx.cfg.inventario, {"n%d" % i: Nas("n%d" % i, host) for i, host in enumerate(mundos)})
+    assert all(x["ok"] for x in h.nas_enrolar())
+    fijados = paramiko.HostKeys(str(ctx.cfg.known_hosts))
+    assert all(fijados.lookup(host) is not None for host in mundos)
+
+
+def test_dos_altas_a_la_vez_por_el_servidor_quedan_las_dos(tmp_path):
+    mundos = {"192.0.2.10": nas_simulado(retardo_fijar=0.3), "192.0.2.20": nas_simulado(retardo_fijar=0.3)}
+
+    def fabrica(nas, cfg):
+        return Conexion(nas, cfg, fabrica=mundos[nas.host].cliente)
+    entorno = {"QNAP_TOOLS_USER": "usuario", "QNAP_TOOLS_PASSWORD": "secreto", "QNAP_TOOLS_DATA": str(tmp_path)}
+    mcp = flota_srv.construir(entorno, fabrica_conexion=fabrica)
+
+    async def las_dos():
+        return await asyncio.gather(*(mcp.call_tool("nas_alta", {"nombre": "n%d" % i, "host": host})
+                                      for i, host in enumerate(mundos)))
+    asyncio.run(las_dos())
+    assert set(inv.cargar(tmp_path / "inventario.toml")) == {"n0", "n1"}
+    fijados = paramiko.HostKeys(str(tmp_path / "known_hosts"))
+    assert all(fijados.lookup(host) is not None for host in mundos)
+
+
+def test_dos_bajas_a_la_vez_por_el_servidor_no_se_pisan(tmp_path, monkeypatch):
+    # cada baja lee el inventario, quita su NAS y lo guarda: a la vez, la segunda pisaria a la primera
+    entorno = {"QNAP_TOOLS_USER": "usuario", "QNAP_TOOLS_PASSWORD": "secreto", "QNAP_TOOLS_DATA": str(tmp_path)}
+    inv.guardar(tmp_path / "inventario.toml", {"a": Nas("a", HOST), "b": Nas("b", "192.0.2.20")})
+    real = inv.guardar
+
+    def lento(ruta, nas):
+        time.sleep(0.3)
+        real(ruta, nas)
+    monkeypatch.setattr(inv, "guardar", lento)
+    mcp = flota_srv.construir(entorno)
+
+    async def las_dos():
+        return await asyncio.gather(mcp.call_tool("nas_baja", {"nombre": "a"}),
+                                    mcp.call_tool("nas_baja", {"nombre": "b"}))
+    asyncio.run(las_dos())
+    assert inv.cargar(tmp_path / "inventario.toml") == {}
 
 
 # --- exportar e importar ------------------------------------------------------------------------

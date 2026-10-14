@@ -84,6 +84,10 @@ DATASETS = Comando(
 # tuberia, para que el codigo de salida sea el de zfs. Un NAS sin instantaneas no devuelve nada.
 SNAPSHOTS_HERO = Comando("zfs_snapshots", "zfs list -H -p -t snapshot -o name,used,refer,creation -s creation",
                          sistema="hero", timeout=60, valida=rc_cero)
+# Lo que liberaria borrar todas las instantaneas de cada dataset. La suma del "used" de cada
+# instantanea se queda corta: lo que comparten dos instantaneas no cuenta en ninguna.
+SNAPSHOTS_RETENIDO_HERO = Comando("zfs_retenido", "zfs list -H -p -t filesystem,volume -o name,usedbysnapshots",
+                                  sistema="hero", timeout=30)
 # Todo menos "description", que es texto libre.
 CAMPOS_PROG_HERO = ("source_lv_id", "retention", "expiremin", "keepAmount", "hourAmount", "dayAmount",
                     "weekAmount", "monthAmount", "normalAmount", "Schedule", "MonthDay", "WeekDay",

@@ -9,6 +9,7 @@
 """
 import re
 import shlex
+import threading
 import time
 from dataclasses import dataclass
 
@@ -20,6 +21,7 @@ SUDO_RECHAZA = re.compile(r"incorrect password attempt|Sorry, try again|no passw
 TROZO = 65536
 LATIDO = 30        # segundos entre latidos SSH: una conexion muerta se descubre sin esperar al TCP
 GRACIA_FIN = 2.0   # espera maxima del fin de la salida una vez que la orden ha terminado
+_FIJANDO = threading.Lock()     # una sola conexion a la vez puede escribir en known_hosts
 
 
 class ErrorConexion(Exception):
@@ -139,6 +141,14 @@ class Conexion:
         return metodos, clave
 
     def conectar(self, fijar_host=False):
+        if fijar_host:
+            # al aceptar un host nuevo, paramiko guarda known_hosts entero desde la copia que
+            # cargo al empezar: dos conexiones que fijan host a la vez perderian una huella
+            with _FIJANDO:
+                return self._conectar(fijar_host)
+        return self._conectar(fijar_host)
+
+    def _conectar(self, fijar_host):
         self.cerrar()
         metodos, clave = self._metodos()
         for metodo in metodos:

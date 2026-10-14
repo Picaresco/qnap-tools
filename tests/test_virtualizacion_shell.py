@@ -4,6 +4,7 @@ de verdad con un virsh y un qemu-img de pega: una carpeta con espacios en el nom
 de Virtualization Station se guardan en una carpeta con su nombre) no puede partir la ruta.
 
 Necesita un sh en el PATH (en Windows, el de Git); si no lo hay, se saltan."""
+import json
 import os
 import shutil
 import subprocess
@@ -29,11 +30,19 @@ esac
 """
 
 
+QEMU_DE_PEGA = """\
+for a in "$@"; do ultimo="$a"; done
+echo "$*" >> "$PEGA/llamadas"
+nombre=$(basename "$ultimo")
+[ ! -e "$PEGA/img/$nombre" ] || cat "$PEGA/img/$nombre"
+"""
+
+
 def posix(ruta):
     return str(ruta).replace("\\", "/")
 
 
-def lanzar(comando, tmp_path, xml="", discos=""):
+def lanzar(comando, tmp_path, xml="", discos="", qemu=None):
     """La salida de la orden en un sh real, con virsh y qemu-img sustituidos por dobles."""
     pega = tmp_path / "pega"
     pega.mkdir(exist_ok=True)
@@ -44,8 +53,12 @@ def lanzar(comando, tmp_path, xml="", discos=""):
     texto = comando.render()
     assert vc.VIRSH in texto
     texto = texto.replace(vc.VIRSH, "sh %s/virsh.sh -r -c qemu:///system" % posix(pega))
-    # qemu-img de pega: dice con que argumentos lo llaman, uno por linea entre corchetes
-    texto = texto.replace(vc.QEMU_IMG, "printf '[\"%s\"]\\n'")
+    if qemu is None:
+        # qemu-img de pega: dice con que argumentos lo llaman, uno por linea entre corchetes
+        texto = texto.replace(vc.QEMU_IMG, "printf '[\"%s\"]\\n'")
+    else:
+        (pega / "qemu.sh").write_text(qemu, encoding="utf-8", newline="\n")
+        texto = texto.replace(vc.QEMU_IMG, "sh %s/qemu.sh" % posix(pega))
     r = subprocess.run([SH, "-c", texto], capture_output=True, text=True, encoding="utf-8",
                        env={"PEGA": posix(pega), "PATH": os.environ["PATH"]}, timeout=60)
     return r.returncode, r.stdout
@@ -75,6 +88,65 @@ def test_una_carpeta_de_metadatos_que_no_existe_no_pasa_por_cero_instantaneas(tm
     xml = "    <qvs:meta_path>%s</qvs:meta_path>\n" % posix(tmp_path / "no existe" / ".meta")
     rc, salida = lanzar(vc.VM_SNAP_VS, tmp_path, xml=xml)
     assert rc == 0 and p.vm_snap_vs(salida) == [{"uuid": UUID, "instantaneas": None}]
+
+
+def test_la_cadena_se_recorre_capa_a_capa_y_no_sigue_una_base_remota(tmp_path):
+    discos = (" Type   Device   Target   Source\n" + "-" * 48 + "\n"
+              " file   disk     vda      /share/Mis VMs/vm/disco 1.img.1790544225\n")
+    img = tmp_path / "pega" / "img"
+    img.mkdir(parents=True)
+    capas = {
+        "disco 1.img.1790544225": {"filename": "/share/Mis VMs/vm/disco 1.img.1790544225", "format": "qcow2",
+                                   "actual-size": 4, "backing-filename": "disco 1.img",
+                                   "full-backing-filename": "/share/Mis VMs/vm/disco 1.img"},
+        "disco 1.img": {"filename": "/share/Mis VMs/vm/disco 1.img", "format": "qcow2", "actual-size": 8,
+                        "backing-filename": "nbd://192.0.2.9:10809/x", "full-backing-filename": "nbd://192.0.2.9:10809/x"},
+        "x": {"filename": "nbd://192.0.2.9:10809/x", "format": "raw", "actual-size": 1}}
+    for nombre, capa in capas.items():
+        (img / nombre).write_text(json.dumps(capa, indent=4) + "\n", encoding="utf-8", newline="\n")
+    rc, salida = lanzar(vc.VM_IMAGENES, tmp_path, discos=discos, qemu=QEMU_DE_PEGA)
+    assert rc == 0
+    llamadas = (tmp_path / "pega" / "llamadas").read_text(encoding="utf-8").splitlines()
+    assert [ll.rsplit("json ", 1)[1] for ll in llamadas] == [
+        "/share/Mis VMs/vm/disco 1.img.1790544225", "/share/Mis VMs/vm/disco 1.img"]
+    assert not any("--backing-chain" in ll for ll in llamadas)
+    (vm,) = p.vm_imagenes(salida)
+    (disco,) = vm["discos"]
+    assert [c["ocupa"] for c in disco["cadena"]] == [4, 8]
+    assert disco["base_sin_leer"] == "nbd://192.0.2.9:10809/x"
+
+
+def test_una_base_fuera_de_las_carpetas_compartidas_no_se_abre(tmp_path):
+    # una imagen que apunta a un dispositivo o a un fichero del sistema: qemu-img no lo abre
+    discos = (" Type   Device   Target   Source\n" + "-" * 48 + "\n"
+              " file   disk     vda      /share/vm/capa.img\n")
+    img = tmp_path / "pega" / "img"
+    img.mkdir(parents=True)
+    (img / "capa.img").write_text(json.dumps({"filename": "/share/vm/capa.img", "format": "qcow2",
+                                              "full-backing-filename": "/dev/sda"}) + "\n",
+                                  encoding="utf-8", newline="\n")
+    rc, salida = lanzar(vc.VM_IMAGENES, tmp_path, discos=discos, qemu=QEMU_DE_PEGA)
+    assert rc == 0
+    llamadas = (tmp_path / "pega" / "llamadas").read_text(encoding="utf-8").splitlines()
+    assert [ll.rsplit("json ", 1)[1] for ll in llamadas] == ["/share/vm/capa.img"]
+    (vm,) = p.vm_imagenes(salida)
+    assert vm["discos"][0]["base_sin_leer"] == "/dev/sda"
+
+
+def test_una_cadena_sin_fin_se_corta_y_se_dice(tmp_path):
+    discos = (" Type   Device   Target   Source\n" + "-" * 48 + "\n"
+              " file   disk     vda      /share/vm/bucle.img\n")
+    img = tmp_path / "pega" / "img"
+    img.mkdir(parents=True)
+    # una imagen que se tiene a si misma por base: la orden no da vueltas sin fin
+    (img / "bucle.img").write_text(json.dumps({"filename": "/share/vm/bucle.img", "format": "qcow2",
+                                               "full-backing-filename": "/share/vm/bucle.img"}) + "\n",
+                                   encoding="utf-8", newline="\n")
+    rc, salida = lanzar(vc.VM_IMAGENES, tmp_path, discos=discos, qemu=QEMU_DE_PEGA)
+    assert rc == 0
+    (vm,) = p.vm_imagenes(salida)
+    (disco,) = vm["discos"]
+    assert disco["cortada"] is True and len(disco["cadena"]) == vc.MAX_CAPAS_IMAGEN
 
 
 def test_la_imagen_de_un_disco_en_una_carpeta_con_espacios_se_pide_entera(tmp_path):

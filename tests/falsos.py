@@ -6,6 +6,8 @@ ClienteFalso implementa lo que transporte.Conexion usa de paramiko.SSHClient.
 """
 import shlex
 
+import time
+
 import paramiko
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -56,7 +58,7 @@ class Mundo:
     def __init__(self, respuestas=None, acepta_clave=True, acepta_contrasena=True,
                  contrasena="secreto", host_fijado=True, host_cambiado=False,
                  error_conexion=None, sudo_con_sermon=False, salida_tardia=False,
-                 sin_fin_de_salida=False):
+                 sin_fin_de_salida=False, retardo_fijar=0):
         # orden exacta (o expresion regular compilada) -> respuesta, que puede ser:
         #   str                 salida con codigo 0
         #   (rc, salida, error) respuesta completa (salida y error pueden ser bytes)
@@ -74,6 +76,8 @@ class Mundo:
         self.salida_tardia = salida_tardia
         # True: la orden termina pero el fin de fichero no llega (un hijo retiene la salida)
         self.sin_fin_de_salida = sin_fin_de_salida
+        # segundos entre cargar known_hosts y guardarlo al fijar el host (para ver carreras)
+        self.retardo_fijar = retardo_fijar
         self.keepalives = []        # segundos pedidos en cada conexion establecida
         self.caida = False          # True: la sesion se ha cortado
         self.parcial = ""           # lo que llega antes de colgarse una orden CUELGA
@@ -125,6 +129,7 @@ class ClienteFalso:
 
     def load_host_keys(self, ruta):
         self.hosts_cargados = ruta
+        self.hosts = paramiko.HostKeys(ruta)
 
     def set_missing_host_key_policy(self, politica):
         self.politica = politica
@@ -141,11 +146,12 @@ class ClienteFalso:
                 m.host_fijado = True
                 m.fijaciones += 1
                 if self.hosts_cargados:
-                    # como AutoAddPolicy: la clave queda guardada ANTES de autenticar
+                    # como AutoAddPolicy: la clave queda guardada ANTES de autenticar, y se
+                    # guarda la copia cargada al principio, no lo que haya ahora en el fichero
+                    time.sleep(m.retardo_fijar)
                     nombre = hostname if port == 22 else "[%s]:%d" % (hostname, port)
-                    hosts = paramiko.HostKeys(self.hosts_cargados)
-                    hosts.add(nombre, clave_de_host().get_name(), clave_de_host())
-                    hosts.save(self.hosts_cargados)
+                    self.hosts.add(nombre, clave_de_host().get_name(), clave_de_host())
+                    self.hosts.save(self.hosts_cargados)
             else:
                 self.politica.missing_host_key(self, hostname, ClaveFalsa("AAAAnueva"))
         metodo = "clave" if pkey is not None else "contrasena"

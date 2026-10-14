@@ -300,6 +300,54 @@ def test_un_atributo_bajo_su_umbral_y_un_ssd_gastado_llevan_aviso(tmp_path):
     assert algun(en(d["discos"]["filas"], 23, 2)["avisos"], "95 %")
 
 
+def sin_bloque_smart(sistema, cabina, bahia):
+    """La salida de SMART_TODOS sin el fichero de un disco."""
+    return re.sub(r"== /tmp/smart/smart_%d_%d\.info\n(?:(?!== ).*\n)*" % (cabina, bahia), "",
+                  dato("smart_todos_" + sistema))
+
+
+def test_un_disco_sin_fichero_smart_lleva_su_aviso(tmp_path):
+    smart = sin_bloque_smart("hero", 0, 5)
+    assert "smart_0_5" not in smart and "smart_0_6" in smart
+    h, _ = uno(tmp_path, cambios={dc.SMART_TODOS.plantilla: smart})
+    d = datos(h.discos_fisicos("hero"))
+    assert algun(en(d["discos"]["filas"], 0, 5)["avisos"], "sin datos SMART")
+    assert en(d["discos"]["filas"], 0, 6)["avisos"] == []
+    assert d["resumen"]["con_aviso"] == 1
+
+
+def test_un_disco_de_la_cabina_principal_sin_veredicto_del_nas_lleva_su_aviso(tmp_path):
+    salud = re.sub(r"== 5\nmodelo=[^\n]*\n", "== 5\nmodelo=--\n", dato("discos_salud_hero"))
+    assert salud != dato("discos_salud_hero")
+    h, _ = uno(tmp_path, cambios={dc.DISCOS_SALUD.plantilla: salud})
+    d = datos(h.discos_fisicos("hero"))
+    assert algun(en(d["discos"]["filas"], 0, 5)["avisos"], "veredicto SMART")
+    # los NVMe de la ranura interna no tienen veredicto del NAS (getsysinfo solo ve la cabina 0)
+    assert en(d["discos"]["filas"], 23, 1)["avisos"] == []
+    assert d["resumen"]["con_aviso"] == 1
+
+
+def test_sin_poder_leer_el_smart_no_se_avisa_disco_por_disco(tmp_path):
+    negado = (1, "", "Permission denied\n")
+    h, _ = uno(tmp_path, cambios={dc.DISCOS_SALUD.plantilla: negado, dc.SMART_TODOS.plantilla: negado})
+    d = datos(h.discos_fisicos("hero"))
+    assert d["resumen"]["con_aviso"] == 0 and set(d["errores"]) == {"veredicto", "smart"}
+
+
+def test_sin_ningun_fichero_de_desgaste_con_ssd_presentes_se_dice_en_errores(tmp_path):
+    h, _ = uno(tmp_path, cambios={dc.SSD_VIDA.plantilla: ""})
+    d = datos(h.discos_fisicos("hero"))
+    assert "desgaste" in d["errores"]["vida_ssd"]
+    assert all(x["vida_usada_pct"] is None for x in d["discos"]["filas"])
+
+
+def test_un_ssd_sin_fichero_de_desgaste_entre_otros_que_lo_tienen_no_es_un_error(tmp_path):
+    # en el QTS de pruebas una de las dos SSD de cache no tiene fichero de desgaste
+    h, _ = uno(tmp_path, "qts")
+    d = datos(h.discos_fisicos("qts"))
+    assert "vida_ssd" not in d.get("errores", {})
+
+
 # --- disco_smart --------------------------------------------------------------------------------
 
 @pytest.mark.parametrize("bahia", ["1; reboot", -1, 1000, "", "3 4", None, True, 2.5, "$(reboot)"])
@@ -493,6 +541,24 @@ def test_el_resumen_dice_lo_que_no_ha_podido_mirar(tmp_path):
     assert algun(d["avisos"], "no se ha podido comprobar", "discos")
 
 
+@pytest.mark.parametrize("sistema", ["hero", "qts"])
+def test_el_resumen_sin_la_lista_de_discos_da_igual_el_estado_de_la_redundancia(tmp_path, sistema):
+    h, _ = uno(tmp_path, sistema, cambios={dc.DISCOS_LISTA.plantilla: (1, "", "qcli_storage: error\n")})
+    d = datos(h.almacenamiento_resumen(sistema))
+    assert "discos_lista" in d["errores"]["discos"]
+    assert d["discos"] is None
+    assert algun(d["avisos"], "no se ha podido", "discos")
+    assert ("pools" in d) if sistema == "hero" else (len(d["grupos"]) == 2)
+    assert len(d["volumenes"]) > 0
+
+
+def test_el_resumen_con_un_grupo_degradado_y_sin_lista_de_discos_avisa_del_grupo(tmp_path):
+    h, _ = uno(tmp_path, "qts", cambios={dc.MDSTAT.plantilla: mdstat_degradado(),
+                                        dc.DISCOS_DETALLE.plantilla: (1, "", "")})
+    d = datos(h.almacenamiento_resumen("qts"))
+    assert algun(d["avisos"], "md1", "degradado") and "discos" in d["errores"]
+
+
 def test_un_pool_casi_lleno_sale_en_los_avisos(tmp_path):
     h, _ = uno(tmp_path, cambios={dc.POOLS.plantilla: dato("pools_hero").replace("\t26\t", "\t91\t")})
     d = datos(h.almacenamiento_resumen("hero"))
@@ -567,13 +633,25 @@ def test_snapshots_en_hero_da_las_recientes_la_cuenta_y_la_programacion(tmp_path
     assert d["recientes"]["filas"][0] == {
         "volumen": "zpool1/zfs24", "instantanea": "snapshot7", "usado": 229376, "referido": 1232916480,
         "creada": "2026-10-13T22:00:03Z"}
+    # lo retenido es lo que liberaria borrar las instantaneas (usedbysnapshots de cada dataset), no
+    # la suma del "used" de cada una: lo que comparten dos instantaneas no cuenta en ninguna
     assert d["por_volumen"] == [
-        {"volumen": "zpool1/zfs24", "instantaneas": 5, "ultima": "2026-10-13T22:00:03Z"},
-        {"volumen": "zpool2/zfs19", "instantaneas": 2, "ultima": "2026-09-24T23:36:21Z"},
-        {"volumen": "zpool2/zfs20", "instantaneas": 1, "ultima": "2026-06-10T23:45:08Z"}]
-    assert d["retenido_bytes"] == sum(int(linea.split("\t")[1]) for linea in dato("zfs_snapshots_hero").splitlines())
+        {"volumen": "zpool1/zfs24", "instantaneas": 5, "ultima": "2026-10-13T22:00:03Z", "retenido_bytes": 154705920},
+        {"volumen": "zpool2/zfs19", "instantaneas": 2, "ultima": "2026-09-24T23:36:21Z",
+         "retenido_bytes": 66376134656},
+        {"volumen": "zpool2/zfs20", "instantaneas": 1, "ultima": "2026-06-10T23:45:08Z",
+         "retenido_bytes": 616824066048}]
+    assert d["retenido_bytes"] == sum(int(linea.split("\t")[1]) for linea in dato("zfs_retenido_hero").splitlines())
+    assert d["retenido_bytes"] > sum(int(linea.split("\t")[1]) for linea in dato("zfs_snapshots_hero").splitlines())
     assert [x["volumen"] for x in d["programacion"]["programaciones"]] == [19, 24]
     assert len(d["programacion"]["retenciones"]) == 12 and "nota" in d["programacion"]
+
+
+def test_snapshots_en_hero_sin_poder_leer_lo_retenido_da_lo_demas_y_lo_dice(tmp_path):
+    h, _ = uno(tmp_path, cambios={dc.SNAPSHOTS_RETENIDO_HERO.plantilla: (1, "", "permission denied\n")})
+    d = datos(h.snapshots("hero"))
+    assert d["retenido_bytes"] is None and "retenido" in d["errores"]
+    assert d["total"] == 20 and all(x["retenido_bytes"] is None for x in d["por_volumen"])
 
 
 def test_snapshots_en_qts_pone_nombre_al_volumen(tmp_path):
@@ -613,7 +691,8 @@ def test_muchas_instantaneas_llegan_recortadas_con_su_cuenta(tmp_path):
     assert d["total"] == 300 and d["recientes"]["truncado"] is True
     assert len(d["recientes"]["filas"]) == discos_srv.MAX_RECIENTES and d["recientes"]["total"] == 300
     assert d["recientes"]["filas"][0]["instantanea"] == "s299"       # la mas reciente, primero
-    assert d["por_volumen"] == [{"volumen": "zpool1/zfs2", "instantaneas": 300, "ultima": "2023-11-14T22:18:19Z"}]
+    assert d["por_volumen"] == [{"volumen": "zpool1/zfs2", "instantaneas": 300, "ultima": "2023-11-14T22:18:19Z",
+                                 "retenido_bytes": 147456}]
 
 
 def test_no_poder_leer_las_instantaneas_es_un_error_y_no_una_lista_vacia(tmp_path):

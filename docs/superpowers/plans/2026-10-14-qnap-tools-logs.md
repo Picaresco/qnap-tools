@@ -221,6 +221,8 @@ la revision final y lo que queda aplazado. Revision final independiente (opus): 
 
 ### Menores aplazados (8)
 
+Resueltos en la 0.4.1 (2026-10-14): M6 (solo se avisa de los volcados de los ultimos 30 dias). Ya no aplica: M9 (pasada por nas3 hecha).
+
 - Final: minor (deferred): M1 EVT_RECUENTO cuenta filas con grep y pierde el codigo de log_tool; continuaciones que empiezan por "N," cuentan como fila.
 - Final: minor (deferred): M2 se_conserva.filas es ultimo.id - primero.id + 1 (estimacion): renombrar a filas_aprox.
 - Final: minor (deferred): M4 _texto acota sin senal de recorte; SIN_CONTROL deja pasar C1 (\x80-\x9f) y U+2028/2029; una continuacion que parezca "N," tumba la lista entera.

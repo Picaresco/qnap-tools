@@ -645,6 +645,19 @@ def test_las_instantaneas_no_se_inventan(texto):
         p.zfs_snapshots(texto)
 
 
+def test_lo_retenido_por_instantaneas_da_los_bytes_de_cada_dataset():
+    retenido = p.zfs_retenido(dato("zfs_retenido_hero"))
+    assert len(retenido) == 32
+    assert retenido["zpool2/zfs19"] == 66376134656 and retenido["zpool1/zfs1107"] == 0
+
+
+@pytest.mark.parametrize("texto", ["", "cannot open: permission denied\n", "zpool1/zfs2\n",
+                                   "zpool1/zfs2\tmucho\n", "zpool1/zfs2\t1\t2\n"])
+def test_lo_retenido_por_instantaneas_no_se_inventa(texto):
+    with pytest.raises(ValueError):
+        p.zfs_retenido(texto)
+
+
 # --- programacion de instantaneas (zsnapshotSchedule.conf) --------------------------------------
 
 def test_la_programacion_separa_retenciones_y_programaciones_por_volumen():

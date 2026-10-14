@@ -561,6 +561,8 @@ lo que corrigio la revision final y lo que queda aplazado.
 
 ### Menores aplazados (10)
 
+Resueltos en la 0.4.1 (2026-10-14): M1 (las herramientas corren en un hilo), M7 (cryptography declarada), M10 (ToolAnnotations: readOnlyHint en las de consulta). Ya no aplican: M9 (se lanza desde PyPI) y M13 (la publicacion cambia esos datos).
+
 - Final: minor (deferred): M1 las herramientas son sincronas y FastMCP las ejecuta en su bucle principal: el servidor no atiende otra cosa mientras dura una consulta larga.
 - Final: minor (deferred): M5 rutas con "via inet6 <ip>" dan via="inet6"; eth0.10 y bond0.10 salen como tipo "otra".
 - Final: minor (deferred): M6 listas sin tope: permitidas/denegadas de bloqueo_ip, interfaces por puente, agregaciones, vlan; tampoco hay tope de memoria para la salida de una orden.

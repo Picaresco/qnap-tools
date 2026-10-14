@@ -6,6 +6,7 @@ filas de error, de aviso y de accesos fallidos se escriben aqui a mano."""
 import asyncio
 import json
 import re
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -515,7 +516,8 @@ def test_un_sai_activado_que_no_responde_sale_en_los_avisos(tmp_path):
 
 # --- sistema ------------------------------------------------------------------------------------
 
-def test_sistema_estado_da_carga_firmware_aplicaciones_motores_y_volcados(tmp_path):
+def test_sistema_estado_da_carga_firmware_aplicaciones_motores_y_volcados(tmp_path, monkeypatch):
+    monkeypatch.setattr(logs_srv, "ahora", lambda: datetime(2026, 9, 1, 12, 0))
     h, _ = uno(tmp_path)
     d = datos(h.sistema_estado("hero"))
     assert d["sistema"] == "hero" and d["encendido_s"] == 41669 and d["hilos"] == 4
@@ -524,7 +526,23 @@ def test_sistema_estado_da_carga_firmware_aplicaciones_motores_y_volcados(tmp_pa
                                                                           "MalwareRemover", "ResourceMonitor"}
     assert d["motores"]["qLogEngined"] == 1
     assert len(d["volcados"]["volcados"]) == 3
-    assert algun(d["avisos"], "3 volcados", "2026-08-27 01:20")
+    # del 27-08 y del 06-08 (26 dias); el del 27-07 ya no cuenta para el aviso
+    assert algun(d["avisos"], "2 volcados", "ultimos 30 dias", "2026-08-27 01:20")
+
+
+def test_los_volcados_antiguos_se_listan_sin_aviso(tmp_path, monkeypatch):
+    monkeypatch.setattr(logs_srv, "ahora", lambda: datetime(2026, 10, 14, 20, 0))
+    h, _ = uno(tmp_path)
+    d = datos(h.sistema_estado("hero"))
+    assert len(d["volcados"]["volcados"]) == 3
+    assert not algun(d["avisos"], "volcado")
+
+
+def test_un_solo_volcado_reciente_se_dice_en_singular(tmp_path, monkeypatch):
+    monkeypatch.setattr(logs_srv, "ahora", lambda: datetime(2026, 9, 20, 0, 0))
+    h, _ = uno(tmp_path)
+    d = datos(h.sistema_estado("hero"))
+    assert algun(d["avisos"], "1 volcado del kernel", "2026-08-27 01:20")
 
 
 def test_un_motor_de_registro_parado_sale_en_los_avisos(tmp_path):

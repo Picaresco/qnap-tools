@@ -290,11 +290,28 @@ def _vm(uuid, lineas, que):
     return vm
 
 
+def _vm_ilegible(uuid, lineas, error):
+    """Una VM cuya definicion no se entiende: su nombre, si se ve, y el error; lo demas sin valor."""
+    nombre = next((_acotado(_texto_de(linea.strip()), MAX_NOMBRE) for linea in lineas
+                   if linea.strip().startswith("<qvs:name>")), None)
+    vm = dict.fromkeys(("descripcion", "sistema", "arquitectura", "arranque_automatico", "instantaneas", "memoria",
+                        "memoria_actual", "vcpus", "maquina", "firmware", "tpm", "arranque", "discos", "interfaces",
+                        "consola", "dispositivos_pasados"))
+    return dict(vm, uuid=uuid, nombre=nombre, error=error)
+
+
 def vm_xml(texto):
     """La definicion de cada VM: nombre y descripcion, sistema, memoria, vCPU, firmware,
-    arranque, discos, interfaces de red y consola (tipo, puerto y direccion; nunca su clave)."""
+    arranque, discos, interfaces de red y consola (tipo, puerto y direccion; nunca su clave).
+    Una VM con algo que no se entiende sale con su 'error' y sin datos: no tumba a las demas."""
     que = "la definicion de las VMs"
-    return [_vm(uuid, lineas, que) for uuid, lineas in _por_vm(_de_libvirt(texto, que), que)]
+    vms = []
+    for uuid, lineas in _por_vm(_de_libvirt(texto, que), que):
+        try:
+            vms.append(_vm(uuid, lineas, que))
+        except ValueError as e:
+            vms.append(_vm_ilegible(uuid, lineas, "no se entiende su definicion: %s" % e))
+    return vms
 
 
 # ==== direcciones (virsh domifaddr --source arp) ================================================
@@ -318,10 +335,16 @@ def vm_ip(texto):
 # ==== uso (dos lecturas de domstats) ============================================================
 
 def _lectura(lineas, que):
-    """(segundos del reloj del NAS, {uuid: campos}) de una lectura."""
+    """(segundos del reloj del NAS, {uuid: campos}) de una lectura: el reloj, lo que da domstats
+    y su codigo de salida ("==rc N"). Sin dominios y sin ese 0, no es "ninguna en marcha"."""
     if not lineas or not re.fullmatch(r"[0-9]+\.[0-9]+ [0-9]+\.[0-9]+", lineas[0].strip()):
         raise _no_reconocida(que, lineas[0] if lineas else "")
-    return float(lineas[0].split()[0]), dict(_dominios(lineas[1:], que))
+    rc = re.fullmatch(r"==rc (-?[0-9]+)", lineas[-1].strip()) if len(lineas) > 1 else None
+    if not rc:
+        raise _no_reconocida(que, lineas[-1])
+    if rc.group(1) != "0":
+        raise ValueError("%s: virsh domstats fallo (codigo %s)" % (que, rc.group(1)))
+    return float(lineas[0].split()[0]), dict(_dominios(lineas[1:-1], que))
 
 
 def _ritmo(antes, despues, clave, segundos, divisor=1, decimales=1):
@@ -339,8 +362,8 @@ def vm_uso(texto):
     antes, marca, despues = texto.partition("==5s")
     if not marca:
         raise _no_reconocida(que)
-    t0, primera = _lectura(_lineas(antes), que)
-    t1, segunda = _lectura(_lineas(despues), que)
+    t0, primera = _lectura(_de_libvirt(antes, que), que)
+    t1, segunda = _lectura(_de_libvirt(despues, que), que)
     segundos = round(t1 - t0, 2)
     if segundos <= 0:
         raise ValueError("%s: el reloj del NAS no avanza entre las dos lecturas" % que)
@@ -377,10 +400,29 @@ def _capa(c, que):
             "base": _acotado(c.get("full-backing-filename") or c.get("backing-filename"), MAX_RUTA)}
 
 
+CADENA_CORTADA = "!! cadena cortada"
+
+
+def _objetos_json(cuerpo, que):
+    """Los objetos JSON seguidos de un texto (qemu-img info da uno por capa)."""
+    objetos, decodificador, i = [], json.JSONDecoder(), 0
+    while i < len(cuerpo):
+        if cuerpo[i].isspace():
+            i += 1
+            continue
+        try:
+            objeto, i = decodificador.raw_decode(cuerpo, i)
+        except ValueError:
+            raise _no_reconocida(que, cuerpo[i:])
+        objetos.append(objeto)
+    return objetos
+
+
 def vm_imagenes(texto):
     """Por VM, la cadena de imagenes de cada disco, de la capa en uso a la base: formato,
     tamano virtual y lo que ocupa cada una. Un disco cuya imagen no se pudo leer queda con
-    'cadena' sin valor."""
+    'cadena' sin valor. 'base_sin_leer' es la base de la ultima capa leida cuando la cadena
+    sigue y no se ha leido (no es un fichero local, no se pudo abrir o la cadena se corto)."""
     que = "las imagenes de las VMs"
     vms = []
     for uuid, lineas in _por_vm(_de_libvirt(texto, que), que):
@@ -388,20 +430,17 @@ def vm_imagenes(texto):
         for linea in lineas + ["-- "]:              # el centinela cierra el ultimo disco
             if linea.startswith("-- "):
                 if crudo is not None:
-                    cuerpo = "\n".join(crudo).strip()
-                    if cuerpo:
-                        try:
-                            cadena = json.loads(cuerpo)
-                        except ValueError:
-                            raise _no_reconocida(que, cuerpo)
-                        if not isinstance(cadena, list) or not cadena:
-                            raise _no_reconocida(que, cuerpo)
-                        discos[-1]["cadena"] = [_capa(c, que) for c in cadena]
+                    capas = [_capa(c, que) for c in _objetos_json("\n".join(crudo), que)]
+                    if capas:
+                        discos[-1].update(cadena=capas, base_sin_leer=capas[-1]["base"])
                 if linea != "-- ":
-                    discos.append({"fichero": _acotado(linea[3:].strip(), MAX_RUTA), "cadena": None})
+                    discos.append({"fichero": _acotado(linea[3:].strip(), MAX_RUTA), "cadena": None,
+                                   "base_sin_leer": None, "cortada": False})
                     crudo = []
             elif crudo is None:
                 raise _no_reconocida(que, linea)
+            elif linea.strip() == CADENA_CORTADA:
+                discos[-1]["cortada"] = True
             else:
                 crudo.append(linea)
         vms.append({"uuid": uuid, "discos": discos})
@@ -645,10 +684,15 @@ def ct_stats(texto):
         usada, limite = _par(memoria, que)
         recibido, enviado = _par(red, que)
         leido, escrito = _par(disco, que)
-        uso.append({"nombre": _acotado(nombre, MAX_NOMBRE), "cpu_pct": _pct(cpu, que), "memoria": usada,
-                    "memoria_limite": limite, "memoria_pct": _pct(mem_pct, que), "red_recibido": recibido,
-                    "red_enviado": enviado, "disco_leido": leido, "disco_escrito": escrito,
-                    "procesos": None if procesos == SIN_CIFRA else _entero(procesos, "los procesos")})
+        fila = {"nombre": _acotado(nombre, MAX_NOMBRE), "cpu_pct": _pct(cpu, que), "memoria": usada,
+                "memoria_limite": limite, "memoria_pct": _pct(mem_pct, que), "red_recibido": recibido,
+                "red_enviado": enviado, "disco_leido": leido, "disco_escrito": escrito,
+                "procesos": None if procesos == SIN_CIFRA else _entero(procesos, "los procesos")}
+        if limite == 0:
+            # "0B / 0B": un contenedor que aun arranca o ya se ha parado; no se midio, y sus
+            # ceros no son cifras
+            fila = dict(dict.fromkeys(fila), nombre=fila["nombre"])
+        uso.append(fila)
     return uso
 
 

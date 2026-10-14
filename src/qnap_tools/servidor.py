@@ -5,14 +5,21 @@ Contexto carga la configuracion la primera vez que una herramienta la necesita: 
 servidor arranca aunque falte la credencial y es la propia herramienta la que lo dice en el
 chat, en vez de aparecer como un servidor caido.
 """
+import asyncio
+import functools
 import os
+import threading
 
 from mcp.server.fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 
 from . import config
 from .comandos import ParametroInvalido
 from .ejecutor import ErrorComando, Flota
 from .transporte import AutenticacionFallida, Conexion
+
+# lo que tumba una consulta pero no la conexion: un dato accesorio se puede dar sin ella
+FALLOS_DE_CONSULTA = (ErrorComando, ParametroInvalido, AutenticacionFallida)
 
 
 class Contexto:
@@ -20,14 +27,17 @@ class Contexto:
         self._entorno = entorno
         self._fabrica = fabrica_conexion
         self._flota = None
+        self._candado = threading.Lock()
 
     @property
     def flota(self) -> Flota:
-        """La flota de este proceso. Lanza ConfigError si falta la credencial."""
-        if self._flota is None:
-            cfg = config.cargar(os.environ if self._entorno is None else self._entorno)
-            self._flota = Flota(cfg, fabrica_conexion=self._fabrica)
-        return self._flota
+        """La flota de este proceso. Lanza ConfigError si falta la credencial. Las
+        herramientas corren en hilos: dos consultas a la vez al arrancar comparten la misma."""
+        with self._candado:
+            if self._flota is None:
+                cfg = config.cargar(os.environ if self._entorno is None else self._entorno)
+                self._flota = Flota(cfg, fabrica_conexion=self._fabrica)
+            return self._flota
 
     @property
     def cfg(self):
@@ -72,7 +82,7 @@ class Base:
         resto de la respuesta. Perder la conexion si tumba la respuesta entera."""
         try:
             return self._leer(nas, comando, parser, valores)
-        except (ErrorComando, ParametroInvalido, AutenticacionFallida) as e:
+        except FALLOS_DE_CONSULTA as e:
             return {"error": self.ctx.sanear(str(e))}
 
     def _extra(self, nas, errores, clave, comando, parser, valores=None):
@@ -94,3 +104,29 @@ class Base:
 def crear(nombre, instrucciones, entorno=None, fabrica_conexion=Conexion):
     """Servidor MCP vacio y su contexto; cada pata registra despues sus herramientas."""
     return FastMCP(nombre, instructions=instrucciones), Contexto(entorno, fabrica_conexion)
+
+
+def en_hilo(funcion, candado=None):
+    """La herramienta como corrutina que la ejecuta en un hilo: FastMCP lanza las funciones
+    normales en su bucle, y una consulta lenta (SSH, mediciones de 5 s) lo dejaria parado.
+    Con candado, las herramientas que lo comparten van de una en una."""
+    def con_candado(*args, **kwargs):
+        with candado:
+            return funcion(*args, **kwargs)
+
+    @functools.wraps(funcion)
+    async def herramienta(*args, **kwargs):
+        return await asyncio.to_thread(funcion if candado is None else con_candado, *args, **kwargs)
+    return herramienta
+
+
+SOLO_LECTURA = ToolAnnotations(readOnlyHint=True, openWorldHint=True)
+
+
+def registrar(mcp, herramientas, nombres, anotaciones=None, candado=None):
+    """Registra las herramientas por su nombre. Todas son de solo lectura salvo las que
+    'anotaciones' diga otra cosa (nombre -> ToolAnnotations). Con candado, van de una en una
+    (las que leen, cambian y guardan un fichero de este ordenador)."""
+    for nombre in nombres:
+        mcp.add_tool(en_hilo(getattr(herramientas, nombre), candado),
+                     annotations=(anotaciones or {}).get(nombre, SOLO_LECTURA))

@@ -52,19 +52,33 @@ VM_XML = Comando(
 # puede consultar en solo lectura). Puede no dar ninguna.
 VM_IP = Comando("vm_ip", "%s domifaddr {uuid} --source arp" % VIRSH, {"uuid": "uuid"})
 
-# Dos lecturas de las VMs en marcha separadas 5 segundos, cada una con el reloj del NAS.
-_LECTURA = "cat /proc/uptime; %s domstats --list-running --cpu-total --vcpu --balloon --interface --block" % VIRSH
+# Dos lecturas de las VMs en marcha separadas 5 segundos, cada una con el reloj del NAS, diciendo
+# antes a que libvirt habla y despues como termino domstats: sin eso, una lectura fallida
+# pareceria "ninguna en marcha".
+_LECTURA = (URI + "cat /proc/uptime; %s domstats --list-running --cpu-total --vcpu --balloon --interface --block; "
+            "echo ==rc $?" % VIRSH)
 VM_USO = Comando("vm_uso", "%s; sleep 5; echo ==5s; %s" % (_LECTURA, _LECTURA), timeout=40)
 
 # La cadena de imagenes de cada disco (cada instantanea de VS es una capa): formato, tamano
 # virtual y lo que ocupa cada capa. -U abre la imagen sin bloquearla aunque la VM este en marcha.
 # La ruta va de la primera barra al final de la linea y se lee con 'while read': la carpeta de
 # una VM lleva su nombre, que puede tener espacios, y un 'for' la partiria.
+# La cadena se recorre capa a capa y no con --backing-chain: info solo abre el fichero que se le
+# da, y de cada capa se sigue su base solo si esta en las carpetas compartidas ("/share/...",
+# donde VS guarda las imagenes). Una base que fuera otra cosa (nbd://, http://...) haria que el
+# NAS se conectara a donde dijera la imagen, y un dispositivo o una tuberia podria colgar la
+# orden. Como mucho
+# MAX_CAPAS_IMAGEN capas; si quedan mas, "!! cadena cortada".
+MAX_CAPAS_IMAGEN = 64
 VM_IMAGENES = Comando(
     "vm_imagenes",
     URI + "for d in %s; do echo \"== $d\"; "
     "%s domblklist --details $d | grep ' disk ' | grep -o -E '/.*[^ ]' | while read -r f; do "
-    "echo \"-- $f\"; %s info -U --backing-chain --output=json \"$f\"; done; done" % (TODAS, VIRSH, QEMU_IMG),
+    "echo \"-- $f\"; for i in %s; do if [ -n \"$f\" ]; then "
+    "j=$(%s info -U --output=json \"$f\"); printf '%%s\\n' \"$j\"; "
+    "f=$(printf '%%s\\n' \"$j\" | grep -o -E '\"full-backing-filename\": \"/share/[^\"]*\"' | cut -d'\"' -f4); "
+    "fi; done; [ -z \"$f\" ] || echo '!! cadena cortada'; done; done"
+    % (TODAS, VIRSH, " ".join(str(i) for i in range(1, MAX_CAPAS_IMAGEN + 1)), QEMU_IMG),
     timeout=60, valida=no_vacia)
 
 # Instantaneas que conoce libvirt. VS usa las suyas (externas): lo normal es que no haya.

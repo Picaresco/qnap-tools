@@ -119,8 +119,9 @@ def memoria_de(x, e):
 def avisos_de_vms(vms, memoria_nas):
     avisos = ["la maquina virtual %s esta %s" % (x["nombre"] or x["uuid"], e["estado"])
               for x, e in vms if e["estado_codigo"] not in (EN_MARCHA, APAGADA)]
+    avisos += ["la maquina virtual %s: %s" % (x["nombre"] or x["uuid"], x["error"]) for x, _ in vms if x.get("error")]
     avisos = acotar_avisos(avisos, "maquinas virtuales")
-    asignada = sum(memoria_de(x, e) for x, e in con_proceso(vms))
+    asignada = sum(memoria_de(x, e) or 0 for x, e in con_proceso(vms))
     if memoria_nas and asignada > memoria_nas:
         avisos.append("las maquinas virtuales en marcha tienen asignados %s de memoria y el NAS tiene %s"
                       % (gib(asignada), gib(memoria_nas)))
@@ -138,6 +139,11 @@ def avisos_de_contenedores(lista):
 
 
 def fila_de_vm(x, e):
+    if x.get("error"):
+        # sin su definicion: lo que sabe libvirt de ella y el error
+        return {"nombre": x["nombre"], "uuid": x["uuid"], "estado": e["estado"], "vcpus": e["vcpus"],
+                "memoria": e["memoria_max"], "sistema": None, "arranque_automatico": None, "discos": None,
+                "capacidad": None, "error": x["error"]}
     discos = [d for d in x["discos"] if d["clase"] == "disk"]
     medido = {d["dispositivo"]: d["capacidad"] for d in e["discos"]}
     capacidades = [medido.get(d["dispositivo"]) for d in discos]
@@ -155,13 +161,17 @@ def desde(fichero):
 def disco_con_cadena(d):
     """Un disco con sus capas, de la que esta en uso a la imagen base."""
     cadena = d["cadena"]
+    # la base a la que apunta la ultima capa leida si no se pudo leer (o no es un fichero local), y
+    # si la cadena era mas larga de lo que se recorre
+    sigue = {"base_sin_leer": d["base_sin_leer"], "cortada": d["cortada"]}
     if cadena is None:
-        return {"fichero": d["fichero"], "capas": None, "ocupa": None, "cadena": None}
+        return dict({"fichero": d["fichero"], "capas": None, "ocupa": None, "cadena": None}, **sigue)
     ocupa = [c["ocupa"] for c in cadena]
-    return {"fichero": d["fichero"], "capas": len(cadena),
-            "ocupa": sum(ocupa) if all(type(o) is int for o in ocupa) else None,
-            "cadena": [{"fichero": c["fichero"], "formato": c["formato"], "virtual": c["virtual"],
-                        "ocupa": c["ocupa"], "desde": desde(c["fichero"])} for c in cadena[:MAX_CAPAS]]}
+    return dict({"fichero": d["fichero"], "capas": len(cadena),
+                 "ocupa": sum(ocupa) if all(type(o) is int for o in ocupa) else None,
+                 "cadena": [{"fichero": c["fichero"], "formato": c["formato"], "virtual": c["virtual"],
+                             "ocupa": c["ocupa"], "desde": desde(c["fichero"])} for c in cadena[:MAX_CAPAS]]},
+                **sigue)
 
 
 class Herramientas(servidor.Base):
@@ -232,8 +242,8 @@ class Herramientas(servidor.Base):
             return bloque
         activas = con_proceso(vms)
         bloque.update(total=len(vms), por_estado=cuenta(e["estado"] for _, e in vms),
-                      vcpus_en_marcha=sum(e["vcpus"] or x["vcpus"] for x, e in activas),
-                      memoria_en_marcha=sum(memoria_de(x, e) for x, e in activas))
+                      vcpus_en_marcha=sum(e["vcpus"] or x["vcpus"] or 0 for x, e in activas),
+                      memoria_en_marcha=sum(memoria_de(x, e) or 0 for x, e in activas))
         avisos.extend(avisos_de_vms(vms, anfitrion["memoria"]["total"]))
         return bloque
 
@@ -316,6 +326,15 @@ class Herramientas(servidor.Base):
             if fuera:
                 return fuera
             x, e = self._vm(n, vm)
+            if x.get("error"):
+                # sin su definicion no hay discos ni interfaces que dar: lo que sabe libvirt y el error
+                return {"activo": True, "vm": dict(
+                    {k: None for k in ("descripcion", "sistema", "arquitectura", "firmware", "maquina", "tpm",
+                                       "arranque", "arranque_automatico", "tipo_instantaneas", "discos",
+                                       "interfaces", "consola", "dispositivos_pasados")},
+                    nombre=x["nombre"], uuid=x["uuid"], estado=e["estado"], vcpus=e["vcpus"],
+                    memoria=e["memoria_max"], memoria_actual=e["memoria"], memoria_residente=e["memoria_residente"],
+                    error=x["error"])}
             errores, direcciones = {}, None
             if e["estado_codigo"] == EN_MARCHA:
                 direcciones = self._extra(n, errores, "direcciones", vc.VM_IP, p.vm_ip, {"uuid": x["uuid"]})
@@ -402,6 +421,8 @@ class Herramientas(servidor.Base):
                     "instantaneas": None if suyas is None else recortar(suyas[::-1], MAX_INSTANTANEAS),
                     "discos": [disco_con_cadena(d) for d in imagenes[uuid]] if uuid in imagenes else None,
                     "libvirt": de_libvirt.get(uuid)})
+                if x.get("error"):
+                    vms[-1]["error"] = x["error"]          # su tipo de instantaneas no se sabe
             datos = {"activo": True, "vms": recortar(vms)}
             if errores:
                 datos["errores"] = errores
@@ -455,8 +476,9 @@ class Herramientas(servidor.Base):
     def contenedores_uso(self, nas: str) -> list[dict[str, Any]]:
         """Consumo de los contenedores en marcha en una muestra, ordenado por CPU: % de CPU
         (100 = un nucleo entero), memoria y su limite, lo recibido y enviado por red, lo leido y
-        escrito en disco y el numero de procesos, con la suma de CPU y de memoria de todos. No
-        da el espacio que ocupan imagenes y contenedores.
+        escrito en disco y el numero de procesos, con la suma de CPU y de memoria de todos. Un
+        contenedor que docker no pudo medir (arrancando o parandose) sale sin valor, no suma y
+        se nombra en 'sin_medir'. No da el espacio que ocupan imagenes y contenedores.
 
         nas: nombre de un NAS del inventario, o 'todos'."""
         def uno(n):
@@ -464,9 +486,14 @@ class Herramientas(servidor.Base):
             if fuera:
                 return fuera
             uso = sorted(self._leer(n, vc.CT_STATS, p.ct_stats), key=lambda c: -(c["cpu_pct"] or 0))
-            return {"activo": True, "contenedores": recortar(uso, MAX_CONTENEDORES),
-                    "cpu_pct": round(sum(c["cpu_pct"] or 0 for c in uso), 2),
-                    "memoria": sum(c["memoria"] or 0 for c in uso)}
+            datos = {"activo": True, "contenedores": recortar(uso, MAX_CONTENEDORES),
+                     "cpu_pct": round(sum(c["cpu_pct"] for c in uso if c["cpu_pct"] is not None), 2),
+                     "memoria": sum(c["memoria"] for c in uso if c["memoria"] is not None)}
+            sin_medir = [c["nombre"] for c in uso if c["cpu_pct"] is None or c["memoria"] is None]
+            if sin_medir:
+                # las sumas son solo de los medidos: un contenedor sin cifra no cuenta como cero
+                datos["sin_medir"] = sin_medir[:MAX_CONTENEDORES]
+            return datos
         return self.ctx.por_nas(nas, uno)
 
     def contenedor_logs(self, nas: str, contenedor: str, lineas: int = 50) -> list[dict[str, Any]]:
@@ -511,9 +538,7 @@ class Herramientas(servidor.Base):
 
 def construir(entorno=None, fabrica_conexion=Conexion):
     mcp, ctx = servidor.crear("qnap-virtualizacion", INSTRUCCIONES, entorno, fabrica_conexion)
-    herramientas = Herramientas(ctx)
-    for nombre in HERRAMIENTAS:
-        mcp.add_tool(getattr(herramientas, nombre))
+    servidor.registrar(mcp, Herramientas(ctx), HERRAMIENTAS)
     return mcp
 
 
