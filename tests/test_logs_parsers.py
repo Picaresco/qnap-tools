@@ -421,10 +421,12 @@ def test_los_volcados_guardados_y_como_acabo_cada_arranque():
     assert [x["fecha"] for x in v["volcados"]] == sorted((x["fecha"] for x in v["volcados"]), reverse=True)
     assert [x["matados_por_memoria"] for x in v["volcados"]] == [0, 15, 0]
     assert v["procesos_forzados_al_apagar"] == {"fecha": "2026-10-14T20:51:37Z", "bytes": 126}
+    # captura real de un QTS: dos reinicios ordenados, uno forzado (el apagado se colgo) y una
+    # carpeta de 2020 con los registros de un Oops y un panic del kernel
     q = p.volcados(dato("volcados_qts"))
-    assert len(q["volcados"]) == 4 and q["volcados"][-1]["fecha"] == "2020-09-25 18:06"
-    # el de 2020 no es un .log: se lista sin leerlo
-    assert q["volcados"][-1]["cierre"] is None and q["volcados"][-1]["fallos_del_kernel"] is None
+    assert [(x["fecha"], x["cierre"], x["fallos_del_kernel"]) for x in q["volcados"]] == [
+        ("2026-06-24 23:16", "reinicio", 0), ("2026-06-24 23:03", "reinicio", 0),
+        ("2026-06-24 22:44", "reinicio_forzado", 0), ("2020-09-25 18:06", "fallo", 2)]
     sin = p.volcados("4096 1635186683 /etc/logs/qsync\n==cierres\n")
     assert sin == {"volcados": [], "procesos_forzados_al_apagar": None}
 
@@ -445,15 +447,40 @@ def con_cierre(final, fallos=0, oom=0):
     # se corta sin apagado: cuelgue sin mensaje, vigilante o boton de reinicio
     ("[ 9210.118230] eth0: link up\n", 0, "sin_cierre"),
     ("", 0, "sin_cierre"),                           # volcado vacio
+    # visto en un QTS (2026-06): el apagado se colgo, se volvieron a montar los discos y el
+    # sistema forzo el reinicio con sysrq; el formato antiguo del kernel lleva "SysRq :"
+    ("[1946989.443185] sysrq: Resetting\n", 0, "reinicio_forzado"),
+    ("[1946989.443185] SysRq : Resetting\n", 0, "reinicio_forzado"),
+    ("[1946989.443185] sysrq: Power Off\n", 0, "apagado_forzado"),
 ])
 def test_el_cierre_de_un_volcado_sale_de_su_ultima_linea(final, fallos, cierre):
     v = p.volcados(con_cierre(final, fallos))["volcados"][0]
     assert v["cierre"] == cierre and v["fallos_del_kernel"] == fallos
 
 
+REGISTRO_DMESG = ("4096 1601049972 /etc/logs/pstore_dmesg_log_1_202009251806\n"
+                  "126254 1792011253 /etc/logs/pstore_1_202610142254.log\n==cierres\n"
+                  "==volcado pstore_1_202610142254.log 0 0\n")
+
+
+def test_un_registro_dmesg_de_pstore_con_oops_o_panic_es_un_fallo_del_kernel():
+    # visto en un QTS: carpeta con dmesg-ramoops-0 ("Oops#1 Part1") y -1 ("Panic#2 Part1"), que
+    # el kernel escribe al fallar; el volcado vacio de delante no se queda con su linea
+    v = {x["fichero"]: x for x in p.volcados(REGISTRO_DMESG + "==registro pstore_dmesg_log_1_202009251806 2\n")["volcados"]}
+    assert v["pstore_dmesg_log_1_202009251806"] == {
+        "fichero": "pstore_dmesg_log_1_202009251806", "fecha": "2020-09-25 18:06", "bytes": 4096,
+        "cierre": "fallo", "fallos_del_kernel": 2, "matados_por_memoria": None}
+    assert v["pstore_1_202610142254.log"]["cierre"] == "sin_cierre"
+    # sin Oops ni Panic no se sabe por que se guardo
+    sin = p.volcados(REGISTRO_DMESG + "==registro pstore_dmesg_log_1_202009251806 0\n")["volcados"]
+    assert [x["cierre"] for x in sin if x["fichero"].startswith("pstore_dmesg")] == [None]
+
+
 @pytest.mark.parametrize("texto", [
     "",                                              # stat no listo nada
     "4096 1635186683 /etc/logs/qsync\n",             # sin la seccion de cierres: no se leyeron
+    REGISTRO_DMESG + "==registro pstore_dmesg_log_1_202009251806\n",          # falta la cuenta
+    REGISTRO_DMESG + "==registro pstore_dmesg_log_9_202009251806 1\n",        # no listado
     con_cierre("x\n").replace(" 0 0\n", " 0\n"),     # falta una cuenta
     con_cierre("x\n").replace("pstore_1_202610142254.log 0", "pstore_9_202610142254.log 0"),  # no listado
 ])

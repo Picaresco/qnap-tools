@@ -247,3 +247,21 @@ Resueltos en la 0.4.1 (2026-10-14): M6 (solo se avisa de los volcados de los ult
   (`efectos_producto_logs_042.json`).
 - Validado de paso tras el arranque: motores de registro parados los primeros minutos (aviso
   correcto, arrancan solos).
+
+### Pasada por QTS con la 0.4.3 (2026-10-15)
+
+- Pasada de solo lectura con el codigo 0.4.3 por los dos QTS de produccion (36 herramientas;
+  nas3 por contrasena, nas2 por clave con una copia de los datos del plugin): nas3 37 de 37 ok;
+  nas2 33 de 34 ok. El fallo de nas2 fue `eventos` (evt_lista agoto los 40 s) con el NAS muy
+  cargado (carga 8,5 con 4 hilos, discos SMR con esperas de 300 a 900 ms); repetida poco
+  despues tardo 1,1 s: no se cambia nada, el error ya dice que no termino a tiempo.
+- Volcados en nas3: uno acaba en `sysrq: Resetting` (el apagado se colgo, el sistema vuelve a
+  montar los discos y fuerza el reinicio): salia `sin_cierre`; ahora `reinicio_forzado` (y
+  `apagado_forzado` con `sysrq: Power Off`; el kernel antiguo escribe `SysRq :`). Y la carpeta
+  `pstore_dmesg_log_1_<fecha>` (dos ficheros `dmesg-ramoops-N` con cabecera `Oops#1 Part1` y
+  `Panic#2 Part1`: un Oops y un `Kernel panic - not syncing: Fatal exception in interrupt` de
+  2020) salia sin leer; ahora VOLCADOS cuenta esas cabeceras (`==registro <carpeta> N`) y sale
+  `fallo`. Pruebas RED->GREEN; `volcados_qts.txt` es ya la captura real de nas3 (la parte de
+  cierres escrita a mano se ha ido). Validado en real en nas3 con `sistema_estado`.
+- Pendiente: prueba real y de no escritura en el NAS de laboratorio (apagado ese dia); la parte
+  nueva solo lee (ls, grep, cat de los registros).

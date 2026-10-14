@@ -1,11 +1,12 @@
 4096 1494690643 /etc/logs/QcloudSSLCertificate
-278212608 1791945788 /etc/logs/conn.log
-21972992 1791940535 /etc/logs/event.log
-579291 1791939263 /etc/logs/kmsg
+278280192 1792015198 /etc/logs/conn.log
+0 1792015253 /etc/logs/conn.log-journal
+21981184 1792014959 /etc/logs/event.log
+579938 1792014927 /etc/logs/kmsg
 270673 1788767547 /etc/logs/kmsg.1.gz
 245419 1782355979 /etc/logs/kmsg.2.gz
 4096 1791883714 /etc/logs/network
-5726208 1791895696 /etc/logs/notice.log
+5726208 1792014796 /etc/logs/notice.log
 757283 1791883717 /etc/logs/nvs_event.log
 1048487 1782372096 /etc/logs/nvs_event.log.1
 397461 1791883715 /etc/logs/nvs_redis_event.log
@@ -30,12 +31,13 @@
 4096 1566262821 /etc/logs/rsync
 500968 1782335635 /etc/logs/shutdown.log
 1 1787551329 /etc/logs/shutdown.log.1
-4096 1791945602 /etc/logs/storage_usage_history
+4096 1792015205 /etc/logs/storage_usage_history
 671 1782335636 /etc/logs/.force_kill_in_shutdown.log
 ==cierres
 ==volcado pstore_1_202606242316.log 0 0
-[ 1093.502114] reboot: machine restart
+[  744.280544] reboot: machine restart
 ==volcado pstore_2_202606242303.log 0 0
-[  841.220871] reboot: machine restart
+[ 1139.503927] reboot: machine restart
 ==volcado pstore_3_202606242244.log 0 0
-[86012.731905] reboot: machine restart
+[1946989.443185] sysrq: Resetting
+==registro pstore_dmesg_log_1_202009251806 2

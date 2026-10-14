@@ -42,7 +42,7 @@ claude plugin install qnap-tools@qnap-tools
 ```
 
 Cada servidor se lanza con `uvx` desde PyPI con la versión exacta del plugin
-(`uvx --from qnap-tools==0.4.3 qnap-tools-redes`, etc.); `uv` lo descarga y lo deja en su caché
+(`uvx --from qnap-tools==0.4.4 qnap-tools-redes`, etc.); `uv` lo descarga y lo deja en su caché
 la primera vez, y no vuelve a consultar PyPI en cada arranque.
 
 Al activarlo, Claude Code pide el **usuario SSH** y su **contraseña**. Se cambian después en
@@ -184,7 +184,7 @@ las herramientas de esa mitad responden `activo: false` y no ejecutan nada en el
 | `avisos` | Los últimos avisos del centro de notificaciones del escritorio (gravedad, origen, texto, aplicación y código) y cuántos hay de cada gravedad y origen |
 | `kernel` | Mensajes del kernel: cuántos guarda el NAS de cada nivel y desde cuándo, las últimas líneas de un `nivel` (0 a 7; por defecto 3, errores) o más graves y la cola del registro en vivo (`lineas`, 1 a 200) |
 | `salud_hardware` | Temperatura de CPU y del sistema y vueltas de cada ventilador (con `sudo`), cabinas con su estado, cuántas fuentes tiene el modelo y si son redundantes, el SAI configurado y si su servicio responde, y los `avisos`: ventilador parado, cabina en un estado que no es el normal, SAI activado que no responde |
-| `sistema_estado` | Modelo, tiempo encendido, carga, hilos y memoria, firmware instalado con la última comprobación y la última actualización, política de actualización automática, aplicaciones de registro y seguridad con su versión, motores de registro en marcha y volcados del kernel con cómo acabó cada arranque (el NAS guarda uno en cada reinicio, también en uno ordenado), y los `avisos`: motor de registro parado, volcados de los últimos 30 días que no acaban en un reinicio o apagado ordenado, procesos matados por falta de memoria |
+| `sistema_estado` | Modelo, tiempo encendido, carga, hilos y memoria, firmware instalado con la última comprobación y la última actualización, política de actualización automática, aplicaciones de registro y seguridad con su versión, motores de registro en marcha y volcados del kernel con cómo acabó cada arranque (el NAS guarda uno en cada reinicio, también en uno ordenado: reinicio o apagado normal, forzado porque el apagado se colgó, fallo del kernel o cortado), y los `avisos`: motor de registro parado, volcados de los últimos 30 días que no acaban en un reinicio o apagado ordenado, procesos matados por falta de memoria |
 | `alertas_config` | Nivel de alerta, zumbador, aviso de espacio libre, avisos SMART por valor y el servidor syslog del NAS (nunca destinatarios ni credenciales de notificación) |
 
 Los bloques marcados `no_probado: true` (iSCSI de QTS, avisos SMART configurados) leen el

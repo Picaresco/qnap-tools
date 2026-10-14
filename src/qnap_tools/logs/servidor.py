@@ -327,8 +327,10 @@ class Herramientas(servidor.Base):
         los ultimos 30 dias que no acaba en un reinicio o apagado ordenado, procesos matados por
         falta de memoria). Un volcado es la consola del arranque anterior: el NAS guarda uno en cada
         reinicio en caliente, tambien en uno ordenado; 'cierre' dice como acabo ('reinicio',
-        'apagado', 'fallo' si el kernel dejo un panic, Oops o BUG, 'sin_cierre' si se corto, null
-        si no se leyo). No dice si hay firmware nuevo: el NAS no lo guarda.
+        'apagado', 'reinicio_forzado' o 'apagado_forzado' si el apagado se colgo y el sistema lo
+        forzo, 'fallo' si el kernel dejo un panic, Oops o BUG, 'sin_cierre' si se corto, null si
+        no se sabe). Las carpetas pstore_dmesg_* (en QTS) guardan los registros que el kernel
+        escribe al fallar. No dice si hay firmware nuevo: el NAS no lo guarda.
 
         nas: nombre de un NAS del inventario, o 'todos'."""
         def uno(n):

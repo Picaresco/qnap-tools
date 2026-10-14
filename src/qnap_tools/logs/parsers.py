@@ -551,26 +551,34 @@ FICHERO_STAT = re.compile(r"([0-9]+) ([0-9]+) /etc/logs/(.+)")
 FORZADOS = ".force_kill_in_shutdown.log"
 CIERRES = "==cierres"
 VOLCADO_LEIDO = re.compile(r"==volcado (\S+) ([0-9]+) ([0-9]+)")
+REGISTRO_LEIDO = re.compile(r"==registro (\S+) ([0-9]+)")
+LEIDOS = ("==volcado", "==registro")
 # la ultima linea que escribe el kernel al reiniciar o apagar de forma ordenada
 FINAL_REINICIO = re.compile(r"reboot: (Restarting system|machine restart)$")
 FINAL_APAGADO = re.compile(r"reboot: (Power down|System halted)$")
+# el apagado se colgo y el sistema lo forzo con sysrq (antes vuelve a montar los discos); el
+# formato antiguo del kernel escribe "SysRq :"
+FINAL_REINICIO_FORZADO = re.compile(r"(?i)sysrq\s*:\s*resetting$")
+FINAL_APAGADO_FORZADO = re.compile(r"(?i)sysrq\s*:\s*power off$")
 
 
 def _cierre(fallos, final):
     if fallos:
         return "fallo"
-    if FINAL_REINICIO.search(final):
-        return "reinicio"
-    if FINAL_APAGADO.search(final):
-        return "apagado"
+    for patron, cierre in ((FINAL_REINICIO, "reinicio"), (FINAL_APAGADO, "apagado"),
+                           (FINAL_REINICIO_FORZADO, "reinicio_forzado"), (FINAL_APAGADO_FORZADO, "apagado_forzado")):
+        if patron.search(final):
+            return cierre
     return "sin_cierre"
 
 
 def volcados(texto):
     """Los volcados de pstore (la consola del arranque anterior, guardada en cada reinicio en
-    caliente) con como acabo ese arranque: 'reinicio' o 'apagado' ordenados, 'fallo' (el kernel
-    dejo un panic, Oops o BUG) o 'sin_cierre' (se corto sin apagado); None si no es un .log y no
-    se leyo."""
+    caliente) con como acabo ese arranque: 'reinicio' o 'apagado' ordenados, 'reinicio_forzado' o
+    'apagado_forzado' (el apagado se colgo y el sistema lo forzo), 'fallo' (el kernel dejo un
+    panic, Oops o BUG) o 'sin_cierre' (se corto sin apagado). Una carpeta pstore_dmesg_* guarda
+    los registros que el kernel escribe al fallar: 'fallo' si tiene alguno de Oops o Panic; None
+    si no se sabe por que se guardo o no se leyo."""
     que = "los volcados"
     lineas = [linea.strip() for linea in texto.splitlines() if linea.strip()]
     if not lineas:
@@ -592,13 +600,20 @@ def volcados(texto):
             forzados = {"fecha": fecha_utc(int(m.group(2))), "bytes": bytes_}
     resto = lineas[corte + 1:]
     for i, linea in enumerate(resto):
+        if linea.startswith("==registro"):
+            m = REGISTRO_LEIDO.fullmatch(linea)
+            if not m or m.group(1) not in salida:
+                raise _no_reconocida(que, linea)
+            fallos = int(m.group(2))
+            salida[m.group(1)].update(cierre="fallo" if fallos else None, fallos_del_kernel=fallos)
+            continue
         if not linea.startswith("==volcado"):
             continue
         m = VOLCADO_LEIDO.fullmatch(linea)
         if not m or m.group(1) not in salida:
             raise _no_reconocida(que, linea)
         siguiente = resto[i + 1] if i + 1 < len(resto) else ""
-        final = "" if siguiente.startswith("==volcado") else siguiente
+        final = "" if siguiente.startswith(LEIDOS) else siguiente
         fallos = int(m.group(2))
         salida[m.group(1)].update(cierre=_cierre(fallos, final), fallos_del_kernel=fallos,
                                   matados_por_memoria=int(m.group(3)))

@@ -540,6 +540,17 @@ def test_un_volcado_reciente_que_no_acaba_en_un_reinicio_ordenado_sale_en_los_av
     assert algun(d["avisos"], "1 volcado del kernel", "ultimos 30 dias", "ordenado", "fallo", "2026-10-14 22:54")
 
 
+def test_un_reinicio_forzado_reciente_sale_en_los_avisos(tmp_path, monkeypatch):
+    # el apagado se colgo y el sistema lo forzo: no es un fallo del kernel, pero no acabo en orden
+    monkeypatch.setattr(logs_srv, "ahora", lambda: datetime(2026, 10, 15, 9, 0))
+    forzado = dato("volcados_hero").replace("[107055.898074] reboot: machine restart",
+                                            "[107055.898074] sysrq: Resetting")
+    h, _ = uno(tmp_path, cambios={lc.VOLCADOS.render(): forzado})
+    d = datos(h.sistema_estado("hero"))
+    assert d["volcados"]["volcados"][0]["cierre"] == "reinicio_forzado"
+    assert algun(d["avisos"], "1 volcado del kernel", "ordenado", "reinicio_forzado", "2026-10-14 22:54")
+
+
 def test_los_volcados_antiguos_se_listan_sin_aviso(tmp_path, monkeypatch):
     monkeypatch.setattr(logs_srv, "ahora", lambda: datetime(2026, 12, 20, 0, 0))
     roto = dato("volcados_hero").replace("[107055.898074] reboot: machine restart", "[107055.898074] eth0: link up")

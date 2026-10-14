@@ -195,13 +195,17 @@ MOTORES = Comando(
 # consola del arranque anterior y el NAS lo guarda en CADA reinicio en caliente, tambien en uno
 # ordenado (visto en nas1): tras "==cierres" va, de cada uno, cuantas lineas de fallo del
 # kernel y de procesos matados por falta de memoria tiene, y su ultima linea, que dice como acabo.
+# Una carpeta pstore_dmesg_* (visto en un QTS) guarda los registros que el kernel escribe al
+# fallar, uno por fichero con una cabecera "Oops#N" o "Panic#N": se cuentan esas cabeceras.
 VOLCADOS = Comando(
     "volcados",
     "stat -c '%s %Y %n' /etc/logs/*; [ ! -e /etc/logs/.force_kill_in_shutdown.log ] "
     "|| stat -c '%s %Y %n' /etc/logs/.force_kill_in_shutdown.log; echo ==cierres; "
     "ls /etc/logs | grep -E '^pstore_[0-9]+_[0-9]+[.]log$' | while read -r f; do "
     "echo ==volcado $f $(grep -c -E 'Kernel panic|Oops:|BUG:' /etc/logs/$f) "
-    "$(grep -c 'invoked oom-killer' /etc/logs/$f); tail -n 1 /etc/logs/$f | cut -c1-200; done",
+    "$(grep -c 'invoked oom-killer' /etc/logs/$f); tail -n 1 /etc/logs/$f | cut -c1-200; done; "
+    "ls /etc/logs | grep -E '^pstore_dmesg_' | while read -r f; do if [ -d /etc/logs/$f ]; then "
+    "echo ==registro $f $(cat /etc/logs/$f/* | grep -c -E '^(Oops|Panic)#'); fi; done",
     timeout=20, valida=rc_cero)
 
 # --- alertas ---------------------------------------------------------------------------------------
