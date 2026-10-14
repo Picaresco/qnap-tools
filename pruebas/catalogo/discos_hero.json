@@ -1,0 +1,26 @@
+{
+  "comandos": [
+    {"id": "pools", "cmd": "zpool list -v", "da": "pools ZFS y sus vdev: tamano, ocupado, libre, salud", "nas": "hero"},
+    {"id": "pools_estado", "cmd": "zpool status -v", "da": "estado de cada pool y disco, errores de lectura/escritura/checksum, ultimo scrub, cache y log", "nas": "hero"},
+    {"id": "pools_props", "cmd": "zpool get all zpool1 | head -70", "da": "propiedades del pool: fragmentacion, dedup, autotrim, version", "nas": "hero"},
+    {"id": "pools_historia", "cmd": "zpool history zpool1 | tail -15", "da": "ultimas operaciones hechas sobre el pool", "nas": "hero"},
+    {"id": "pools_iostat", "cmd": "zpool iostat -v zpool1 1 2", "da": "muestreo corto de E/S por vdev", "nas": "hero"},
+    {"id": "pools_conf", "cmd": "grep -v -i bitmap /etc/config/qzpool.conf | head -90", "da": "config QNAP del pool: umbral de aviso, sobreaprovisionamiento, ARC, ultima hora de scrub", "nas": "hero"},
+    {"id": "datasets", "cmd": "zfs list -t filesystem,volume -o name,used,avail,refer,quota,refquota,compressratio,mountpoint", "da": "datasets y zvol: usado, disponible, cuota, compresion, montaje", "nas": "hero"},
+    {"id": "datasets_props", "cmd": "zfs get all zpool1/zfs2 | head -90", "da": "propiedades de una carpeta: compresion, dedup, cifrado, snapdir, WORM, propiedades qnap:", "nas": "hero"},
+    {"id": "datasets_conf", "cmd": "grep -E '^\\[ZFS|^(zfsName|poolId|zfsType|quota|refquota|compression|dedup|encryption|mountpoint|recordsize|wormtype|threshold) =' /etc/config/qzfs.conf", "da": "config QNAP de cada dataset: cuota, compresion, dedup, cifrado, WORM", "nas": "hero"},
+    {"id": "cifrado_zfs", "cmd": "zfs get -H -o name,property,value encryption,keystatus -t filesystem", "da": "que carpetas estan cifradas y si la clave esta cargada", "nas": "hero"},
+    {"id": "snapshots", "cmd": "zfs list -t snapshot -o name,used,refer,creation -s creation | tail -40", "da": "snapshots: dataset, espacio que ocupa, fecha", "nas": "hero"},
+    {"id": "snapshots_prog", "cmd": "grep -v -i bitmap /etc/config/qsnapshot/zsnapshotSchedule.conf | head -90", "da": "programacion y retencion de snapshots por carpeta", "nas": "hero"},
+    {"id": "snapshots_replica", "cmd": "grep -v -i -E 'passw|secret|key' /etc/config/qsnaprep/zqsnapsyncJob.conf | head -50; grep -v -i -E 'passw|secret|key' /etc/config/qsnaprep/zqsnapsyncJobStatus.conf | head -30", "da": "trabajos de replica de snapshots (SnapSync) y su ultimo estado", "nas": "hero"},
+    {"id": "arc", "cmd": "grep -E '^arc_' /etc/config/qzpool.conf", "da": "RAM total, limite configurado de la cache ARC y porcentaje en uso segun QTS", "nas": "hero"},
+    {"id": "carpetas_acl_modo", "cmd": "cat /etc/config/nas_shared_folder.conf", "da": "por carpeta: version de ACL y permisos avanzados (el fichero no existe en QTS clasico)", "nas": "hero"},
+    {"id": "cuotas_zfs", "cmd": "zfs userspace zpool1/zfs2", "da": "espacio usado y cuota por usuario en una carpeta", "nas": "hero"},
+    {"id": "luns", "cmd": "grep -v -i -E 'chap|secret|passw' /etc/config/hero_zfs_lun.json | cut -c1-1500; grep -v -i -E 'chap|secret|passw' /etc/config/hero_iscsi_scst.json | cut -c1-1500", "da": "LUN iSCSI y destinos: nombre, IQN, portal, estado del servicio", "nas": "hero"}
+  ],
+  "limites": [
+    {"que": "Estadisticas vivas de ARC/L2ARC (tamano, aciertos, fallos)", "motivo": "el ZFS de QNAP no publica /proc/spl/kstat/zfs/arcstats; solo queda el porcentaje que guarda qzpool.conf"},
+    {"que": "Programacion de scrub y vida estimada de SSD segun QTS (qcli_pool -D/-I)", "motivo": "qcli_pool exige sesion qcli; el ultimo scrub si se ve en zpool status y qzpool.conf"},
+    {"que": "Diferencias entre snapshots o contenido de un snapshot", "motivo": "zfs diff y montar snapshots no estan en la lista de lectura"}
+  ]
+}

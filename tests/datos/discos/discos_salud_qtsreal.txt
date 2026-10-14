@@ -1,0 +1,40 @@
+== 1
+modelo=WD4003FFBX-68MU3N0
+temperatura=32 C/89 F
+smart=GOOD
+estado=0
+== 2
+modelo=WD4003FFBX-68MU3N0
+temperatura=33 C/91 F
+smart=GOOD
+estado=0
+== 3
+modelo=WD3001FFSX-68JNUN0
+temperatura=32 C/89 F
+smart=GOOD
+estado=0
+== 4
+modelo=WD4003FFBX-68MU3N0
+temperatura=28 C/82 F
+smart=GOOD
+estado=0
+== 5
+modelo=WD3001FFSX-68JNUN0
+temperatura=31 C/87 F
+smart=GOOD
+estado=0
+== 6
+modelo=WD3001FFSX-68JNUN0
+temperatura=31 C/87 F
+smart=GOOD
+estado=0
+== 7
+modelo=WD80EFZZ-68BTXN0
+temperatura=28 C/82 F
+smart=GOOD
+estado=0
+== 8
+modelo=WD80EFZZ-68BTXN0
+temperatura=26 C/78 F
+smart=GOOD
+estado=0

@@ -1,0 +1,22 @@
+nombre="/contenedor1"
+imagen="imagen1:4.18"
+creado="2026-09-21T22:13:49.76834678Z"
+estado="exited"
+salida=0
+sin_memoria=false
+error=""
+inicio="2026-09-27T20:46:00.992353824Z"
+fin="2026-09-27T21:59:06.524049095Z"
+reinicios=0
+salud=null
+reinicio="unless-stopped"
+memoria=0
+nanocpus=0
+privilegiado=false
+modo_red="host"
+redes=host=/0  ;
+puertos={}
+montajes=[{"Destination":"/destino1","Mode":"ro","Propagation":"rprivate","RW":false,"Source":"/share/ruta1/proyecto1/ruta2/ruta3.sh","Type":"bind"},{"Destination":"/destino2","Driver":"local","Mode":"","Name":"0000000000000000000000000000000000000000000000000000000000000001","Propagation":"","RW":true,"Source":"/share/ZFS600_DATA/.qpkg/container-station/docker/volumes/0000000000000000000000000000000000000000000000000000000000000001/_data","Type":"volume"}]
+proyecto="proyecto1"
+servicio="servicio1"
+compose="/share/ruta1/proyecto1/ruta4.yaml"

@@ -1,0 +1,85 @@
+[VOL_1]
+volId = 1
+volName = volumen1
+raidId = 1
+raidName = /dev/md1
+encryption = no
+ssdCache = no
+unclean = no
+mappingName = /dev/mapper/cachedev1
+readOnly = no
+status = 0
+internal = 1
+volType = 1
+[VOL_2]
+volId = 2
+volName = volumen2
+raidId = 1
+raidName = /dev/md1
+encryption = no
+ssdCache = yes
+unclean = no
+mappingName = /dev/mapper/cachedev3
+readOnly = no
+status = 0
+internal = 1
+volType = 1
+[VOL_3]
+volId = 3
+volName = volumen3
+raidId = 1
+raidName = /dev/md1
+encryption = no
+ssdCache = no
+unclean = no
+mappingName = /dev/mapper/cachedev4
+readOnly = no
+status = 0
+internal = 1
+volType = 1
+[VOL_5]
+volId = 5
+volName = volumen4
+raidId = -1
+raidName = /dev/sdj
+encryption = no
+mappingName = /dev/sdj
+readOnly = no
+status = 12
+internal = 1
+unclean = no
+[VOL_7]
+volId = 7
+volName = volumen6
+raidId = -1
+raidName = /dev/sdl1
+encryption = no
+mappingName = /dev/sdl1
+readOnly = no
+status = 0
+internal = 0
+unclean = no
+[VOL_8]
+volId = 8
+volName = volumen7
+raidId = -1
+raidName = /dev/sdk1
+encryption = no
+mappingName = /dev/sdk1
+readOnly = no
+status = 0
+internal = 0
+unclean = no
+[VOL_4]
+volId = 4
+volName = volumen5
+raidId = 2
+raidName = /dev/md2
+encryption = no
+ssdCache = no
+unclean = no
+mappingName = /dev/mapper/vg256-lv256
+readOnly = no
+status = 0
+internal = 1
+volType = 2

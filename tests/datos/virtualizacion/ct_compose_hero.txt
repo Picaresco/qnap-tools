@@ -1,0 +1,1 @@
+[{"Name":"proyecto1","Status":"exited(6)","ConfigFiles":"/share/ruta1/proyecto1/ruta2.yaml"}]

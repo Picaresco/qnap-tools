@@ -1,0 +1,10 @@
+version=27.1.2-qnap12
+driver=overlay2
+raiz=/share/ZFS600_DATA/.qpkg/container-station/docker
+contenedores=6
+en_marcha=0
+en_pausa=0
+parados=6
+imagenes=5
+cpus=4
+memoria=33557807104

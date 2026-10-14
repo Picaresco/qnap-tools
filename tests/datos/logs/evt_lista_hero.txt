@@ -1,0 +1,25 @@
+Query database search count [4]...
+	 date1 [2000-01-01]...
+	 date2 [2099-12-31]...
+event_id,event_type,event_date,event_time,event_user,event_ip,event_comp,event_desc,event_msgid,event_timet,event_app_id,event_app_name,event_category_id,event_category,event_client_id,event_client_app,event_client_agent,
+3770,  0,2026-10-14,03:01:01,---,---,localhost,[Malware Remover] Scan completed., 19,1791939661,A227,Malware Remover,C001,General,---,localhost,---,
+3769,  0,2026-10-14,03:00:02,---,---,localhost,[Malware Remover] Started scanning.,  1,1791939602,A227,Malware Remover,C001,General,---,localhost,---,
+3768,  0,2026-10-14,01:00:07,---,---,localhost,[Storage Manager] Finished cleaning deduplication table in storage pool "texto1".,1190,1791932407,A002,Storage Manager,C002,Storage Pool,---,localhost,---,
+3767,  0,2026-10-14,01:00:05,---,---,localhost,[Storage Manager] Started cleaning deduplication table in storage pool "texto1".,1189,1791932405,A002,Storage Manager,C002,Storage Pool,---,localhost,---,
+3766,  0,2026-10-14,01:00:05,---,---,localhost,[Storage Manager] Finished cleaning deduplication table in storage pool "texto2".,1190,1791932405,A002,Storage Manager,C002,Storage Pool,---,localhost,---,
+3765,  0,2026-10-14,01:00:01,---,---,localhost,[Storage Manager] Started cleaning deduplication table in storage pool "texto2".,1189,1791932401,A002,Storage Manager,C002,Storage Pool,---,localhost,---,
+3764,  0,2026-10-14,00:00:04,---,---,localhost,[Snapshot Manager] Finished creating scheduled snapshot. Shared folder: carpeta8.,223,1791928804,A061,Snapshot Manager,C012,Snapshot,---,localhost,---,
+3763,  0,2026-10-14,00:00:02,---,---,localhost,[Snapshot Manager] Reached shared folder/LUN snapshot limit. Shared folder: carpeta8. The system will delete the oldest snapshots when taking new ones.,1093,1791928802,A061,Snapshot Manager,C012,Snapshot,---,localhost,---,
+3762,  0,2026-10-14,00:00:02,---,---,localhost,[Snapshot Manager] Deleted snapshot "texto3". Shared folder: carpeta8.,229,1791928802,A061,Snapshot Manager,C012,Snapshot,---,localhost,---,
+3761,  0,2026-10-14,00:00:00,---,---,localhost,[Snapshot Manager] Started creating scheduled snapshot. Shared folder: carpeta8.,222,1791928800,A061,Snapshot Manager,C012,Snapshot,---,localhost,---,
+3760,  0,2026-10-13,19:32:11,admin,192.0.2.2,---,[User Groups] Edited the permission settings of user group "texto4".,  3,1791912731,A017,User Groups,C001,General,00000000-0000-0000-0000-000000000001,carpeta7 Desktop,Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/192.0.2.3 Safari/537.36,
+3759,  0,2026-10-13,18:40:48,---,192.0.2.2,localhost,[Virtualization Station] Started virtual machine "texto5"., 55,1791909648,A242,Virtualization Station,C002,Virtual Machines,---,---,---,
+3758,  0,2026-10-13,18:38:01,---,192.0.2.2,localhost,[Virtualization Station] Started virtual machine "texto6"., 55,1791909481,A242,Virtualization Station,C002,Virtual Machines,---,---,---,
+3757,  0,2026-10-13,17:29:33,---,---,localhost,[myQNAPcloud] DDNS updated WAN IP address to "texto7"., 15,1791905373,A041,myQNAPcloud,C002,My DDNS,---,localhost,---,
+3756,  0,2026-10-13,17:16:30,admin,192.0.2.2,localhost,[App Center] Updated QTS SSL Certificate from 2.2.76 to 2.2.79., 88,1791904590,A039,App Center,C001,Installing/Updating/Removing Apps,00000000-0000-0000-0000-000000000001,carpeta7 Desktop,Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (K,
+3755,  0,2026-10-13,17:16:28,admin,192.0.2.2,localhost,[App Center] QTS SSL Certificate enabled., 47,1791904588,A039,App Center,C001,Installing/Updating/Removing Apps,00000000-0000-0000-0000-000000000001,carpeta7 Desktop,Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (K,
+3754,  0,2026-10-13,17:16:22,admin,192.0.2.2,localhost,[App Center] Installed QTS SSL Certificate 2.2.79 in "texto8"., 46,1791904582,A039,App Center,C001,Installing/Updating/Removing Apps,00000000-0000-0000-0000-000000000001,carpeta7 Desktop,Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (K,
+3753,  0,2026-10-13,17:16:13,admin,192.0.2.2,localhost,[App Center] Updated Download Station from 5.11.4.358 to 5.11.5.374., 88,1791904573,A039,App Center,C001,Installing/Updating/Removing Apps,00000000-0000-0000-0000-000000000001,carpeta7 Desktop,Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (K,
+3752,  0,2026-10-13,17:16:11,admin,192.0.2.2,localhost,[App Center] Download Station enabled., 47,1791904571,A039,App Center,C001,Installing/Updating/Removing Apps,00000000-0000-0000-0000-000000000001,carpeta7 Desktop,Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (K,
+3751,  0,2026-10-13,17:16:03,admin,192.0.2.2,localhost,[App Center] Installed Download Station 5.11.5.374 in "texto9"., 46,1791904563,A039,App Center,C001,Installing/Updating/Removing Apps,00000000-0000-0000-0000-000000000001,carpeta7 Desktop,Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (K,
+Done. Return value is 0

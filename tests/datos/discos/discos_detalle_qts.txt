@@ -1,0 +1,147 @@
+== /etc/enclosure_0.conf
+[PhysicalDisk_1]
+port_id = 1
+pd_sys_name = /dev/sdc
+type = 0
+vendor = WDC
+model = WD4003FFBX-68MU3N0
+serial_no = SERIE0001
+status = 0
+sector_size = 512
+capacity = 7814037168
+revision = 83.00A83
+rotation_speed = 7200
+[PhysicalDisk_2]
+port_id = 2
+pd_sys_name = /dev/sdd
+type = 0
+vendor = WDC
+model = WD4003FFBX-68MU3N0
+serial_no = SERIE0002
+status = 0
+sector_size = 512
+capacity = 7814037168
+revision = 83.00A83
+rotation_speed = 7200
+[PhysicalDisk_3]
+port_id = 3
+pd_sys_name = /dev/sde
+type = 0
+vendor = WDC
+model = WD3001FFSX-68JNUN0
+serial_no = SERIE0003
+status = 0
+sector_size = 512
+capacity = 5860533168
+revision = 81.00A81
+rotation_speed = 7200
+[PhysicalDisk_4]
+port_id = 4
+pd_sys_name = /dev/sdf
+type = 0
+vendor = WDC
+model = WD4003FFBX-68MU3N0
+serial_no = SERIE0004
+status = 0
+sector_size = 512
+capacity = 7814037168
+revision = 83.00A83
+rotation_speed = 7200
+[PhysicalDisk_5]
+port_id = 5
+pd_sys_name = /dev/sdg
+type = 0
+vendor = WDC
+model = WD3001FFSX-68JNUN0
+serial_no = SERIE0005
+status = 0
+sector_size = 512
+capacity = 5860533168
+revision = 81.00A81
+rotation_speed = 7200
+[PhysicalDisk_6]
+port_id = 6
+pd_sys_name = /dev/sdh
+type = 0
+vendor = WDC
+model = WD3001FFSX-68JNUN0
+serial_no = SERIE0006
+status = 0
+sector_size = 512
+capacity = 5860533168
+revision = 81.00A81
+rotation_speed = 7200
+[PhysicalDisk_7]
+port_id = 7
+pd_sys_name = /dev/sdi
+type = 0
+vendor = WDC
+model = WD80EFZZ-68BTXN0
+serial_no = SERIE0007
+status = 0
+sector_size = 512
+capacity = 15628053168
+revision = 81.00A81
+rotation_speed = 5640
+[PhysicalDisk_8]
+port_id = 8
+pd_sys_name = /dev/sdj
+type = 0
+vendor = WDC
+model = WD80EFZZ-68BTXN0
+serial_no = SERIE0008
+status = 0
+sector_size = 512
+capacity = 15628053168
+revision = 81.00A81
+rotation_speed = 5640
+== /etc/enclosure_23.conf
+[PhysicalDisk_1]
+port_id = 1
+pd_sys_name = /dev/sda
+type = 0
+vendor = Samsung
+model = SSD 850 EVO mSATA 500GB
+serial_no = SERIE0009
+status = 0
+sector_size = 512
+capacity = 976773168
+revision = EMT41B6Q
+rotation_speed = 0
+[PhysicalDisk_2]
+port_id = 2
+pd_sys_name = /dev/sdb
+type = 0
+vendor = KINGSTON
+model = SMS200S3120G
+serial_no = SERIE0010
+status = 0
+sector_size = 512
+capacity = 234441648
+revision = 60AABBF0
+rotation_speed = 0
+== /etc/enclosure_33.conf
+[PhysicalDisk_1]
+port_id = 1
+pd_sys_name = /dev/sdl
+type = 2
+vendor = WD
+model = My Passport 2627
+serial_no = SERIE0011
+status = 0
+sector_size = 512
+capacity = 9767475200
+revision = 
+rotation_speed = 0
+[PhysicalDisk_7]
+port_id = 7
+pd_sys_name = /dev/sdk
+type = 2
+vendor = WD
+model = My Passport 2627
+serial_no = SERIE0012
+status = 0
+sector_size = 512
+capacity = 9767475200
+revision = 
+rotation_speed = 0

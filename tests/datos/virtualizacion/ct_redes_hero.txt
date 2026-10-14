@@ -1,0 +1,5 @@
+bridge	bridge	local	false	[{"Subnet":"192.0.2.1/24","Gateway":"192.0.2.2"}]	
+host	host	local	false	null	
+red1	bridge	local	false	[{"Subnet":"192.0.2.3/22","Gateway":"192.0.2.4"}]	
+red2	bridge	local	false	[{"Subnet":"192.0.2.5/24","Gateway":"192.0.2.6"}]	
+none	null	local	false	null	

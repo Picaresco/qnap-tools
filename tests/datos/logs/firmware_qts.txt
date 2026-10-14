@@ -1,0 +1,5 @@
+version=5.2.9
+compilacion=20260514
+comprobado=2026/06/24 23:42:09
+actualizado=2026/06/24 23:09:49
+comprobar=TRUE

@@ -1,0 +1,42 @@
+== /sys/block/md1/md
+nivel=raid6
+estado=clean
+accion=idle
+degradado=0
+discrepancias=0
+== /sys/block/md13/md
+nivel=raid1
+estado=clean
+accion=idle
+degradado=15
+discrepancias=0
+== /sys/block/md2/md
+nivel=raid1
+estado=active
+accion=idle
+degradado=0
+discrepancias=0
+== /sys/block/md256/md
+nivel=raid1
+estado=clean
+accion=idle
+degradado=0
+discrepancias=0
+== /sys/block/md280/md
+nivel=raid1
+estado=clean
+accion=idle
+degradado=0
+discrepancias=0
+== /sys/block/md322/md
+nivel=raid1
+estado=clean
+accion=idle
+degradado=0
+discrepancias=0
+== /sys/block/md9/md
+nivel=raid1
+estado=clean
+accion=idle
+degradado=15
+discrepancias=0

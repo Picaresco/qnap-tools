@@ -1,0 +1,29 @@
+{
+ "comandos": [
+  {"id": "det_qpkg", "nas": "ambos", "da": "Si Virtualization Station (QKVM) y Container Station estan instalados, activos, su version y ruta. Enable=FALSE: instalado pero parado; vacio: no instalado",
+   "cmd": "for s in QKVM container-station; do echo == $s; echo Enable=$(getcfg $s Enable -f /etc/config/qpkg.conf) ; echo Version=$(getcfg $s Version -f /etc/config/qpkg.conf) ; echo Ruta=$(getcfg $s Install_Path -f /etc/config/qpkg.conf) ; done; true"},
+  {"id": "det_runtime", "nas": "ambos", "da": "Si los servicios estan realmente en marcha: enlace /QVS, /dev/kvm, sockets de libvirt, docker, system-docker y lxd, y sus permisos",
+   "cmd": "ls -la /QVS /dev/kvm /QVS/var/run/libvirt/libvirt-sock-ro /var/run/docker.sock /var/run/system-docker.sock /var/lib/lxd/unix.socket 2>&1; true"},
+  {"id": "det_procesos", "nas": "ambos", "da": "Procesos de libvirtd, qemu (uno por VM encendida), dockerd, containerd y lxd",
+   "cmd": "ps | grep -E 'libvirtd|virtlogd|qemu-system|dockerd|containerd|lxd' | grep -v grep | cut -c1-160; true"},
+  {"id": "host_cpu", "nas": "ambos", "da": "Capacidad del anfitrion: hilos, modelo de CPU, soporte de virtualizacion (vmx/svm) y carga",
+   "cmd": "echo hilos=$(grep -c processor /proc/cpuinfo) ; grep -m1 'model name' /proc/cpuinfo; echo virt=$(grep -m1 -o -E 'vmx|svm' /proc/cpuinfo) ; cat /proc/loadavg"},
+  {"id": "host_memoria", "nas": "ambos", "da": "RAM total, libre y disponible del anfitrion para VMs y contenedores",
+   "cmd": "grep -E '^(MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree|Shmem|HugePages_Total):' /proc/meminfo"},
+  {"id": "host_modulos", "nas": "ambos", "da": "Modulos del nucleo de virtualizacion y red virtual cargados (kvm, vhost, bridge, tun)",
+   "cmd": "lsmod | grep -i -E '^(kvm|vhost|bridge|tun|macvtap|veth|overlay)'; true"},
+  {"id": "host_puentes", "nas": "ambos", "da": "Conmutadores virtuales y puentes (qvsN, docker0, lxcbr0, lxdbr0, br-*) y que interfaces cuelgan de cada uno (vnetN = NIC de una VM)",
+   "cmd": "for b in $(ls /sys/class/net | grep -E '^(qvs|docker|lxc|lxd|br)') ; do echo $b: $(ls /sys/class/net/$b/brif 2>/dev/null) ; done"}
+ ],
+ "sql": [],
+ "limites": [
+  {"que": "Arrancar, parar, crear, clonar o borrar VMs y contenedores; snapshots; cambiar CPU/RAM/discos/red", "motivo": "Son escrituras. virsh se lanza siempre con -r (libvirt las rechaza) y docker solo con subcomandos de consulta"},
+  {"que": "Datos de dentro del invitado por el agente QEMU (IP, hostname, SO, discos del invitado): virsh domifaddr --source agent, guestinfo, domfsinfo, domhostname", "motivo": "libvirt los prohibe en conexion de solo lectura ('read only access prevents virDomainInterfaceAddresses'): hablar con el agente exige conexion de escritura. Alternativa de lectura: cruzar la MAC de la NIC con la tabla ARP del NAS (ip neigh)"},
+  {"que": "Captura de pantalla de la consola (virsh screenshot) y consola serie/VNC", "motivo": "screenshot escribe un fichero en el NAS y exige conexion de escritura; la consola es interactiva"},
+  {"que": "API HTTP de Virtualization Station (/qvs/...)", "motivo": "Exige login por POST (crea sesion y deja registro; VS banea la IP tras fallos). No aporta inventario que no este ya en virsh + qvs.db; lo unico propio seria el estado calculado por VS (progreso de tareas en curso, avisos de la interfaz)"},
+  {"que": "Contrasenas de VNC, credenciales de copias remotas y usuarios de VS", "motivo": "Estan en qvs.db (vms_graphic.password, credentials_credential, users_user) y en dumpxml --security-info: se excluyen a proposito"},
+  {"que": "Variables de entorno de los contenedores (docker inspect completo)", "motivo": "Suelen llevar contrasenas (MYSQL_ROOT_PASSWORD...). El MCP debe usar --format con campos concretos o filtrar .Config.Env"},
+  {"que": "Contenedores LXD (lxc list/info)", "motivo": "No verificado: el cliente lxc crea ~/.config/lxc y un certificado de cliente en su primera ejecucion (escribe en el NAS). Solo se comprueba si hay instancias mirando /var/lib/lxd/containers"},
+  {"que": "Inventario de VMs con Virtualization Station parada o desactivada (caso nas2)", "motivo": "Sin libvirtd no hay virsh. Queda qvs.db (SQLite), pero leerlo pide python3 con sqlite3 y en ese caso el unico esta dentro del paquete QKVM, en una ruta que el arnes no prueba"}
+ ]
+}

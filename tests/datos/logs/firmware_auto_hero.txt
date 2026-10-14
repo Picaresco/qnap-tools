@@ -1,0 +1,12 @@
+leido=5.2.9
+importantes=1
+recomendadas=1
+ultimas=1
+version=3
+modo=2
+modo_v3=1
+programa=0
+hora=23
+minuto=0
+dia_semana=1
+dia=1

@@ -1,0 +1,60 @@
+== bond0
+Ethernet Channel Bonding Driver: v5.10.60-qnap
+
+Bonding Mode: IEEE 802.3ad Dynamic link aggregation
+Transmit Hash Policy: layer2 (0)
+MII Status: down
+MII Polling Interval (ms): 100
+Up Delay (ms): 0
+Down Delay (ms): 0
+Peer Notification Delay (ms): 0
+
+802.3ad info
+LACP rate: slow
+Min links: 0
+Aggregator selection policy (ad_select): stable
+== bond1
+Ethernet Channel Bonding Driver: v5.10.60-qnap
+
+Bonding Mode: load balancing (round-robin)
+MII Status: down
+MII Polling Interval (ms): 100
+Up Delay (ms): 0
+Down Delay (ms): 0
+Peer Notification Delay (ms): 0
+== bond2
+Ethernet Channel Bonding Driver: v5.10.60-qnap
+
+Bonding Mode: load balancing (round-robin)
+MII Status: down
+MII Polling Interval (ms): 100
+Up Delay (ms): 0
+Down Delay (ms): 0
+Peer Notification Delay (ms): 0
+== bond3
+Ethernet Channel Bonding Driver: v5.10.60-qnap
+
+Bonding Mode: load balancing (round-robin)
+MII Status: down
+MII Polling Interval (ms): 100
+Up Delay (ms): 0
+Down Delay (ms): 0
+Peer Notification Delay (ms): 0
+== bond4
+Ethernet Channel Bonding Driver: v5.10.60-qnap
+
+Bonding Mode: load balancing (round-robin)
+MII Status: down
+MII Polling Interval (ms): 100
+Up Delay (ms): 0
+Down Delay (ms): 0
+Peer Notification Delay (ms): 0
+== bond5
+Ethernet Channel Bonding Driver: v5.10.60-qnap
+
+Bonding Mode: load balancing (round-robin)
+MII Status: down
+MII Polling Interval (ms): 100
+Up Delay (ms): 0
+Down Delay (ms): 0
+Peer Notification Delay (ms): 0

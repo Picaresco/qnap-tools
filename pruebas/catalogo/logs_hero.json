@@ -1,0 +1,6 @@
+{"comandos": [
+ {"id": "zfs_log", "nas": "hero", "da": "registro de operaciones ZFS y sus rotaciones (solo root)", "cmd": "ls -la /etc/logs/zfs_logs | cut -c1-90; tail -3 /etc/logs/zfs_logs/zfs.log | cut -c1-160"},
+ {"id": "auth_log", "nas": "hero", "da": "traza del servicio de autenticacion (tamano y rotaciones; contiene usuarios e IP)", "cmd": "wc -l /var/log/nasauth.log /var/log/authd.log; ls -la /var/log/ | grep -E 'nasauth|authd' | cut -c1-90"},
+ {"id": "pstore", "nas": "hero", "da": "volcados pstore de cuelgues del kernel guardados", "cmd": "ls -la /etc/logs/ | grep -E 'pstore|shutdown|force_kill' | cut -c1-100"}
+],
+"limites": []}

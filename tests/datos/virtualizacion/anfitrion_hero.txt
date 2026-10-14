@@ -1,0 +1,12 @@
+hilos=4
+model name	: Intel(R) Xeon(R) CPU D-1602 @ 2.50GHz
+virt=vmx
+carga=2.17 1.29 1.20 6/3759 30736
+MemTotal:       32771296 kB
+MemFree:         6922004 kB
+MemAvailable:    7742808 kB
+SwapTotal:      63736824 kB
+SwapFree:       63736824 kB
+socket=/QVS/var/run/libvirt/libvirt-sock-ro
+socket=/var/run/docker.sock
+socket=/var/run/system-docker.sock

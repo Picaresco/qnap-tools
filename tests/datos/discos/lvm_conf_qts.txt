@@ -1,0 +1,78 @@
+[Global]
+[POOL_1]
+poolId=1
+tpId=1
+poolName=vg1
+threshold = 95
+overThreshold = no
+snapshot_reserved = 10
+[MEMBER_1]
+memberId=1
+memberName=/dev/drbd1
+[TP_1]
+tpId=1
+tpName=/dev/mapper/vg1-tp1
+tpSize=28773572608
+metaSize=134217728
+[LV_1]
+lvId=1
+poolId=1
+threshold = 90
+lvName=/dev/mapper/vg1-lv1
+overThreshold = no
+lvSize = 7365197824
+volName=volumen1
+[LV_1312]
+lvId=1312
+poolId=1
+threshold=0
+lvName=/dev/mapper/vg1-lv1312
+overThreshold=no
+lvSize=2916352
+[LV_544]
+lvId=544
+poolId=1
+threshold=0
+lvName=/dev/mapper/vg1-lv544
+overThreshold=no
+lvSize=289112064
+[LV_3]
+lvId=3
+poolId=1
+threshold = 95
+lvName=/dev/mapper/vg1-lv3
+overThreshold = no
+lvSize = 4294967296
+volName=volumen2
+[LV_4]
+lvId = 4
+poolId = 1
+threshold = 95
+lvName = /dev/mapper/vg1-lv4
+overThreshold = no
+lvSize = 2147483648
+volName = volumen3
+[POOL_256]
+poolId = 256
+tpId = -1
+poolName = vg256
+threshold = 0
+overThreshold = no
+snapshot_reserved = 0
+[MEMBER_2]
+memberId = 2
+memberName = /dev/md2
+[LV_545]
+lvId = 545
+poolId = 256
+threshold = 0
+lvName = /dev/mapper/vg256-lv545
+overThreshold = no
+lvSize = 1925120
+[LV_256]
+lvId = 256
+poolId = 256
+threshold = 0
+lvName = /dev/mapper/vg256-lv256
+overThreshold = no
+lvSize = 159686656

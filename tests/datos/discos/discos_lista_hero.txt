@@ -1,0 +1,9 @@
+Enclosure  Port  Sys_Name          Type      Size      Alias                 Signature   Partitions  Model  
+NAS_HOST   3     /dev/sda          SSD:data  465.76 GB 2.5" SATA SSD 1       --          5           WDC WDS500G1R0A-68A4W0
+NAS_HOST   4     /dev/sdb          SSD:data  465.76 GB 2.5" SATA SSD 2       --          5           WDC WDS500G1R0A-68A4W0
+NAS_HOST   5     /dev/sdc          HDD:data  3.64 TB   3.5" SATA HDD 1       --          5           HGST HUS726T4TALA6L4
+NAS_HOST   6     /dev/sdd          HDD:data  3.64 TB   3.5" SATA HDD 2       --          5           HGST HUS726T4TALA6L4
+NAS_HOST   7     /dev/sde          HDD:data  3.64 TB   3.5" SATA HDD 3       --          5           HGST HUS726T4TALA6L4
+NAS_HOST   8     /dev/sdf          HDD:data  3.64 TB   3.5" SATA HDD 4       --          5           HGST HUS726T4TALA6L4
+NAS_HOST   P2-1  /dev/nvme1n1      SSD:cache 232.89 GB PCIe SSD 2-1          --          6           Samsung SSD 970 EVO Plus 250GB
+NAS_HOST   P2-2  /dev/nvme0n1      SSD:cache 232.89 GB PCIe SSD 2-2          --          6           Samsung SSD 970 EVO Plus 250GB

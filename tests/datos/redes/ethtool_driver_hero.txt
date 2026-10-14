@@ -1,0 +1,10 @@
+driver: r8125
+version: 9.013.02-NAPI-RSS
+firmware-version: 
+expansion-rom-version: 
+bus-info: 0000:0c:00.0
+supports-statistics: yes
+supports-test: no
+supports-eeprom-access: no
+supports-register-dump: yes
+supports-priv-flags: no

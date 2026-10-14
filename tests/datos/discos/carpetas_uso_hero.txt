@@ -1,0 +1,45 @@
+[carpeta1]
+Used Size = 74091401216
+Directory Count = 87
+File Count = 152
+Latest Update Time = 1790557205
+[carpeta3]
+Used Size = 238080
+Directory Count = 16
+File Count = 8
+Latest Update Time = 1790557205
+[carpeta2]
+Used Size = 31221068800
+Directory Count = 72
+File Count = 33
+Latest Update Time = 1790557205
+[carpeta4]
+Used Size = 1407294891520
+Directory Count = 47
+File Count = 67
+Latest Update Time = 1790557205
+[carpeta5]
+Used Size = 22474658816
+Directory Count = 14
+File Count = 35
+Latest Update Time = 1790557200
+[carpeta7]
+Used Size = 22016
+Directory Count = 1
+File Count = 1
+Latest Update Time = 1790557205
+[carpeta6]
+Used Size = 32903115264
+Directory Count = 42
+File Count = 46
+Latest Update Time = 1790557204
+[carpeta9]
+Used Size = 2456064
+Directory Count = 269
+File Count = 7
+Latest Update Time = 1790557205
+[carpeta8]
+Used Size = 1244119040
+Directory Count = 5051
+File Count = 39870
+Latest Update Time = 1790557204

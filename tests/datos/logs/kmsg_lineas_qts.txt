@@ -1,0 +1,21 @@
+==lineas 189
+2026-09-26 18:18:54 +02:00 <3> [2542827.356250] device-mapper: cache: cache_postsuspend get dirty cnt
+2026-09-26 18:18:54 +02:00 <3> [2542827.356257] device-mapper: cache metadata: root 1400085
+2026-09-26 18:18:54 +02:00 <3> [2542827.359668] device-mapper: cache metadata: get 0 dirty blocks
+2026-09-26 18:21:23 +02:00 <2> [2542976.453688] md/raid1:md9: Disk failure on sda1, disabling device.
+2026-09-26 18:21:23 +02:00 <2> [2542976.453688] md/raid1:md9: Operation continuing on 8 devices.
+2026-09-26 18:21:25 +02:00 <2> [2542978.504093] md/raid1:md13: Disk failure on sda4, disabling device.
+2026-09-26 18:21:25 +02:00 <2> [2542978.504093] md/raid1:md13: Operation continuing on 8 devices.
+2026-09-26 18:21:27 +02:00 <2> [2542980.535825] md/raid1:md280: Disk failure on sda2, disabling device.
+2026-09-26 18:21:27 +02:00 <2> [2542980.535825] md/raid1:md280: Operation continuing on 1 devices.
+2026-09-26 18:21:30 +02:00 <2> [2542982.835754] md/raid1:md9: Disk failure on sdb1, disabling device.
+2026-09-26 18:21:30 +02:00 <2> [2542982.835754] md/raid1:md9: Operation continuing on 7 devices.
+2026-09-26 18:21:32 +02:00 <2> [2542984.849169] md/raid1:md13: Disk failure on sdb4, disabling device.
+2026-09-26 18:21:32 +02:00 <2> [2542984.849169] md/raid1:md13: Operation continuing on 7 devices.
+2026-09-26 18:22:21 +02:00 <3> [2543034.062124] dm_bio_prison_create_v2: llb_shift = 0
+2026-09-26 18:22:21 +02:00 <3> [2543034.078555] device-mapper: cache: cache_preresume get 0 dirty
+2026-09-26 18:22:21 +02:00 <3> [2543034.078560] device-mapper: cache metadata: root 251
+2026-09-26 18:22:21 +02:00 <3> [2543034.079072] device-mapper: cache metadata: get 0 dirty blocks
+2026-09-26 18:22:21 +02:00 <3> [2543034.079076] device-mapper: cache: cache_preresume get total 0 entry, 0 dirty.
+2026-09-26 18:22:24 +02:00 <3> [2543037.011369] device-mapper: cache: client 252:9 preparing
+2026-09-26 18:22:24 +02:00 <3> [2543037.011437] device-mapper: cache: client 252:9 ready

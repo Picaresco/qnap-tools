@@ -1,0 +1,16 @@
+{
+  "name": "qnap-tools",
+  "owner": {
+    "name": "picaresco"
+  },
+  "metadata": {
+    "description": "Herramientas de solo lectura para una flota de NAS QNAP desde Claude Code."
+  },
+  "plugins": [
+    {
+      "name": "qnap-tools",
+      "source": "./",
+      "description": "Consulta una flota de NAS QNAP (QTS y QuTS hero) por SSH, en solo lectura."
+    }
+  ]
+}

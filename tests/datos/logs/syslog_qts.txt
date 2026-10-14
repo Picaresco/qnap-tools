@@ -1,0 +1,12 @@
+[Global]
+Enable = TRUE
+TCP Enable = TRUE
+TCP Port = 514
+UDP Enable = TRUE
+UDP Port = 514
+alert mail = FALSE
+alert mail severity = 0
+log file size = 50
+log file path = messages
+log file share = carpeta9
+KLog Enable = TRUE

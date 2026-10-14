@@ -1,0 +1,37 @@
+Personalities : [linear] [raid0] [raid1] [raid10] [raid6] [raid5] [raid4] [multipath] 
+md5 : active raid5 sdv3[0] sdw3[11] sdu3[10] sdx3[9] sdp3[8] sdt3[7] sdr3[6] sdz3[5] sds3[4] sdq3[3] sdo3[2] sdy3[1]
+      64356250112 blocks super 1.0 level 5, 512k chunk, algorithm 2 [12/12] [UUUUUUUUUUUU]
+      
+md3 : active raid1 sdd3[0] sdl3[1]
+      7804071744 blocks super 1.0 [2/2] [UU]
+      
+md2 : active raid5 sdk3[10] sdi3[9] sdc3[0] sdg3[8] sdh3[5] sdj3[3] sde3[2] sdf3[1]
+      27279447552 blocks super 1.0 level 5, 512k chunk, algorithm 2 [8/8] [UUUUUUUU]
+      
+md1 : active raid1 sda3[0] sdb3[1]
+      430588416 blocks super 1.0 [2/2] [UU]
+      
+md4 : active raid1 nvme0n1p3[0] nvme1n1p3[2]
+      1749203456 blocks super 1.0 [2/2] [UU]
+      
+md322 : active raid1 sdk5[9](S) sdi5[5](S) sdl5[8](S) sdg5[7](S) sdh5[6](S) sdj5[4](S) sde5[3](S) sdf5[2](S) sdd5[1] sdc5[0]
+      6702656 blocks super 1.0 [2/2] [UU]
+      bitmap: 0/1 pages [0KB], 65536KB chunk
+
+md256 : active raid1 sdk2[9](S) sdi2[5](S) sdl2[8](S) sdg2[7](S) sdh2[6](S) sdj2[4](S) sde2[3](S) sdf2[2](S) sdd2[1] sdc2[0]
+      530112 blocks super 1.0 [2/2] [UU]
+      bitmap: 0/1 pages [0KB], 65536KB chunk
+
+md321 : active raid1 nvme1n1p5[2] nvme0n1p5[0]
+      6702656 blocks super 1.0 [2/2] [UU]
+      bitmap: 0/1 pages [0KB], 65536KB chunk
+
+md13 : active raid1 sdk4[134] sdi4[133] sda4[0] nvme1n1p4[131] nvme0n1p4[130] sdl4[129] sdd4[128] sdg4[132] sdh4[7] sdj4[5] sde4[4] sdf4[3] sdc4[2] sdb4[1]
+      458880 blocks super 1.0 [131/14] [UUUUUUUUUUUUUU_____________________________________________________________________________________________________________________]
+      bitmap: 1/1 pages [4KB], 65536KB chunk
+
+md9 : active raid1 sdk1[134] sdi1[133] sda1[0] nvme1n1p1[131] nvme0n1p1[130] sdl1[129] sdd1[128] sdg1[132] sdh1[7] sdj1[5] sde1[4] sdf1[3] sdc1[2] sdb1[1]
+      530048 blocks super 1.0 [130/14] [UUUUUUUUUUUUUU____________________________________________________________________________________________________________________]
+      bitmap: 1/1 pages [4KB], 65536KB chunk
+
+unused devices: <none>

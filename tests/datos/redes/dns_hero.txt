@@ -1,0 +1,5 @@
+==superiores
+nameserver 192.0.2.20@eth0
+nameserver 192.0.2.21@eth0
+==resolv
+nameserver 127.0.1.1

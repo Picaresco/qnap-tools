@@ -1,0 +1,155 @@
+[Global]
+lastRetentionTime = 1791932400
+[Retention20]
+source_lv_id = 20
+retention = 2
+expiremin = 0
+keepAmount = 0
+hourAmount = 24
+dayAmount = 7
+weekAmount = 4
+monthAmount = 12
+normalAmount = 24
+[Retention19]
+source_lv_id = 19
+retention = 1
+expiremin = 0
+keepAmount = 10
+hourAmount = 24
+dayAmount = 7
+weekAmount = 4
+monthAmount = 12
+[Schedule19]
+source_lv_id = 19
+Schedule = -4
+MonthDay = 
+WeekDay = 
+Dueday = 0
+Frequency = 30
+OnHour = 0
+OnMinute = 0
+OffHour = 23
+OffMinute = 30
+smart = 1
+vital = 0
+immutable = 0
+snapshot_type = 0
+schedule_status = 0
+ScheduleTime = 0
+[Retention1]
+source_lv_id = 1
+retention = 2
+expiremin = 0
+keepAmount = 0
+normalAmount = 24
+hourAmount = 24
+dayAmount = 7
+weekAmount = 4
+monthAmount = 12
+[Retention2]
+source_lv_id = 2
+retention = 2
+expiremin = 0
+keepAmount = 0
+normalAmount = 24
+hourAmount = 24
+dayAmount = 7
+weekAmount = 4
+monthAmount = 12
+[Retention3]
+source_lv_id = 3
+retention = 2
+expiremin = 0
+keepAmount = 0
+normalAmount = 24
+hourAmount = 24
+dayAmount = 7
+weekAmount = 4
+monthAmount = 12
+[Retention18]
+source_lv_id = 18
+retention = 2
+expiremin = 0
+keepAmount = 0
+normalAmount = 24
+hourAmount = 24
+dayAmount = 7
+weekAmount = 4
+monthAmount = 12
+[Retention21]
+source_lv_id = 21
+retention = 2
+expiremin = 0
+keepAmount = 0
+normalAmount = 24
+hourAmount = 24
+dayAmount = 7
+weekAmount = 4
+monthAmount = 12
+[Retention530]
+source_lv_id = 530
+retention = 2
+expiremin = 0
+keepAmount = 0
+normalAmount = 24
+hourAmount = 24
+dayAmount = 7
+weekAmount = 4
+monthAmount = 12
+[Retention531]
+source_lv_id = 531
+retention = 2
+expiremin = 0
+keepAmount = 0
+normalAmount = 24
+hourAmount = 24
+dayAmount = 7
+weekAmount = 4
+monthAmount = 12
+[Retention1107]
+source_lv_id = 1107
+retention = 2
+expiremin = 0
+keepAmount = 0
+normalAmount = 24
+hourAmount = 24
+dayAmount = 7
+weekAmount = 4
+monthAmount = 12
+[Retention1108]
+source_lv_id = 1108
+retention = 2
+expiremin = 0
+keepAmount = 0
+normalAmount = 24
+hourAmount = 24
+dayAmount = 7
+weekAmount = 4
+monthAmount = 12
+[Retention24]
+source_lv_id = 24
+retention = 1
+expiremin = 1
+keepAmount = 5
+normalAmount = 12
+hourAmount = 24
+dayAmount = 7
+weekAmount = 4
+monthAmount = 12
+[Schedule24]
+source_lv_id = 24
+Schedule = 4
+MonthDay = 
+WeekDay = 
+Dueday = 0
+Frequency = 0
+OnHour = 0
+OnMinute = 0
+OffHour = 0
+OffMinute = 0
+smart = 1
+vital = 0
+immutable = 0
+snapshot_type = 0
+schedule_status = 2
+ScheduleTime = 1791928800

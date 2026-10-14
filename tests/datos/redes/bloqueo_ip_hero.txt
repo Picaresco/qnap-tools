@@ -1,0 +1,14 @@
+Ban Engine/Ban Enabled = 1
+Ban Engine/Account Ban Enabled = 1
+Ban Engine/SSH   Ban Enabled = 0
+Ban Engine/TelnetBan Enabled = 0
+Ban Engine/FTP   Ban Enabled = 0
+Ban Engine/Http  Ban Enabled = 0
+Ban Engine/Samba Ban Enabled = 0
+Ban Engine/AFP   Ban Enabled = 0
+Ban Engine/NFS   Ban Enabled = 0
+Ban Engine/RTRR  Ban Enabled = 0
+Ban Engine/Rsync Ban Enabled = 0
+==permitidas
+
+==denegadas

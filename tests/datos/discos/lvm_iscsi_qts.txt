@@ -1,0 +1,9 @@
+[iSCSIPortal]
+targetIQNPrefix = iqn.2004-04.com.example:destino-1
+bServiceEnable = TRUE
+servicePort = 3260
+[init0Info]
+initiatorIQN = iqn.2004-04.com.example:destino-2
+initiatorAlias = Default Policy
+[TargetKey]
+[LUNKey]

@@ -1,0 +1,2 @@
+== /tmp/disk/disk_23_2.info
+SSD_LIFE_USED = 72

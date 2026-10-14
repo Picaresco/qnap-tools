@@ -1,0 +1,40 @@
+== 1
+modelo=--
+temperatura=-- C/-- F
+smart=--
+estado=-5
+== 2
+modelo=--
+temperatura=-- C/-- F
+smart=--
+estado=-5
+== 3
+modelo=WDS500G1R0A-68A4W0
+temperatura=38 C/100 F
+smart=GOOD
+estado=0
+== 4
+modelo=WDS500G1R0A-68A4W0
+temperatura=37 C/98 F
+smart=GOOD
+estado=0
+== 5
+modelo=HUS726T4TALA6L4
+temperatura=41 C/105 F
+smart=GOOD
+estado=0
+== 6
+modelo=HUS726T4TALA6L4
+temperatura=41 C/105 F
+smart=GOOD
+estado=0
+== 7
+modelo=HUS726T4TALA6L4
+temperatura=41 C/105 F
+smart=GOOD
+estado=0
+== 8
+modelo=HUS726T4TALA6L4
+temperatura=41 C/105 F
+smart=GOOD
+estado=0

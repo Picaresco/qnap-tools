@@ -1,0 +1,316 @@
+{
+ "comandos": [
+  {
+   "id": "if_enlaces",
+   "cmd": "ip -br link",
+   "da": "interfaces, estado, MAC y flags",
+   "nas": "ambos"
+  },
+  {
+   "id": "if_direcciones",
+   "cmd": "ip -br addr",
+   "da": "IPv4/IPv6 por interfaz",
+   "nas": "ambos"
+  },
+  {
+   "id": "if_detalle",
+   "cmd": "ip -s -d link",
+   "da": "MTU, tipo (bond/bridge/vlan/tun), maestro, contadores rx/tx/errores/descartes",
+   "nas": "ambos"
+  },
+  {
+   "id": "if_sys",
+   "cmd": "for i in /sys/class/net/[a-z]*[0-9]; do echo $i $(cat $i/operstate) vel=$(cat $i/speed 2>/dev/null) dup=$(cat $i/duplex 2>/dev/null) mtu=$(cat $i/mtu) mac=$(cat $i/address 2>/dev/null) carrier=$(cat $i/carrier 2>/dev/null) ; done",
+   "da": "velocidad negociada, duplex, MTU y portadora de cada interfaz desde /sys",
+   "nas": "ambos"
+  },
+  {
+   "id": "if_contadores",
+   "cmd": "cat /proc/net/dev",
+   "da": "bytes, paquetes, errores y descartes por interfaz",
+   "nas": "ambos"
+  },
+  {
+   "id": "ethtool_enlace",
+   "cmd": "for i in $(ls /sys/class/net | grep -E '^eth') ; do echo == $i; ethtool $i 2>&1; done",
+   "da": "modos soportados/anunciados, velocidad, duplex, autonegociacion, enlace detectado",
+   "nas": "ambos"
+  },
+  {
+   "id": "ethtool_driver",
+   "cmd": "for i in $(ls /sys/class/net | grep -E '^eth') ; do echo == $i; ethtool -i $i 2>&1; done",
+   "da": "driver, version, firmware y bus PCI de cada tarjeta",
+   "nas": "ambos"
+  },
+  {
+   "id": "ethtool_stats",
+   "cmd": "for i in $(ls /sys/class/net | grep -E '^eth') ; do echo == $i; ethtool -S $i 2>&1 | grep -i -E 'err|drop|crc|miss|collis|abort' | head -25; done",
+   "da": "contadores de error del adaptador (CRC, colisiones, descartes)",
+   "nas": "ambos"
+  },
+  {
+   "id": "ethtool_offload",
+   "cmd": "for i in $(ls /sys/class/net | grep -E '^eth') ; do echo == $i; ethtool -k $i 2>&1 | grep -v fixed | head -20; done",
+   "da": "offloads activos (TSO/GSO/GRO...)",
+   "nas": "ambos"
+  },
+  {
+   "id": "pci_red",
+   "cmd": "lspci 2>&1 | grep -E 'Class 02'",
+   "da": "controladoras de red PCI (clase 02xx, id vendedor:dispositivo; el nombre legible esta en nm.conf)",
+   "nas": "ambos"
+  },
+  {
+   "id": "bonding",
+   "cmd": "for f in /proc/net/bonding/*; do echo == $f; cat $f; done",
+   "da": "port trunking vivo: modo, miembros, estado MII, LACP",
+   "nas": "ambos"
+  },
+  {
+   "id": "vlan",
+   "cmd": "cat /proc/net/vlan/config",
+   "da": "VLAN 802.1Q configuradas y su interfaz padre",
+   "nas": "ambos"
+  },
+  {
+   "id": "puentes",
+   "cmd": "brctl show",
+   "da": "conmutadores virtuales/puentes y sus puertos miembro (incluye vnet de VMs)",
+   "nas": "ambos"
+  },
+  {
+   "id": "rutas",
+   "cmd": "ip route",
+   "da": "tabla de rutas principal y puerta de enlace por defecto",
+   "nas": "ambos"
+  },
+  {
+   "id": "rutas_politica",
+   "cmd": "ip rule",
+   "da": "reglas de enrutado por politica (una tabla por interfaz)",
+   "nas": "ambos"
+  },
+  {
+   "id": "rutas_todas",
+   "cmd": "ip route show table all | grep -v -E '^(local|broadcast|anycast|multicast|unreachable|ff00|fe80)'",
+   "da": "rutas de todas las tablas",
+   "nas": "ambos"
+  },
+  {
+   "id": "rutas6",
+   "cmd": "echo == rutas ipv6 ; ip -6 route",
+   "da": "rutas IPv6",
+   "nas": "ambos"
+  },
+  {
+   "id": "rutas_estaticas_conf",
+   "cmd": "cat /etc/config/staticroute.conf /etc/config/staticroute6.conf 2>&1",
+   "da": "rutas estaticas definidas por el usuario",
+   "nas": "ambos"
+  },
+  {
+   "id": "vecinos",
+   "cmd": "ip neigh",
+   "da": "tabla ARP/NDP: IP, MAC, interfaz y estado",
+   "nas": "ambos"
+  },
+  {
+   "id": "dns",
+   "cmd": "cat /etc/resolv.conf; echo == upstream; cat /etc/resolv.dnsmasq 2>&1; echo == dnsmasq; grep -v -E '^#|^$' /etc/dnsmasq.conf 2>&1",
+   "da": "resolvedor local (dnsmasq) y servidores DNS reales",
+   "nas": "ambos"
+  },
+  {
+   "id": "dhcp_cliente",
+   "cmd": "ls /etc/config.local/dhclient/ 2>&1; for f in /etc/config.local/dhclient/*.leases; do echo == $f; tail -25 $f; done 2>&1 ; true",
+   "da": "concesion DHCP recibida por el NAS: servidor, IP, mascara, router, DNS, caducidad",
+   "nas": "ambos"
+  },
+  {
+   "id": "dhcp_servidor_conf",
+   "cmd": "ls /etc/dhcp/ 2>&1; for f in /etc/dhcp/dhcpd_*.conf; do echo == $f; grep -v -E '^#|^$' $f; done 2>&1 ; true",
+   "da": "servidores DHCP del NAS por interfaz: rangos, router, DNS, reservas",
+   "nas": "ambos"
+  },
+  {
+   "id": "dhcp_servidor_leases",
+   "cmd": "for f in /var/state/dhcp/*.leases; do echo == $f; grep -v -E '^#|^$' $f | tail -40; done 2>&1 ; true",
+   "da": "clientes a los que el NAS ha dado IP (MAC, nombre, caducidad)",
+   "nas": "ambos"
+  },
+  {
+   "id": "demonios_red",
+   "cmd": "ps | grep -i -E '[d]nsmasq|[d]hcpd|[d]hclient|[u]pnp|[a]vahi|[s]shd -f|[s]mbd -|[n]fsd|[p]roftpd|[i]scsi|[o]penvpn|[q]vpn|[s]nmpd|[t]hunderbolt' | cut -c1-180",
+   "da": "demonios de red en marcha y sus argumentos",
+   "nas": "ambos"
+  },
+  {
+   "id": "escucha_tcp",
+   "cmd": "netstat -tlnp 2>&1",
+   "da": "puertos TCP en escucha; con sudo, el proceso dueno",
+   "nas": "ambos"
+  },
+  {
+   "id": "escucha_udp",
+   "cmd": "netstat -ulnp 2>&1",
+   "da": "puertos UDP en escucha; con sudo, el proceso dueno",
+   "nas": "ambos"
+  },
+  {
+   "id": "conexiones",
+   "cmd": "netstat -tn 2>&1 | grep -c ESTABLISHED; netstat -tn 2>&1 | grep ESTABLISHED | head -40",
+   "da": "conexiones TCP establecidas (quien esta conectado a que puerto)",
+   "nas": "ambos"
+  },
+  {
+   "id": "firewall_v4",
+   "cmd": "iptables-save 2>&1",
+   "da": "reglas iptables cargadas (filter/nat/mangle): QuFirewall, NAT de contenedores y VMs, marcas",
+   "nas": "ambos"
+  },
+  {
+   "id": "nm_conf",
+   "cmd": "grep -v -i -E 'pass|key|secret|token|psk' /etc/config/nm.conf",
+   "da": "configuracion persistida de Network & Virtual Switch: por adaptador/bond/vswitch tipo de IP, IP fija, MTU, modelo, velocidad maxima, vswitch asociado, pasarela fija",
+   "nas": "ambos"
+  },
+  {
+   "id": "nm_conf_otros",
+   "cmd": "cat /etc/config/netmgr.conf /etc/config/nm_nat.conf /etc/config/nm_vlan_driver.conf /etc/config/networkdaemon.conf /etc/config/dnsmasq_serips.conf 2>&1 ; true",
+   "da": "version de Network Manager, NAT, drivers VLAN e IP donde escucha dnsmasq",
+   "nas": "ambos"
+  },
+  {
+   "id": "servicios_puertos",
+   "cmd": "echo 'System/Web Access Port' = $(getcfg 'System' 'Web Access Port' -f /etc/config/uLinux.conf) ; echo 'System/Force SSL' = $(getcfg 'System' 'Force SSL' -f /etc/config/uLinux.conf) ; echo 'Stunnel/Enable' = $(getcfg 'Stunnel' 'Enable' -f /etc/config/uLinux.conf) ; echo 'Stunnel/Port' = $(getcfg 'Stunnel' 'Port' -f /etc/config/uLinux.conf) ; echo 'LOGIN/SSH Enable' = $(getcfg 'LOGIN' 'SSH Enable' -f /etc/config/uLinux.conf) ; echo 'LOGIN/SSH Port' = $(getcfg 'LOGIN' 'SSH Port' -f /etc/config/uLinux.conf) ; echo 'LOGIN/TELNET Enable' = $(getcfg 'LOGIN' 'TELNET Enable' -f /etc/config/uLinux.conf) ; echo 'LOGIN/TELNET Port' = $(getcfg 'LOGIN' 'TELNET Port' -f /etc/config/uLinux.conf) ; echo 'FTP/Enable' = $(getcfg 'FTP' 'Enable' -f /etc/config/uLinux.conf) ; echo 'FTP/Port' = $(getcfg 'FTP' 'Port' -f /etc/config/uLinux.conf) ; echo 'Samba/Enable' = $(getcfg 'Samba' 'Enable' -f /etc/config/uLinux.conf) ; echo 'Appletalk/Enable' = $(getcfg 'Appletalk' 'Enable' -f /etc/config/uLinux.conf) ; echo 'NFS/Enable' = $(getcfg 'NFS' 'Enable' -f /etc/config/uLinux.conf) ; echo 'SNMP/Service Enable' = $(getcfg 'SNMP' 'Service Enable' -f /etc/config/uLinux.conf) ; echo 'SNMP/Listen Port' = $(getcfg 'SNMP' 'Listen Port' -f /etc/config/uLinux.conf) ; echo 'QWEB/Enable' = $(getcfg 'QWEB' 'Enable' -f /etc/config/uLinux.conf) ; echo 'QWEB/Port' = $(getcfg 'QWEB' 'Port' -f /etc/config/uLinux.conf) ; echo 'QWEB/SSL_Port' = $(getcfg 'QWEB' 'SSL_Port' -f /etc/config/uLinux.conf) ; echo 'iSCSI/Enable' = $(getcfg 'iSCSI' 'Enable' -f /etc/config/uLinux.conf) ; echo 'iSCSI/Port' = $(getcfg 'iSCSI' 'Port' -f /etc/config/uLinux.conf) ; echo 'UPnP Service/Enable' = $(getcfg 'UPnP Service' 'Enable' -f /etc/config/uLinux.conf) ; echo 'Bonjour Service/Enable' = $(getcfg 'Bonjour Service' 'Enable' -f /etc/config/uLinux.conf) ; echo 'TFTP Server/Enable' = $(getcfg 'TFTP Server' 'Enable' -f /etc/config/uLinux.conf) ; echo 'TFTP Server/PORT' = $(getcfg 'TFTP Server' 'PORT' -f /etc/config/uLinux.conf) ; echo 'System/Server Name' = $(getcfg 'System' 'Server Name' -f /etc/config/uLinux.conf) ; echo 'Samba/Workgroup' = $(getcfg 'Samba' 'Workgroup' -f /etc/config/uLinux.conf)",
+   "da": "servicios de red activados y sus puertos (web, HTTPS, SSH, Telnet, FTP, SMB, AFP, NFS, SNMP, web server, iSCSI, UPnP, Bonjour, TFTP)",
+   "nas": "ambos"
+  },
+  {
+   "id": "ssh_conf",
+   "cmd": "grep -v -E '^#|^$' /etc/config/ssh/sshd_config",
+   "da": "configuracion efectiva de sshd: usuarios permitidos, puerto, SFTP",
+   "nas": "ambos"
+  },
+  {
+   "id": "ddns_qcloud",
+   "cmd": "grep -v -i -E 'pass|key|secret|token|auth' /etc/config/qnapddns.conf /etc/config/ddns.conf 2>&1 | head -80; ls /etc/config/qcloud 2>&1 ; true",
+   "da": "myQNAPcloud/DDNS: nombre de host, estado, proveedor",
+   "nas": "ambos"
+  },
+  {
+   "id": "upnp",
+   "cmd": "cat /etc/config/upnpc.conf 2>&1; getcfg 'UPnP Service' Enable -f /etc/config/uLinux.conf",
+   "da": "UPnP: cliente de mapeo de puertos y servicio de descubrimiento",
+   "nas": "ambos"
+  },
+  {
+   "id": "vpn",
+   "cmd": "ls -la /etc/config/qvpn /etc/config/openvpn 2>&1 | head -30; ip -br link | grep -i -E 'tun|tap|ppp|wg' ; true",
+   "da": "presencia de QVPN/OpenVPN/WireGuard y tuneles levantados (sin leer sus claves)",
+   "nas": "ambos"
+  },
+  {
+   "id": "wifi_tbt_usb",
+   "cmd": "cat /proc/net/wireless; ls /sys/bus/thunderbolt/devices 2>&1; ls -d /sys/class/net/*/wireless /sys/class/net/usb* /sys/class/net/wlan* /sys/class/net/tbt* 2>&1 ; true",
+   "da": "adaptadores WiFi, Thunderbolt y USB de red si existen",
+   "nas": "ambos"
+  },
+  {
+   "id": "hosts",
+   "cmd": "cat /etc/hosts; hostname",
+   "da": "nombre del equipo y entradas estaticas de hosts",
+   "nas": "ambos"
+  },
+  {
+   "id": "diag_ping_gw",
+   "cmd": "ping -c 2 -W 2 $(ip route | awk '/^default/{print $3; exit}')",
+   "da": "alcance y latencia a la puerta de enlace",
+   "nas": "ambos"
+  },
+  {
+   "id": "diag_dns",
+   "cmd": "nslookup www.qnap.com 2>&1",
+   "da": "resolucion DNS desde el NAS",
+   "nas": "ambos"
+  },
+  {
+   "id": "diag_traceroute",
+   "cmd": "traceroute -n -m 6 -w 1 -q 1 8.8.8.8 2>&1",
+   "da": "ruta de salida a internet (6 saltos)",
+   "nas": "ambos"
+  },
+  {
+   "id": "puentes_mac",
+   "cmd": "for b in $(ls /sys/class/net | grep -E '^qvs') ; do echo == $b ; brctl showmacs $b 2>&1 | head -60 ; done",
+   "da": "tabla MAC de cada conmutador virtual: que MAC cuelga de que puerto (VMs incluidas)",
+   "nas": "ambos"
+  },
+  {
+   "id": "puentes_stp",
+   "cmd": "for b in $(ls /sys/class/net | grep -E '^qvs') ; do brctl showstp $b 2>&1 | head -30 ; done",
+   "da": "estado STP de los conmutadores virtuales y de sus puertos",
+   "nas": "ambos"
+  },
+  {
+   "id": "trafico_muestra",
+   "cmd": "cat /proc/net/dev ; sleep 2 ; echo == 2s ; cat /proc/net/dev",
+   "da": "dos lecturas separadas 2 s para calcular el caudal actual por interfaz",
+   "nas": "ambos"
+  },
+  {
+   "id": "acceso_ip",
+   "cmd": "grep -A12 -E '^\\[Ban Engine\\]' /etc/config/uLinux.conf ; echo == allow ; cat /etc/config/ipsec_allow.conf 2>&1 ; echo == deny ; cat /etc/config/ipsec_deny.conf 2>&1",
+   "da": "proteccion de acceso por IP: bloqueo automatico por servicio y listas de permitidos/denegados",
+   "nas": "ambos"
+  },
+  {
+   "id": "log_red",
+   "cmd": "ls -la /var/log/network/ 2>&1 | head -45 ; echo == err.log ; tail -15 /var/log/network/err.log 2>&1 | cut -c1-200",
+   "da": "registros propios de Network Manager (cambios de pasarela, eventos de enlace, DDNS)",
+   "nas": "ambos"
+  }
+ ],
+ "limites": [
+  {
+   "que": "qcli_network y qcli_networkservice (resumen oficial de red, trunking, DHCP, DDNS, IP externa, SMB/NFS/FTP/SSH)",
+   "motivo": "exigen 'qcli -l user= pw=' previo, tambien con sudo: crea una sesion (sid) con la contrasena y opcionalmente la guarda en el NAS; no es lectura pura. Todo lo que dan se obtiene por otras vias salvo la IP externa"
+  },
+  {
+   "que": "IP publica/externa del NAS",
+   "motivo": "solo via qcli -w (con sesion) o consultando un servicio de internet; no hay fichero local fiable"
+  },
+  {
+   "que": "estado vivo de Network Manager en redis y CLIs nmcli (nmd, gwd, bdmd, ddns...)",
+   "motivo": "nmcli es un envoltorio python2 de .pyc sin ayuda documentada; no verificado que sus subcomandos sean de lectura. nm.conf es la copia persistida y puede ir por detras del estado vivo (en nas1 cita qvs3, que no existe en el kernel)"
+  },
+  {
+   "que": "reglas ip6tables",
+   "motivo": "no existe ip6tables-save en ninguno de los dos NAS"
+  },
+  {
+   "que": "ping y traceroute sin privilegios",
+   "motivo": "socket raw: 'permission denied (are you root?)'; con sudo funcionan. nslookup no lo necesita"
+  },
+  {
+   "que": "proceso dueno de cada puerto en escucha",
+   "motivo": "netstat -p solo lo muestra con sudo ('can't scan /proc - are you root?')"
+  },
+  {
+   "que": "configuracion de QVPN/OpenVPN/WireGuard",
+   "motivo": "vive en qvpn.db y ficheros con claves privadas (algunos legibles por todos); se informa solo de su presencia y de los tuneles levantados"
+  },
+  {
+   "que": "port trunking, VLAN, WiFi, Thunderbolt, USB de red, QuFirewall",
+   "motivo": "ninguno de los dos NAS los tiene configurados o instalados: los comandos funcionan pero su salida real queda sin validar"
+  },
+  {
+   "que": "pruebas de rendimiento de red y captura de trafico",
+   "motivo": "fuera del alcance acordado (iperf, tcpdump no existen; curl/wget/nc existen pero no se usan)"
+  },
+  {
+   "que": "nombre comercial de las tarjetas por lspci",
+   "motivo": "lspci del NAS solo da clases e ids numericos; el modelo legible sale de nm.conf (disp_model) y ethtool -i"
+  }
+ ]
+}

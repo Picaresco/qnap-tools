@@ -1,0 +1,16 @@
+{
+ "comandos": [
+  {"id": "vs_parada_restos", "nas": "qts", "da": "Con Virtualization Station instalada pero desactivada: que queda en disco (base qvs.db, configuracion, copias)",
+   "cmd": "ls -la /share/*/.qpkg/.QKVM/db /share/*/.qpkg/.QKVM/conf 2>&1; ls /share/*/.qpkg/.QKVM/backup 2>&1 | tail -3"},
+  {"id": "vs_parada_conf", "nas": "qts", "da": "Configuracion de VS aunque este parada: carpeta de VMs y puertos",
+   "cmd": "cat /share/*/.qpkg/.QKVM/conf/qvs.conf 2>&1"},
+  {"id": "vs_parada_binarios", "nas": "qts", "da": "Binarios del paquete QKVM presentes aunque /QVS no exista (python3 con sqlite3, virsh, qemu-img)",
+   "cmd": "ls -la /share/*/.qpkg/QKVM/usr/bin/python3 /share/*/.qpkg/QKVM/usr/bin/virsh /share/*/.qpkg/QKVM/usr/bin/qemu-img 2>&1"},
+  {"id": "vs_parada_vms", "nas": "qts", "da": "Carpetas de VMs en disco (imagenes y .meta) segun vm_dir de qvs.conf, sin entrar en ellas",
+   "cmd": "ls -la /share/VM /share/Vms /share/VMs 2>&1 | head -30; true"}
+ ],
+ "sql": [],
+ "limites": [
+  {"que": "Leer qvs.db en nas2", "motivo": "No hay python3 en las rutas que prueba 'ro.py sql' (/QVS no existe con VS desactivada). Existe /share/CACHEDEV1_DATA/.qpkg/QKVM/usr/bin/python3: el plugin deberia localizarlo por Install_Path de qpkg.conf"}
+ ]
+}

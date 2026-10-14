@@ -1,0 +1,209 @@
+# -*- coding: utf-8 -*-
+"""Coherencia de las ordenes de la pata de virtualizacion: todas son de solo lectura."""
+import re
+import sys
+from pathlib import Path
+
+import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "pruebas"))
+import guardia  # noqa: E402  (la guardia de solo lectura del laboratorio)
+
+from qnap_tools.comandos import Comando, ParametroInvalido  # noqa: E402
+from qnap_tools.virtualizacion import comandos as vc  # noqa: E402
+
+EJEMPLOS = {"uuid": "12345678-9abc-4def-8123-456789abcdef", "nombre": "web-1", "entero": "50"}
+SECRETOS = re.compile(
+    r"shadow|smbpasswd|ssh_host|\.pem|id_rsa|id_ed25519|authorized_keys|qvpn/|openvpn|"
+    r"ipsec\.(conf|secrets)|privatekey|security-info|qvs\.db|ctstation|\.sqlite|passwd", re.I)
+# lo que el diseno deja fuera aunque exista en el NAS
+VETADO = re.compile(
+    r"\blxc\b|\bcurl\b|\bwget\b|sqlite|screenshot|qemu-agent|guestinfo|--source agent|"
+    r"\bdu |\bfind |ls -[A-Za-z]*R|\.Config\.Env|\.Config\.Cmd|\.Args|\.Path\b|\{\{ *json *\. *\}\}")
+DE_VM = {"ANFITRION", "VM_ESTADISTICAS", "VM_XML", "VM_IP", "VM_USO", "VM_IMAGENES", "VM_SNAP_LIBVIRT",
+         "VM_SNAP_VS"}
+DE_CONTENEDORES = {"CT_INFO", "CT_LISTA", "CT_COMPOSE", "CT_DETALLE", "CT_STATS", "CT_LOGS",
+                   "CT_REDES", "CT_INTERNOS", "CT_LXD"}
+CON_SUDO = {"CT_LXD"}          # las carpetas de LXD solo las lee root
+DOCKER = "$(getcfg container-station Install_Path -f /etc/config/qpkg.conf)/bin/docker"
+INTERNO = " -H unix:///var/run/system-docker.sock"
+SUBORDENES_DOCKER = {"info", "ps", "inspect", "stats", "logs", "network ls", "network inspect", "compose ls"}
+VIRSH = "LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system"
+SUBORDENES_VIRSH = {"uri", "list", "domstats", "dumpxml", "domifaddr", "domblklist", "snapshot-list"}
+
+
+def todos():
+    return {nombre: valor for nombre, valor in vars(vc).items() if isinstance(valor, Comando)}
+
+
+def test_estan_todas_las_ordenes_previstas_y_ninguna_mas():
+    assert set(todos()) == DE_VM | DE_CONTENEDORES
+
+
+def test_todas_valen_para_los_dos_sistemas():
+    # Virtualization Station y Container Station son los mismos en QTS y en QuTS hero
+    assert {c.sistema for c in todos().values()} == {"ambos"}
+
+
+def test_los_identificadores_son_unicos():
+    ids = [c.id for c in todos().values()]
+    assert len(ids) == len(set(ids))
+
+
+@pytest.mark.parametrize("nombre", sorted(todos()))
+def test_cada_orden_pasa_la_guardia_de_solo_lectura_del_laboratorio(nombre):
+    comando = todos()[nombre]
+    texto = comando.render({p: EJEMPLOS[tipo] for p, tipo in comando.params.items()})
+    guardia.comprobar(texto)          # lanza guardia.Bloqueado si algo no esta permitido
+
+
+def test_la_guardia_del_laboratorio_sigue_bloqueando_escrituras():
+    # si esto dejara de fallar, la prueba anterior no demostraria nada
+    libvirt = "LD_LIBRARY_PATH=/QVS/usr/lib /QVS/usr/bin/virsh"
+    for texto in (libvirt + " -r -c qemu:///system destroy x", libvirt + " -c qemu:///system list --all",
+                  libvirt + " -r list --all", libvirt + " -r -c qemu:///system dumpxml x --security-info",
+                  "/QVS/usr/bin/qemu-img resize /share/x.img 1G", "/QVS/usr/bin/qemu-img info /share/x.img",
+                  "docker rm x", "docker exec x sh", "docker logs -f --tail 5 x", "docker logs x",
+                  "docker stats", "docker network rm x", "docker compose down", "docker system prune",
+                  "echo x | while read -r m; do rm \"$m\"; done", "echo x | while read m n; do true; done"):
+        with pytest.raises(guardia.Bloqueado):
+            guardia.comprobar(texto)
+
+
+@pytest.mark.parametrize("nombre", sorted(todos()))
+def test_ninguna_orden_toca_secretos(nombre):
+    assert not SECRETOS.search(todos()[nombre].plantilla)
+
+
+@pytest.mark.parametrize("nombre", sorted(todos()))
+def test_ninguna_orden_usa_lo_que_el_diseno_deja_fuera(nombre):
+    assert not VETADO.search(todos()[nombre].plantilla)
+
+
+@pytest.mark.parametrize("nombre", sorted(todos()))
+def test_virsh_va_siempre_en_solo_lectura_y_contra_el_libvirt_del_sistema(nombre):
+    plantilla = todos()[nombre].plantilla
+    # sin -c, un usuario que no es root arranca un libvirt propio (escribe en su carpeta) y
+    # devuelve una lista vacia; -r hace que libvirt rechace cualquier escritura
+    assert plantilla.count("virsh") == plantilla.count(VIRSH)
+    subordenes = set(re.findall(re.escape(VIRSH) + r" ([a-z-]+)", plantilla))
+    assert subordenes <= SUBORDENES_VIRSH
+    assert plantilla.count(VIRSH) == len(re.findall(re.escape(VIRSH) + r" [a-z-]+", plantilla))
+
+
+@pytest.mark.parametrize("nombre", sorted(todos()))
+def test_el_xml_de_una_vm_nunca_sale_entero(nombre):
+    # de dumpxml solo salen lineas elegidas con grep; los metadatos de VS no se piden
+    plantilla = todos()[nombre].plantilla
+    assert plantilla.count("dumpxml $d") == plantilla.count("dumpxml $d | grep ")
+    assert "qvs:graphics" not in plantilla and "qvs:vm" not in plantilla
+
+
+@pytest.mark.parametrize("nombre", sorted(todos()))
+def test_qemu_img_solo_describe_la_imagen_y_sin_bloquearla(nombre):
+    plantilla = todos()[nombre].plantilla
+    assert plantilla.count("qemu-img") == plantilla.count("qemu-img info -U ")
+
+
+def test_las_rutas_sacadas_de_una_vm_no_se_recorren_con_un_for():
+    # la carpeta de una VM lleva su nombre, que puede tener espacios: un 'for x in $(...)' la
+    # partiria (y la VM saldria sin instantaneas o sin disco); 'while read' lee la linea entera
+    for comando in (vc.VM_IMAGENES, vc.VM_SNAP_VS):
+        assert comando.plantilla.count("for ") == 1 and "for d in $(" in comando.plantilla
+        assert comando.plantilla.count("| while read -r ") == 1
+    assert "[ -d \"$m\" ] || echo '!! " in vc.VM_SNAP_VS.plantilla
+
+
+def test_solo_estas_ordenes_van_con_sudo():
+    assert {n for n, c in todos().items() if c.sudo} == CON_SUDO
+
+
+@pytest.mark.parametrize("valor", ["x; reboot", "-a", "$(id)", "12345678", "", "12345678-9abc-4def-8123-456789abcdef x"])
+def test_la_vm_se_valida_antes_de_componer_la_orden(valor):
+    with pytest.raises(ParametroInvalido):
+        vc.VM_IP.render({"uuid": valor})
+
+
+def test_la_vm_entra_entrecomillada():
+    uuid = "12345678-9abc-4def-8123-456789abcdef"
+    assert vc.VM_IP.render({"uuid": uuid}).endswith("domifaddr %s --source arp" % uuid)
+
+
+def test_las_ordenes_con_bucle_dicen_a_que_libvirt_hablan():
+    # si la conexion falla, la lista de VMs sale vacia y el bucle no da ningun error: la
+    # primera linea (uri=) permite al parser distinguir "no hay VMs" de "no hubo respuesta"
+    for nombre, c in todos().items():
+        if "list --all --uuid" in c.plantilla or nombre == "VM_ESTADISTICAS":
+            assert c.plantilla.startswith("echo uri=$(%s uri); " % VIRSH), nombre
+
+
+def test_la_medida_de_uso_es_corta_y_solo_de_las_vm_en_marcha():
+    assert vc.VM_USO.plantilla.count("sleep 5;") == 1 and vc.VM_USO.plantilla.count("--list-running") == 2
+    assert vc.VM_USO.timeout <= 40
+
+
+# --- contenedores -------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("nombre", sorted(todos()))
+def test_docker_solo_se_usa_para_consultar_y_su_ruta_sale_de_la_configuracion_del_paquete(nombre):
+    plantilla = todos()[nombre].plantilla
+    # la carpeta de Container Station cambia de un NAS a otro: nunca se fija
+    assert plantilla.count("/bin/docker") == plantilla.count(DOCKER)
+    usos = re.findall(re.escape(DOCKER) + r"((?: -H [^ ]+)?) ([a-z]+(?: (?:ls|inspect))?)", plantilla)
+    assert len(usos) == plantilla.count(DOCKER)
+    for servidor, suborden in usos:
+        assert servidor in ("", INTERNO) and suborden in SUBORDENES_DOCKER, suborden
+    # y nunca como orden suelta, sin su ruta
+    assert not re.search(r"(^|[;|&(] *)(system-)?docker ", plantilla)
+
+
+def test_la_lista_de_contenedores_no_pide_tamanos():
+    # con el campo Size, docker ps no termina en 40 s en un NAS con 45 contenedores, y
+    # docker system df tampoco en 60 s: ninguna orden pide a docker que mida el disco
+    for c in todos().values():
+        assert ".Size" not in c.plantilla and "system df" not in c.plantilla
+    assert " ps -a --no-trunc --format " in vc.CT_LISTA.plantilla
+
+
+def test_el_detalle_de_un_contenedor_pide_campos_concretos():
+    plantilla = vc.CT_DETALLE.plantilla
+    assert " inspect --format '" in plantilla and plantilla.endswith("' {contenedor}")
+    # ni variables de entorno, ni orden de arranque, ni las etiquetas enteras
+    for vetado in (".Config.Env", ".Config.Cmd", ".Config.Entrypoint", ".Args", ".Path", "json .Config.Labels}",
+                   "json .Config}", "json .HostConfig}", "json .}"):
+        assert vetado not in plantilla, vetado
+    assert plantilla.count("index .Config.Labels \"com.docker.compose.") == 3
+
+
+def test_los_registros_se_piden_acotados_y_sin_seguirlos():
+    plantilla = vc.CT_LOGS.plantilla
+    # docker entre parentesis con su codigo de salida al final: asi se distingue un fallo de
+    # docker de lo que haya escrito el programa del contenedor, empiece como empiece
+    assert plantilla.startswith("(" + DOCKER + " logs --tail {lineas} {contenedor} 2>&1; ")
+    assert "; rc=$?; echo; echo ==rc $rc) | cut -c1-" in plantilla
+    opciones = plantilla.split(" logs ", 1)[1]
+    assert " -f" not in opciones and "--follow" not in opciones and "--since" not in opciones
+    assert vc.CT_LOGS.params == {"lineas": "entero", "contenedor": "nombre"}
+
+
+def test_el_uso_de_los_contenedores_es_una_sola_muestra():
+    assert " stats --no-stream --format " in vc.CT_STATS.plantilla
+
+
+@pytest.mark.parametrize("valor", ["x; reboot", "-f", "$(id)", "a b", "", "../x", "a/b", "x\ny"])
+def test_el_contenedor_se_valida_antes_de_componer_la_orden(valor):
+    with pytest.raises(ParametroInvalido):
+        vc.CT_DETALLE.render({"contenedor": valor})
+    with pytest.raises(ParametroInvalido):
+        vc.CT_LOGS.render({"contenedor": valor, "lineas": 5})
+
+
+@pytest.mark.parametrize("valor", ["abc", "-5", "5; x", "", "5 5"])
+def test_el_numero_de_lineas_se_valida_antes_de_componer_la_orden(valor):
+    with pytest.raises(ParametroInvalido):
+        vc.CT_LOGS.render({"contenedor": "web-1", "lineas": valor})
+
+
+def test_lxd_solo_se_mira_por_sus_carpetas():
+    # el cliente lxc crea ~/.config/lxc y un certificado la primera vez: no se ejecuta
+    assert "lxc " not in vc.CT_LXD.plantilla and "ls " in vc.CT_LXD.plantilla

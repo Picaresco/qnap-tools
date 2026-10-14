@@ -1,0 +1,10 @@
+==primero
+Query database...
+conn_id,conn_type,conn_date,conn_time,conn_user,conn_ip,conn_comp,conn_res,conn_serv,conn_action,conn_app,conn_action_result,conn_client_id,conn_client_app,conn_client_agent,
+5488,0,2026-06-14,21:14:55,admin,192.0.2.1,---,---,7,10,(null),0,---,---,---,
+Done. Return value is 0
+==ultimo
+Query database...
+conn_id,conn_type,conn_date,conn_time,conn_user,conn_ip,conn_comp,conn_res,conn_serv,conn_action,conn_app,conn_action_result,conn_client_id,conn_client_app,conn_client_agent,
+15487,0,2026-10-14,04:27:20,usuario1,192.0.2.2,---,---,7,10,(null),0,---,---,---,
+Done. Return value is 0

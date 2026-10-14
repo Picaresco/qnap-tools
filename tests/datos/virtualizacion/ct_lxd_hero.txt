@@ -1,0 +1,2 @@
+== /var/lib/lxd/containers
+== /var/lib/lxd/virtual-machines

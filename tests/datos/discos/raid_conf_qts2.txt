@@ -1,0 +1,48 @@
+[Global]
+[RAID_1]
+id = 1
+deviceName = /dev/md1
+raidLevel = 1
+data_0 = 1
+data_1 = 2
+[Remove]
+[RAID_4]
+id = 4
+deviceName = /dev/md4
+raidLevel = 1
+data_0 = 170001
+data_1 = 170002
+[RAID_3]
+id = 3
+deviceName = /dev/md3
+raidLevel = 1
+data_0 = 4
+data_1 = b
+[RAID_5]
+id = 5
+deviceName = /dev/md5
+raidLevel = 5
+data_0 = 10001
+data_1 = 10002
+data_2 = 10003
+data_3 = 10004
+data_4 = 10005
+data_5 = 10006
+data_6 = 10007
+data_7 = 10008
+data_8 = 10009
+data_9 = 1000a
+data_10 = 1000b
+data_11 = 1000c
+[RAID_2]
+id = 2
+deviceName = /dev/md2
+raidLevel = 5
+data_0 = 3
+data_1 = 5
+data_2 = 6
+data_3 = 7
+data_4 = 8
+data_5 = 9
+data_6 = a
+data_7 = c

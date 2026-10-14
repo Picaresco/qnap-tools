@@ -1,0 +1,6 @@
+contenedor1	imagen1:4.18	exited	Exited (0) 2 weeks ago		host	2026-09-22 00:13:49 +0200 CEST	proyecto1
+contenedor2	proyecto1:34-apache	exited	Exited (137) 2 weeks ago		red1,red2	2026-09-21 23:04:02 +0200 CEST	proyecto1
+contenedor3	imagen2:2.15.1	exited	Exited (0) 2 weeks ago		red2	2026-09-21 23:04:01 +0200 CEST	proyecto1
+contenedor4	proyecto1:34-apache	exited	Exited (0) 2 weeks ago		red1,red2	2026-09-21 23:04:01 +0200 CEST	proyecto1
+contenedor5	imagen3:11.4	exited	Exited (0) 2 weeks ago		red1	2026-09-21 22:54:18 +0200 CEST	proyecto1
+contenedor6	imagen4:7-alpine	exited	Exited (0) 2 weeks ago		red1	2026-09-21 22:54:18 +0200 CEST	proyecto1

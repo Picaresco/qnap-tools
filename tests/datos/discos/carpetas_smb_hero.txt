@@ -1,0 +1,100 @@
+[global]
+invalid users = guest
+[carpeta1]
+comment = System default share
+path = /share/ZFS2_DATA/carpeta1
+browsable = yes
+recycle bin = yes
+invalid users = "guest"
+read list = @"everyone","carpeta5","usuario14"
+write list = "admin","usuario15",@"administrators"
+valid users = "root",@"everyone","admin","usuario15","carpeta5","usuario14",@"administrators"
+[carpeta3]
+comment = System default share
+path = /share/ZFS18_DATA/carpeta3
+browsable = yes
+recycle bin = yes
+invalid users = 
+read list = 
+write list = "admin"
+valid users = "root","admin"
+[carpeta2]
+comment = System default share
+path = /share/ZFS3_DATA/carpeta2
+browsable = yes
+recycle bin = yes
+invalid users = "guest"
+read list = @"everyone"
+write list = "admin",@"administrators","usuario15","carpeta5","usuario14"
+valid users = "root",@"everyone","admin",@"administrators","usuario15","carpeta5","usuario14"
+[carpeta11]
+comment = comentario de ejemplo 1
+path = %H
+browsable = yes
+invalid users = guest
+read list = "usuario16"
+write list = "usuario16"
+valid users = "usuario16"
+[carpeta4]
+comment = 
+path = /share/ZFS19_DATA/carpeta4
+browsable = yes
+recycle bin = no
+invalid users = "guest"
+read list = 
+write list = @"administrators","admin"
+valid users = "root",@"administrators","admin"
+[carpeta5]
+comment = 
+path = /share/ZFS20_DATA/carpeta5
+browsable = yes
+recycle bin = no
+invalid users = "guest"
+read list = 
+write list = @"administrators","admin"
+valid users = "root",@"administrators","admin"
+[carpeta7]
+comment = 
+path = /share/ZFS21_DATA/carpeta7
+browsable = yes
+recycle bin = yes
+invalid users = 
+read list = 
+write list = "admin",@"administrators"
+valid users = "root","admin",@"administrators"
+[carpeta6]
+comment = 
+path = /share/ZFS22_DATA/carpeta6
+browsable = yes
+recycle bin = yes
+invalid users = "guest"
+read list = 
+write list = "admin",@"administrators"
+valid users = "root","admin",@"administrators"
+[carpeta9]
+comment = 
+path = /share/ZFS23_DATA/carpeta9
+browsable = yes
+recycle bin = yes
+invalid users = "guest"
+read list = 
+write list = @"administrators","admin"
+valid users = "root",@"administrators","admin"
+[carpeta8]
+comment = 
+path = /share/ZFS24_DATA/carpeta8
+browsable = yes
+recycle bin = yes
+invalid users = "guest"
+read list = 
+write list = "admin",@"administrators"
+valid users = "root","admin",@"administrators"
+[carpeta12]
+comment = comentario de ejemplo 2
+path = /share/external/DEV3301_1
+browsable = yes
+recycle bin = no
+invalid users = "guest"
+read list = 
+write list = "admin",@"administrators"
+valid users = "root","admin",@"administrators"

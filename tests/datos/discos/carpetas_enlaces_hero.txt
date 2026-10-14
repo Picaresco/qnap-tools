@@ -1,0 +1,50 @@
+total 102
+lrwxrwxrwx  1 admin administrators  17 Oct 13 17:09 carpeta5 -> ZFS20_DATA/carpeta5
+lrwxrwxrwx  1 admin administrators  20 Oct 13 17:09 carpeta8 -> ZFS24_DATA/carpeta8
+lrwxrwxrwx  1 admin administrators  23 Oct 13 17:09 carpeta6 -> ZFS22_DATA/carpeta6
+drwxrwxrwx  2 admin administrators  40 Sep 19  2005 HDA_DATA
+drwxrwxrwx  2 admin administrators  40 Dec  7  2005 HDB_DATA
+drwxrwxrwx  2 admin administrators  40 Dec  7  2005 HDC_DATA
+drwxrwxrwx  2 admin administrators  40 Dec  7  2005 HDD_DATA
+drwxrwxrwx  2 admin administrators  40 Dec  7  2005 HDE_DATA
+drwxrwxrwx  2 admin administrators  40 Dec  7  2005 HDF_DATA
+drwxrwxrwx  2 admin administrators  40 Dec  7  2005 HDG_DATA
+drwxrwxrwx  2 admin administrators  40 Dec  7  2005 HDH_DATA
+drwxrwxrwx  2 admin administrators  40 Dec  7  2005 HDI_DATA
+drwxrwxrwx  2 admin administrators  40 Dec  7  2005 HDJ_DATA
+drwxrwxrwx  2 admin administrators  40 Dec  7  2005 HDK_DATA
+drwxrwxrwx  2 admin administrators  40 Dec  7  2005 HDL_DATA
+drwxrwxrwx  2 admin administrators  40 Dec  7  2005 HDM_DATA
+drwxrwxrwx  2 admin administrators  40 Dec  7  2005 HDN_DATA
+drwxrwxrwx  2 admin administrators  40 Dec  7  2005 HDO_DATA
+lrwxrwxrwx  1 admin administrators  23 Oct 13 17:09 carpeta9 -> ZFS23_DATA/carpeta9
+drwxrwxrwx  2 admin administrators  40 Dec  7  2005 HDP_DATA
+drwxrwxrwx  2 admin administrators  40 Dec  7  2005 HDQ_DATA
+drwxrwxrwx  2 admin administrators  40 Dec  7  2005 HDR_DATA
+drwxrwxrwx  2 admin administrators  40 Dec  7  2005 HDS_DATA
+drwxrwxrwx  2 admin administrators  40 Dec  7  2005 HDT_DATA
+drwxrwxrwx  2 admin administrators  40 Dec  7  2005 HDU_DATA
+drwxrwxrwx  2 admin administrators  40 Dec  7  2005 HDV_DATA
+drwxrwxrwx  2 admin administrators  40 Dec  7  2005 HDW_DATA
+drwxrwxrwx  2 admin administrators  40 Dec  7  2005 HDX_DATA
+drwxrwxrwx  2 admin administrators  40 Dec  7  2005 HDY_DATA
+drwxrwxrwx  2 admin administrators  40 Dec  7  2005 HDZ_DATA
+lrwxrwxrwx  1 admin administrators  20 Oct 13 17:09 carpeta2 -> ZFS3_DATA/carpeta2
+lrwxrwxrwx  1 admin administrators  16 Oct 13 17:09 carpeta1 -> ZFS2_DATA/carpeta1
+lrwxrwxrwx  1 admin administrators  18 Oct 13 17:09 carpeta12 -> external/DEV3301_1
+lrwxrwxrwx  1 admin administrators  14 Oct 13 17:09 carpeta4 -> ZFS19_DATA/carpeta4
+lrwxrwxrwx  1 admin administrators  14 Oct 13 17:09 carpeta7 -> ZFS21_DATA/carpeta7
+drwxr-xr-x  4 admin administrators   6 Apr 20 12:23 ZFS18_DATA
+drwxr-xr-x  3 admin administrators   5 Apr 20 12:23 ZFS19_DATA
+drwxrwxrwx 23 admin administrators  30 Oct 14 00:09 ZFS1_DATA
+drwxr-xr-x  4 admin administrators   6 Aug 26 23:41 ZFS20_DATA
+drwxr-xr-x  3 admin administrators   5 Apr 20 12:23 ZFS21_DATA
+drwxr-xr-x  3 admin administrators   5 Jun 18 21:27 ZFS22_DATA
+drwxr-xr-x  3 admin administrators   5 Sep 21 20:19 ZFS23_DATA
+drwxr-xr-x  3 admin administrators   5 Sep 21 20:41 ZFS24_DATA
+drwxr-xr-x 16 admin administrators  19 Apr 20 12:23 ZFS2_DATA
+drwxr-xr-x  3 admin administrators   5 Apr 20 12:23 ZFS3_DATA
+drwxr-xr-x 13 admin administrators  15 Apr 20 12:26 ZFS600_DATA
+drwxr-xr-x  3 admin administrators   5 Sep 21 20:19 ZFS531_DATA
+drwxrwxr-x 29 admin administrators 580 Oct 13 17:09 external
+lrwxrwxrwx  1 admin administrators  16 Oct 13 17:09 carpeta3 -> ZFS18_DATA/carpeta3

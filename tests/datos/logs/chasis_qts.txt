@@ -1,0 +1,16 @@
+========================================================================================================
+enc_id enc_parent_sys_id enc_sys_id wwn vendor model status protocol disk_no fan_no cpu_fan_no temp_no gpio_no
+0	root	root		QNAP	TS-EC880U	0	0	8	4	0	0	0	2	0
+========================================================================================================
+========================================================================================================
+enc_id enc_parent_sys_id enc_sys_id wwn vendor model status protocol disk_no fan_no cpu_fan_no temp_no gpio_no
+23	root	root_cache		QNAP	CACHE	0	1	2	0	0	0	0	0	0
+========================================================================================================
+========================================================================================================
+enc_id enc_parent_sys_id enc_sys_id wwn vendor model status protocol disk_no fan_no cpu_fan_no temp_no gpio_no
+32	root	root_boot		QNAP	BOOT	0	-1	1	0	0	0	0	0	0
+========================================================================================================
+========================================================================================================
+enc_id enc_parent_sys_id enc_sys_id wwn vendor model status protocol disk_no fan_no cpu_fan_no temp_no gpio_no
+33	root	root_usb		QNAP	USB	0	2	12	0	0	0	0	0	0
+========================================================================================================

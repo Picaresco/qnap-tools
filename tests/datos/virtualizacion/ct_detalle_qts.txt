@@ -1,0 +1,22 @@
+nombre="/contenedor1"
+imagen="imagen1:latest"
+creado="2026-10-13T09:28:17.663683158Z"
+estado="running"
+salida=0
+sin_memoria=false
+error=""
+inicio="2026-10-13T09:28:33.159896152Z"
+fin="0001-01-01T00:00:00Z"
+reinicios=0
+salud="healthy"
+reinicio="unless-stopped"
+memoria=0
+nanocpus=0
+privilegiado=false
+modo_red="red1"
+redes=red1=192.0.2.1/22 192.0.2.2 00:11:22:33:44:00;
+puertos={"3000/tcp":[{"HostIp":"0.0.0.0","HostPort":"5100"}]}
+montajes=[{"Destination":"/destino1","Driver":"local","Mode":"z","Name":"ruta2","Propagation":"","RW":true,"Source":"/share/CACHEDEV3_DATA/ruta1/container-station-data/lib/docker/volumes/ruta2/_data","Type":"volume"}]
+proyecto="proyecto1"
+servicio="servicio1"
+compose="/share/ruta1/proyecto1/ruta3.yml"

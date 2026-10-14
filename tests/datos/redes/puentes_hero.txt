@@ -1,0 +1,8 @@
+bridge name	bridge id		STP enabled	interfaces
+br-000000000001		8000.00112233440a	no		
+br-000000000002		8000.00112233440b	no		
+docker0		8000.00112233440c	no		
+lxcbr0		8000.00112233440c	no		
+lxdbr0		8000.00112233440c	no		
+qvs2		8000.00112233440d	yes		vnet0
+							vnet1

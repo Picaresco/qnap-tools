@@ -1,0 +1,25 @@
+Query database search count [4]...
+	 date1 [2000-01-01]...
+	 date2 [2099-12-31]...
+event_id,event_type,event_date,event_time,event_user,event_ip,event_comp,event_desc,event_msgid,event_timet,event_app_id,event_app_name,event_category_id,event_category,event_client_id,event_client_app,event_client_agent,
+47575,  0,2026-10-14,03:15:34,---,---,localhost,[Storage & Snapshots] Snapshot Replica: Finished job "texto1".,1253,1791940534,A002,Storage & Snapshots,C013,Snapshot Replica,---,localhost,---,
+47574,  0,2026-10-14,02:54:52,---,---,localhost,[Storage & Snapshots] Snapshot Replica: Started job "texto1".,283,1791939292,A002,Storage & Snapshots,C013,Snapshot Replica,---,localhost,---,
+47573,  0,2026-10-14,02:54:51,---,---,localhost,[Storage & Snapshots] Finished creating scheduled snapshot. Volume: volumen2.,223,1791939291,A002,Storage & Snapshots,C012,Snapshot,---,localhost,---,
+47572,  0,2026-10-14,02:54:42,---,---,localhost,[Storage & Snapshots] Reached volume/LUN snapshot limit. Volume: volumen2. The oldest snapshot will be deleted whenever a new snapshot is created.,791,1791939282,A002,Storage & Snapshots,C012,Snapshot,---,localhost,---,
+47571,  0,2026-10-14,02:54:42,---,---,localhost,[Storage & Snapshots] Deleted snapshot "texto2". Volume: volumen2.,229,1791939282,A002,Storage & Snapshots,C012,Snapshot,---,localhost,---,
+47570,  0,2026-10-14,02:54:20,---,---,localhost,[Storage & Snapshots] Started creating scheduled snapshot. Volume: volumen2.,222,1791939260,A002,Storage & Snapshots,C012,Snapshot,---,localhost,---,
+47569,  0,2026-10-13,23:11:04,---,---,localhost,[App Center] Finished app update check., 99,1791925864,A039,App Center,C005,Settings,---,localhost,---,
+47568,  0,2026-10-13,23:11:00,---,---,localhost,[App Center] Started app update check. The current setting is to "texto3"., 98,1791925860,A039,App Center,C005,Settings,---,localhost,---,
+47567,  0,2026-10-13,21:17:59,---,---,localhost,[Storage & Snapshots] Snapshot Replica: Finished job "texto1".,1253,1791919079,A002,Storage & Snapshots,C013,Snapshot Replica,---,localhost,---,
+47566,  0,2026-10-13,20:58:55,admin,192.0.2.4,---,[Hardware] Disabled hard drive standby mode.,  9,1791917935,A005,Hardware,C001,General Hardware Settings,00000000-0000-0000-0000-000000000001,carpeta8 Desktop,Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/192.0.2.5 Safari/537.36,
+47565,  0,2026-10-13,20:54:48,---,---,localhost,[Storage & Snapshots] Snapshot Replica: Started job "texto1".,283,1791917688,A002,Storage & Snapshots,C013,Snapshot Replica,---,localhost,---,
+47564,  0,2026-10-13,20:54:46,---,---,localhost,[Storage & Snapshots] Finished creating scheduled snapshot. Volume: volumen2.,223,1791917686,A002,Storage & Snapshots,C012,Snapshot,---,localhost,---,
+47563,  0,2026-10-13,20:54:38,---,---,localhost,[Storage & Snapshots] Reached volume/LUN snapshot limit. Volume: volumen2. The oldest snapshot will be deleted whenever a new snapshot is created.,791,1791917678,A002,Storage & Snapshots,C012,Snapshot,---,localhost,---,
+47562,  0,2026-10-13,20:54:38,---,---,localhost,[Storage & Snapshots] Deleted snapshot "texto4". Volume: volumen2.,229,1791917678,A002,Storage & Snapshots,C012,Snapshot,---,localhost,---,
+47561,  0,2026-10-13,20:54:21,---,---,localhost,[Storage & Snapshots] Started creating scheduled snapshot. Volume: volumen2.,222,1791917661,A002,Storage & Snapshots,C012,Snapshot,---,localhost,---,
+47560,  0,2026-10-13,20:45:14,---,---,---,[Users] Created the carpeta36 folder of user "texto5"., 24,1791917114,A015,Users,C001,General,---,localhost,---,
+47559,  0,2026-10-13,20:43:25,admin,192.0.2.4,---,[Users] Created user "texto5"., 25,1791917005,A015,Users,C001,General,00000000-0000-0000-0000-000000000001,carpeta8 Desktop,Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/192.0.2.5 Safari/537.36,
+47558,  0,2026-10-13,17:11:54,---,---,localhost,[Storage & Snapshots] Snapshot Replica: Finished job "texto6".,1253,1791904314,A002,Storage & Snapshots,C013,Snapshot Replica,---,localhost,---,
+47557,  0,2026-10-13,17:00:39,---,---,localhost,[Storage & Snapshots] Snapshot Replica: Started job "texto6".,283,1791903639,A002,Storage & Snapshots,C013,Snapshot Replica,---,localhost,---,
+47556,  0,2026-10-13,17:00:38,---,---,localhost,[Storage & Snapshots] Finished creating scheduled snapshot. Volume: volumen1.,223,1791903638,A002,Storage & Snapshots,C012,Snapshot,---,localhost,---,
+Done. Return value is 0

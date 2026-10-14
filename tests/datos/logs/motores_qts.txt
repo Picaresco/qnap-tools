@@ -1,0 +1,8 @@
+  PID  Uid     VmSize Stat Command
+ 5319 admin      2160 S   /usr/sbin/rsyslogd -f /etc/rsyslog.conf -c4 -M /usr/local/lib/rsyslog/
+ 6565 admin      7020 S   qLogEngined: Write log is enabled...
+ 8464 admin      3472 S   qNoticeEngined: Write notice is enabled...
+26730 admin     25840 S   /usr/local/sbin/qulogdb --defaults-file=/mnt/ext/opt/QuLog/etc/qulog-mariadb.conf
+26837 admin      4528 S   /usr/local/sbin/qulogd
+26844 admin     10888 S   /usr/local/sbin/qulogd
+27678 admin      6172 S   /usr/local/sbin/ncdb --defaults-file=/mnt/ext/opt/NotificationCenter/etc/nc-mariadb.

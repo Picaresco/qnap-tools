@@ -1,0 +1,9 @@
+sistema=hero
+modelo=TS-X85
+firmware=6.0.2
+build=20260819
+nombre=NAS-EJEMPLO
+paquete.QKVM.enable=TRUE
+paquete.QKVM.ruta=/share/ZFS600_DATA/.qpkg/QKVM
+paquete.container-station.enable=TRUE
+paquete.container-station.ruta=/share/ZFS600_DATA/.qpkg/container-station

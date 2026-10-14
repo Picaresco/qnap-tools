@@ -1,0 +1,13 @@
+vg1-tp1_tierdata_2: 0 718340096 cache_client 0/1675764 0 18940944 0 205776166 0 0 0 0 0 3 writethrough read-write need_cache_check 2 migration_threshold 2048 smqv 0 policy: 0 0 0 0 0 0
+vg2-tp2_tierdata_2: 0 54122659840 cache_client 1672513/1675764 224456595 4017821761 518789195 3130202087 0 0 1623012 1621615 0 4 writethrough no_discard_passdown read-write need_cache_check 2 migration_threshold 2048 smqv 0 policy: 174193 251854984 0 0 0 1
+vg4-tp4-tpool: 0 128272965632 thin-pool 9537 378473/8388608 91390339/125266568 - rw discard_passdown error_if_no_space fast_block_clone space_reserve sb_backup - 1024 
+cachedev4: 0 6442450944 linear 
+cachedev3: 0 6442450944 linear 
+vg3-tp3-tpool: 0 15314567168 thin-pool 17459 124540/8388608 13406368/14955632 - rw discard_passdown error_if_no_space fast_block_clone space_reserve sb_backup - 1024 
+vg3-tp3_tierdata_2: 0 15317843968 cache_client 4/1675764 1443161 37017706 7198430 168395636 0 0 1506 1506 0 4 writethrough no_discard_passdown read-write need_cache_check 2 migration_threshold 2048 smqv 0 policy: 40 1506 0 0 0 0
+cachedev2: 0 40802189312 linear 
+cachedev1: 0 629145600 linear 
+vg2-tp2-tpool: 0 54119383040 thin-pool 9716 332581/8388608 45168766/52850960 - rw discard_passdown error_if_no_space fast_block_clone space_reserve sb_backup - 1024 
+vg256-lv256: 0 3431964672 cache 8 37218/3932160 2048 1672524/1675764 0 1 metadata2 2 migration_threshold 2048 rw - 
+vg4-tp4_tierdata_2: 0 128276242432 cache_client 7/1675764 3332670 31194676 1339896 434935150 0 0 1432 1433 0 4 writethrough no_discard_passdown read-write need_cache_check 2 migration_threshold 2048 smqv 0 policy: 1856 1432 0 0 0 0
+vg1-tp1-tpool: 0 715063296 thin-pool 2 6939/8388608 614400/698304 - rw discard_passdown error_if_no_space fast_block_clone space_reserve sb_backup - 1024 

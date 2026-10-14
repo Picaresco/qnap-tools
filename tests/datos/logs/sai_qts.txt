@@ -1,0 +1,8 @@
+activo=FALSE
+modelo=PhxTec-A1000
+red=OK
+bateria=OK
+apagar_en=5
+==upsc
+Error: Connection failure: Connection refused
+==rc 1

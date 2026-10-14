@@ -1,0 +1,35 @@
+[
+  {"cmd": "virsh", "requiere": ["-r", "-c", "qemu:///system"], "flags_con_valor": ["-c"],
+   "sub": ["list", "dominfo", "domstate", "dumpxml", "domblklist", "domblkinfo", "domblkstat", "domblkerror",
+           "domiflist", "domifstat", "domifaddr", "domif-getlink", "dommemstat", "domstats", "domcontrol",
+           "domuuid", "domname", "domid", "domjobinfo", "vcpuinfo", "vcpucount", "cpu-stats", "vncdisplay",
+           "snapshot-list", "snapshot-info", "snapshot-dumpxml", "snapshot-current", "snapshot-parent",
+           "checkpoint-list", "net-list", "net-info", "net-dumpxml", "pool-list", "pool-info", "pool-dumpxml",
+           "vol-list", "vol-info", "iface-list", "iface-dumpxml", "nodeinfo", "nodememstats", "nodecpustats",
+           "nodecpumap", "freecell", "maxvcpus", "capabilities", "domcapabilities", "version", "uri",
+           "hostname", "sysinfo"],
+   "deny": ["^--security-info$"],
+   "nota": "virsh --help: '-r | --readonly connect readonly' (libvirt rechaza toda escritura en esa conexion) y solo subcomandos de las secciones Monitoring/Host y list/info/dumpxml. Fuera los 'get or set' (schedinfo, memtune, autostart...). --security-info vetado: saca contrasenas de VNC. '-c qemu:///system' OBLIGATORIO: sin el, un usuario que no es root cae en qemu:///session, que arranca un virtqemud propio y crea ~/.cache/libvirt y ~/.config/libvirt (escribe en el NAS y ademas devuelve lista vacia)"},
+
+  {"cmd": "qemu-img", "sub": ["info"], "requiere": ["-U"], "solo_flags": ["-U", "--backing-chain", "--output=json", "--output=human"],
+   "nota": "qemu-img --help: 'info [...] [--output=ofmt] [--backing-chain] [-U] filename' solo describe la imagen; -U (force-share) la abre sin bloqueo aunque la VM este en marcha. Fuera check/commit/rebase/resize/snapshot/convert"},
+
+  {"cmd": "docker", "flags_con_valor": ["-H", "--format", "-f", "--filter", "-n", "--last"],
+   "sub": ["ps", "images", "version", "info", "inspect", "top", "port", "history", "diff"],
+   "deny": ["^--(tls|config|context)"],
+   "nota": "docker --help: ps/images/version/info/inspect/top/port/history/diff son consultas ('List containers', 'Display system-wide information', 'Return low-level information'...)"},
+  {"cmd": "docker", "flags_con_valor": ["-H", "--format"], "sub": ["stats"], "requiere": ["--no-stream"],
+   "nota": "docker stats --help: '--no-stream Disable streaming stats and only pull the first result'; solo lee contadores"},
+  {"cmd": "docker", "flags_con_valor": ["-H", "--tail", "--since", "--until"], "sub": ["logs"], "requiere": ["--tail"],
+   "deny": ["^-[a-zA-Z]*f", "^--follow"],
+   "nota": "docker logs --help: 'Fetch the logs of a container'; siempre con --tail N y sin -f"},
+  {"cmd": "docker", "flags_con_valor": ["-H", "--format", "-f", "--filter"],
+   "sub": ["network", "volume", "system", "compose", "container", "image"],
+   "deny": ["^(create|rm|remove|prune|connect|disconnect|up|down|start|stop|restart|kill|pause|unpause|exec|run|pull|push|build|load|save|import|export|tag|rename|update|commit|cp|attach|wait|events|login|logout|convert|config|scale|watch|logs)$"],
+   "requiere_uno_de_nota": "ls | inspect | df | ps",
+   "nota": "grupos de gestion solo con ls/inspect/df/ps: 'docker network ls', 'docker volume ls', 'docker system df', 'docker compose ls'. La guardia no sabe exigir el segundo subcomando, asi que se vetan por nombre los que modifican"},
+
+  {"cmd": "system-docker", "flags_con_valor": ["-H", "--format", "-f", "--filter", "-n", "--last"],
+   "sub": ["ps", "images", "version", "info", "inspect", "top", "port", "history"],
+   "nota": "mismo cliente docker apuntando al docker interno de Container Station (unix:///var/run/system-docker.sock); solo consultas"}
+]

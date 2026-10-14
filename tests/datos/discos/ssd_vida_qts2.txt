@@ -1,0 +1,8 @@
+== /tmp/disk/disk_0_1.info
+SSD_LIFE_USED = 0
+== /tmp/disk/disk_0_2.info
+SSD_LIFE_USED = 0
+== /tmp/disk/disk_23_1.info
+SSD_LIFE_USED = 4
+== /tmp/disk/disk_23_2.info
+SSD_LIFE_USED = 3

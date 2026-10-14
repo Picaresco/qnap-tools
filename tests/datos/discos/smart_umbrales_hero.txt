@@ -1,0 +1,16 @@
+policy = 0
+[S.M.A.R.T. ID #5]
+enable = 0
+value = 0
+[S.M.A.R.T. ID #187]
+enable = 0
+value = 0
+[S.M.A.R.T. ID #188]
+enable = 0
+value = 0
+[S.M.A.R.T. ID #197]
+enable = 1
+value = 0
+[S.M.A.R.T. ID #198]
+enable = 1
+value = 0

@@ -1,0 +1,64 @@
+total 12
+lrwxrwxrwx  1 admin administrators   18 Aug 28 08:00 volumen7 -> external/DEV3307_1
+lrwxrwxrwx  1 admin administrators   22 Aug 28 08:59 carpeta15 -> CACHEDEV3_DATA/carpeta15
+lrwxrwxrwx  1 admin administrators   30 Aug 28 08:59 carpeta27 -> CACHEDEV1_DATA/carpeta27
+drwxrwxrwx 75 admin administrators 4096 Oct 13 20:43 CACHEDEV1_DATA
+drwxrwxrwx 10 admin administrators 4096 Aug 28 08:03 CACHEDEV3_DATA
+drwxrwxrwx  4 admin administrators 4096 Oct 17  2023 CACHEDEV4_DATA
+lrwxrwxrwx  1 admin administrators   27 Aug 28 08:59 carpeta25 -> CACHEDEV1_DATA/carpeta25
+lrwxrwxrwx  1 admin administrators   24 Aug 28 08:59 carpeta26 -> CACHEDEV3_DATA/carpeta26
+lrwxrwxrwx  1 admin administrators   23 Aug 28 08:59 carpeta21 -> CACHEDEV1_DATA/carpeta21
+lrwxrwxrwx  1 admin administrators   52 Sep  7 13:49 carpeta39 (usuario38@192.0.2.1) -> external/.nd/0/00000000-0000-0000-0000-000000000001
+lrwxrwxrwx  1 admin administrators   18 Aug 28 08:59 carpeta37 -> CACHEDEV1_DATA/FTP
+lrwxrwxrwx  1 admin administrators   26 Aug 28 08:59 carpeta22 -> CACHEDEV1_DATA/carpeta22
+drwxrwxrwx  2 admin administrators   40 Sep 19  2005 HDA_DATA
+drwxrwxrwx  2 admin administrators   40 Dec  7  2005 HDB_DATA
+drwxrwxrwx  2 admin administrators   40 Dec  7  2005 HDC_DATA
+drwxrwxrwx  2 admin administrators   40 Dec  7  2005 HDD_DATA
+drwxrwxrwx  2 admin administrators   40 Dec  7  2005 HDE_DATA
+drwxrwxrwx  2 admin administrators   40 Dec  7  2005 HDF_DATA
+drwxrwxrwx  2 admin administrators   40 Dec  7  2005 HDG_DATA
+drwxrwxrwx  2 admin administrators   40 Dec  7  2005 HDH_DATA
+drwxrwxrwx  2 admin administrators   40 Dec  7  2005 HDI_DATA
+drwxrwxrwx  2 admin administrators   40 Dec  7  2005 HDJ_DATA
+drwxrwxrwx  2 admin administrators   40 Dec  7  2005 HDK_DATA
+drwxrwxrwx  2 admin administrators   40 Dec  7  2005 HDL_DATA
+drwxrwxrwx  2 admin administrators   40 Dec  7  2005 HDM_DATA
+drwxrwxrwx  2 admin administrators   40 Dec  7  2005 HDN_DATA
+drwxrwxrwx  2 admin administrators   40 Dec  7  2005 HDO_DATA
+drwxrwxrwx  2 admin administrators   40 Dec  7  2005 HDP_DATA
+drwxrwxrwx  2 admin administrators   40 Dec  7  2005 HDQ_DATA
+drwxrwxrwx  2 admin administrators   40 Dec  7  2005 HDR_DATA
+drwxrwxrwx  2 admin administrators   40 Dec  7  2005 HDS_DATA
+drwxrwxrwx  2 admin administrators   40 Dec  7  2005 HDT_DATA
+drwxrwxrwx  2 admin administrators   40 Dec  7  2005 HDU_DATA
+drwxrwxrwx  2 admin administrators   40 Dec  7  2005 HDV_DATA
+drwxrwxrwx  2 admin administrators   40 Dec  7  2005 HDW_DATA
+drwxrwxrwx  2 admin administrators   40 Dec  7  2005 HDX_DATA
+drwxrwxrwx  2 admin administrators   40 Dec  7  2005 HDY_DATA
+drwxrwxrwx  2 admin administrators   40 Dec  7  2005 HDZ_DATA
+lrwxrwxrwx  1 admin administrators   18 Aug 28 08:00 volumen6 -> external/DEV3301_1
+lrwxrwxrwx  1 admin administrators   25 Aug 28 08:59 carpeta28 -> CACHEDEV1_DATA/carpeta28
+lrwxrwxrwx  1 admin administrators   25 Aug 28 08:59 carpeta20 -> CACHEDEV1_DATA/carpeta20
+lrwxrwxrwx  1 admin administrators   22 Aug 28 08:59 carpeta18 -> CACHEDEV1_DATA/carpeta18
+lrwxrwxrwx  1 admin administrators   21 Aug 28 08:59 carpeta19 -> CACHEDEV1_DATA/carpeta19
+lrwxrwxrwx  1 admin administrators   21 Aug 28 08:59 carpeta9 -> CACHEDEV1_DATA/carpeta9
+lrwxrwxrwx  1 admin administrators   21 Aug 28 08:59 carpeta16 -> CACHEDEV1_DATA/carpeta16
+lrwxrwxrwx  1 admin administrators   31 Aug 28 08:59 carpeta34 -> CACHEDEV1_DATA/carpeta34
+lrwxrwxrwx  1 admin administrators   28 Aug 28 08:59 carpeta32 -> CACHEDEV1_DATA/carpeta32
+lrwxrwxrwx  1 admin administrators   29 Aug 28 08:59 carpeta31 -> CACHEDEV1_DATA/carpeta31
+lrwxrwxrwx  1 admin administrators   23 Aug 28 08:59 carpeta29 -> CACHEDEV1_DATA/carpeta29
+lrwxrwxrwx  1 admin administrators   30 Aug 28 08:59 carpeta30 -> CACHEDEV1_DATA/carpeta30
+lrwxrwxrwx  1 admin administrators   34 Aug 28 08:59 carpeta33 -> CACHEDEV4_DATA/carpeta33
+lrwxrwxrwx  1 admin administrators   24 Aug 28 08:59 carpeta24 -> CACHEDEV1_DATA/carpeta24
+lrwxrwxrwx  1 admin administrators   27 Aug 28 08:59 carpeta17 -> CACHEDEV1_DATA/carpeta17
+lrwxrwxrwx  1 admin administrators   17 Aug 28 08:59 carpeta11 -> CACHEDEV1_DATA/carpeta11
+lrwxrwxrwx  1 admin administrators   52 Sep 23 16:46 carpeta40 (admin@192.0.2.2) -> external/.nd/0/00000000-0000-0000-0000-000000000002
+lrwxrwxrwx  1 admin administrators   20 Aug 28 08:59 carpeta14 -> CACHEDEV3_DATA/carpeta14
+lrwxrwxrwx  1 admin administrators   18 Aug 28 08:59 carpeta8 -> CACHEDEV1_DATA/carpeta8
+lrwxrwxrwx  1 admin administrators   21 Aug 28 08:59 carpeta10 -> CACHEDEV1_DATA/carpeta10
+lrwxrwxrwx  1 admin administrators   22 Aug 28 08:59 carpeta23 -> CACHEDEV1_DATA/carpeta23
+drwxrwxr-x 33 admin administrators  660 Aug 28 08:02 external
+lrwxrwxrwx  1 admin administrators   20 Aug 28 08:59 carpeta13 -> CACHEDEV1_DATA/carpeta13
+lrwxrwxrwx  1 admin administrators   20 Aug 28 08:59 carpeta35 -> CACHEDEV1_DATA/carpeta35
+lrwxrwxrwx  1 admin administrators   18 Aug 28 08:59 carpeta12 -> CACHEDEV1_DATA/carpeta12

@@ -1,0 +1,11 @@
+Enclosure Port Sys_Name          Size      Type   RAID        RAID_Type    Pool TMeta  VolType      VolName 
+NAS_HOST  1    /dev/sdc(X)       3.64 TB   data   /dev/md1    RAID 6,512   1    64 GB  flexible     volumen1,volumen2,volumen3
+NAS_HOST  2    /dev/sdd(X)       3.64 TB   data   /dev/md1    RAID 6,512   1    64 GB  flexible     volumen1,volumen2,volumen3
+NAS_HOST  3    /dev/sde(X)       2.73 TB   data   /dev/md1    RAID 6,512   1    64 GB  flexible     volumen1,volumen2,volumen3
+NAS_HOST  4    /dev/sdf(X)       3.64 TB   data   /dev/md1    RAID 6,512   1    64 GB  flexible     volumen1,volumen2,volumen3
+NAS_HOST  5    /dev/sdg(X)       2.73 TB   data   /dev/md1    RAID 6,512   1    64 GB  flexible     volumen1,volumen2,volumen3
+NAS_HOST  6    /dev/sdh(X)       2.73 TB   data   /dev/md1    RAID 6,512   1    64 GB  flexible     volumen1,volumen2,volumen3
+NAS_HOST  7    /dev/sdi(X)       7.28 TB   data   /dev/md1    RAID 6,512   1    64 GB  flexible     volumen1,volumen2,volumen3
+NAS_HOST  8    /dev/sdj(X)       7.28 TB   spare  --          --           --   --     Legacy       volumen4
+NAS_HOST  C-1  /dev/sda(X)       465.76 GB cache  /dev/md2    RAID 1       256  --     flexible     volumen5
+NAS_HOST  C-2  /dev/sdb(X)       111.79 GB cache  /dev/md2    RAID 1       256  --     flexible     volumen5

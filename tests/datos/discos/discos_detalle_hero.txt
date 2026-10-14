@@ -1,0 +1,111 @@
+== /etc/enclosure_0.conf
+[PhysicalDisk_3]
+port_id = 3
+pd_sys_name = /dev/sda
+type = 0
+vendor = WDC
+model =  WDS500G1R0A-68A4W0
+serial_no = SERIE0001
+status = 0
+sector_size = 512
+capacity = 976773168
+revision = 411000WR
+rotation_speed = 0
+[PhysicalDisk_4]
+port_id = 4
+pd_sys_name = /dev/sdb
+type = 0
+vendor = WDC
+model =  WDS500G1R0A-68A4W0
+serial_no = SERIE0002
+status = 0
+sector_size = 512
+capacity = 976773168
+revision = 411000WR
+rotation_speed = 0
+[PhysicalDisk_5]
+port_id = 5
+pd_sys_name = /dev/sdc
+type = 0
+vendor = HGST
+model = HUS726T4TALA6L4
+serial_no = SERIE0003
+status = 0
+sector_size = 512
+capacity = 7814037168
+revision = VLGNW984
+rotation_speed = 7200
+[PhysicalDisk_6]
+port_id = 6
+pd_sys_name = /dev/sdd
+type = 0
+vendor = HGST
+model = HUS726T4TALA6L4
+serial_no = SERIE0004
+status = 0
+sector_size = 512
+capacity = 7814037168
+revision = VLGNW984
+rotation_speed = 7200
+[PhysicalDisk_7]
+port_id = 7
+pd_sys_name = /dev/sde
+type = 0
+vendor = HGST
+model = HUS726T4TALA6L4
+serial_no = SERIE0005
+status = 0
+sector_size = 512
+capacity = 7814037168
+revision = VLGNW984
+rotation_speed = 7200
+[PhysicalDisk_8]
+port_id = 8
+pd_sys_name = /dev/sdf
+type = 0
+vendor = HGST
+model = HUS726T4TALA6L4
+serial_no = SERIE0006
+status = 0
+sector_size = 512
+capacity = 7814037168
+revision = VLGNW984
+rotation_speed = 7200
+== /etc/enclosure_23.conf
+[PhysicalDisk_1]
+port_id = 1
+pd_sys_name = /dev/nvme1n1
+type = 4
+vendor = Samsung
+model = SSD 970 EVO Plus 250GB
+serial_no = SERIE0007
+status = 0
+sector_size = 512
+capacity = 488397168
+revision = 2B2QEXM7
+rotation_speed = 0
+[PhysicalDisk_2]
+port_id = 2
+pd_sys_name = /dev/nvme0n1
+type = 4
+vendor = Samsung
+model = SSD 970 EVO Plus 250GB
+serial_no = SERIE0008
+status = 0
+sector_size = 512
+capacity = 488397168
+revision = 2B2QEXM7
+rotation_speed = 0
+== /etc/enclosure_33.conf
+[PhysicalDisk_1]
+port_id = 1
+pd_sys_name = /dev/sdh
+type = 2
+vendor = Seagate
+model = Portable
+serial_no = SERIE0009
+status = 0
+sector_size = 512
+capacity = 9767541167
+revision = 
+rotation_speed = 0

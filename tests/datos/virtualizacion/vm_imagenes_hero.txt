@@ -1,0 +1,490 @@
+uri=qemu:///system
+== 00000000-0000-0000-0000-000000000006
+-- /share/ruta1/vm1/ruta10.1790544225
+[
+    {
+        "backing-filename-format": "qcow2",
+        "virtual-size": 268435456000,
+        "filename": "/share/ruta1/vm1/ruta10.1790544225",
+        "cluster-size": 65536,
+        "format": "qcow2",
+        "actual-size": 785244672,
+        "format-specific": {
+            "type": "qcow2",
+            "data": {
+                "compat": "1.1",
+                "compression-type": "zlib",
+                "lazy-refcounts": true,
+                "refcount-bits": 16,
+                "corrupt": false,
+                "extended-l2": false
+            }
+        },
+        "full-backing-filename": "/share/ruta1/vm1/ruta10.img",
+        "backing-filename": "ruta10.img",
+        "dirty-flag": true
+    },
+    {
+        "virtual-size": 268435456000,
+        "filename": "/share/ruta1/vm1/ruta10.img",
+        "cluster-size": 65536,
+        "format": "qcow2",
+        "actual-size": 13748089344,
+        "format-specific": {
+            "type": "qcow2",
+            "data": {
+                "compat": "1.1",
+                "compression-type": "zlib",
+                "lazy-refcounts": false,
+                "refcount-bits": 16,
+                "corrupt": false,
+                "extended-l2": false
+            }
+        },
+        "dirty-flag": false
+    }
+]
+== 00000000-0000-0000-0000-000000000002
+-- /share/ruta1/vm2/ruta4.1790572518
+[
+    {
+        "backing-filename-format": "qcow2",
+        "virtual-size": 107374182400,
+        "filename": "/share/ruta1/vm2/ruta4.1790572518",
+        "cluster-size": 65536,
+        "format": "qcow2",
+        "actual-size": 259170816,
+        "format-specific": {
+            "type": "qcow2",
+            "data": {
+                "compat": "1.1",
+                "compression-type": "zlib",
+                "lazy-refcounts": true,
+                "refcount-bits": 16,
+                "corrupt": false,
+                "extended-l2": false
+            }
+        },
+        "full-backing-filename": "/share/ruta1/vm2/ruta4.img",
+        "backing-filename": "ruta4.img",
+        "dirty-flag": true
+    },
+    {
+        "virtual-size": 107374182400,
+        "filename": "/share/ruta1/vm2/ruta4.img",
+        "cluster-size": 65536,
+        "format": "qcow2",
+        "actual-size": 18292691456,
+        "format-specific": {
+            "type": "qcow2",
+            "data": {
+                "compat": "1.1",
+                "compression-type": "zlib",
+                "lazy-refcounts": false,
+                "refcount-bits": 16,
+                "corrupt": false,
+                "extended-l2": false
+            }
+        },
+        "dirty-flag": false
+    }
+]
+-- /share/ruta1/vm2/ruta5.1790572518
+[
+    {
+        "backing-filename-format": "qcow2",
+        "virtual-size": 1099511627776,
+        "filename": "/share/ruta1/vm2/ruta5.1790572518",
+        "cluster-size": 65536,
+        "format": "qcow2",
+        "actual-size": 614912,
+        "format-specific": {
+            "type": "qcow2",
+            "data": {
+                "compat": "1.1",
+                "compression-type": "zlib",
+                "lazy-refcounts": true,
+                "refcount-bits": 16,
+                "corrupt": false,
+                "extended-l2": false
+            }
+        },
+        "full-backing-filename": "/share/ruta1/vm2/ruta5.img",
+        "backing-filename": "ruta5.img",
+        "dirty-flag": true
+    },
+    {
+        "virtual-size": 1099511627776,
+        "filename": "/share/ruta1/vm2/ruta5.img",
+        "cluster-size": 65536,
+        "format": "qcow2",
+        "actual-size": 846668108288,
+        "format-specific": {
+            "type": "qcow2",
+            "data": {
+                "compat": "1.1",
+                "compression-type": "zlib",
+                "lazy-refcounts": false,
+                "refcount-bits": 16,
+                "corrupt": false,
+                "extended-l2": false
+            }
+        },
+        "dirty-flag": false
+    }
+]
+-- /share/ruta1/vm2/ruta6.1790572518
+[
+    {
+        "backing-filename-format": "qcow2",
+        "virtual-size": 1623497637888,
+        "filename": "/share/ruta1/vm2/ruta6.1790572518",
+        "cluster-size": 65536,
+        "format": "qcow2",
+        "actual-size": 8471040,
+        "format-specific": {
+            "type": "qcow2",
+            "data": {
+                "compat": "1.1",
+                "compression-type": "zlib",
+                "lazy-refcounts": true,
+                "refcount-bits": 16,
+                "corrupt": false,
+                "extended-l2": false
+            }
+        },
+        "full-backing-filename": "/share/ruta1/vm2/ruta6.img",
+        "backing-filename": "ruta6.img",
+        "dirty-flag": true
+    },
+    {
+        "virtual-size": 1623497637888,
+        "filename": "/share/ruta1/vm2/ruta6.img",
+        "cluster-size": 65536,
+        "format": "qcow2",
+        "actual-size": 1542892077568,
+        "format-specific": {
+            "type": "qcow2",
+            "data": {
+                "compat": "1.1",
+                "compression-type": "zlib",
+                "lazy-refcounts": false,
+                "refcount-bits": 16,
+                "corrupt": false,
+                "extended-l2": false
+            }
+        },
+        "dirty-flag": false
+    }
+]
+== 00000000-0000-0000-0000-000000000004
+-- /share/ruta1/vm3/vm3.1790199623
+[
+    {
+        "backing-filename-format": "qcow2",
+        "virtual-size": 322122547200,
+        "filename": "/share/ruta1/vm3/vm3.1790199623",
+        "cluster-size": 65536,
+        "format": "qcow2",
+        "actual-size": 952418816,
+        "format-specific": {
+            "type": "qcow2",
+            "data": {
+                "compat": "1.1",
+                "compression-type": "zlib",
+                "lazy-refcounts": true,
+                "refcount-bits": 16,
+                "corrupt": false,
+                "extended-l2": false
+            }
+        },
+        "full-backing-filename": "/share/ruta1/vm3/vm3.1715887104",
+        "backing-filename": "vm3.1715887104",
+        "dirty-flag": false
+    },
+    {
+        "virtual-size": 322122547200,
+        "filename": "/share/ruta1/vm3/vm3.1715887104",
+        "cluster-size": 65536,
+        "format": "qcow2",
+        "actual-size": 76116836864,
+        "format-specific": {
+            "type": "qcow2",
+            "data": {
+                "compat": "1.1",
+                "compression-type": "zlib",
+                "lazy-refcounts": false,
+                "refcount-bits": 16,
+                "corrupt": false,
+                "extended-l2": false
+            }
+        },
+        "full-backing-filename": "/share/ruta1/vm3/vm3.1715862105_1",
+        "backing-filename": "vm3.1715862105_1",
+        "dirty-flag": false
+    },
+    {
+        "backing-filename-format": "qcow2",
+        "virtual-size": 322122547200,
+        "filename": "/share/ruta1/vm3/vm3.1715862105_1",
+        "cluster-size": 65536,
+        "format": "qcow2",
+        "actual-size": 2490585600,
+        "format-specific": {
+            "type": "qcow2",
+            "data": {
+                "compat": "1.1",
+                "compression-type": "zlib",
+                "lazy-refcounts": false,
+                "refcount-bits": 16,
+                "corrupt": false,
+                "extended-l2": false
+            }
+        },
+        "full-backing-filename": "/share/ruta1/vm3/vm3.img",
+        "backing-filename": "vm3.img",
+        "dirty-flag": false
+    },
+    {
+        "virtual-size": 322122547200,
+        "filename": "/share/ruta1/vm3/vm3.img",
+        "cluster-size": 65536,
+        "format": "qcow2",
+        "actual-size": 115389985280,
+        "format-specific": {
+            "type": "qcow2",
+            "data": {
+                "compat": "1.1",
+                "compression-type": "zlib",
+                "lazy-refcounts": false,
+                "refcount-bits": 16,
+                "corrupt": false,
+                "extended-l2": false
+            }
+        },
+        "dirty-flag": false
+    }
+]
+== 00000000-0000-0000-0000-000000000003
+-- /share/ruta1/vm4/ruta7.1790274085
+[
+    {
+        "backing-filename-format": "qcow2",
+        "virtual-size": 68719476736,
+        "filename": "/share/ruta1/vm4/ruta7.1790274085",
+        "cluster-size": 65536,
+        "format": "qcow2",
+        "actual-size": 16000434688,
+        "format-specific": {
+            "type": "qcow2",
+            "data": {
+                "compat": "1.1",
+                "compression-type": "zlib",
+                "lazy-refcounts": true,
+                "refcount-bits": 16,
+                "corrupt": false,
+                "extended-l2": false
+            }
+        },
+        "full-backing-filename": "/share/ruta1/vm4/ruta7.img",
+        "backing-filename": "ruta7.img",
+        "dirty-flag": false
+    },
+    {
+        "virtual-size": 68719476736,
+        "filename": "/share/ruta1/vm4/ruta7.img",
+        "cluster-size": 65536,
+        "format": "qcow2",
+        "actual-size": 12800,
+        "format-specific": {
+            "type": "qcow2",
+            "data": {
+                "compat": "1.1",
+                "compression-type": "zlib",
+                "lazy-refcounts": false,
+                "refcount-bits": 16,
+                "corrupt": false,
+                "extended-l2": false
+            }
+        },
+        "dirty-flag": false
+    }
+]
+== 00000000-0000-0000-0000-000000000001
+-- /share/ruta1/vm5/ruta2.1790545065
+[
+    {
+        "backing-filename-format": "qcow2",
+        "virtual-size": 137438953472,
+        "filename": "/share/ruta1/vm5/ruta2.1790545065",
+        "cluster-size": 65536,
+        "format": "qcow2",
+        "actual-size": 606544384,
+        "format-specific": {
+            "type": "qcow2",
+            "data": {
+                "compat": "1.1",
+                "compression-type": "zlib",
+                "lazy-refcounts": true,
+                "refcount-bits": 16,
+                "corrupt": false,
+                "extended-l2": false
+            }
+        },
+        "full-backing-filename": "/share/ruta1/vm5/ruta2.img",
+        "backing-filename": "ruta2.img",
+        "dirty-flag": false
+    },
+    {
+        "virtual-size": 137438953472,
+        "filename": "/share/ruta1/vm5/ruta2.img",
+        "cluster-size": 65536,
+        "format": "qcow2",
+        "actual-size": 23708942848,
+        "format-specific": {
+            "type": "qcow2",
+            "data": {
+                "compat": "1.1",
+                "compression-type": "zlib",
+                "lazy-refcounts": true,
+                "refcount-bits": 16,
+                "corrupt": false,
+                "extended-l2": false
+            }
+        },
+        "dirty-flag": false
+    }
+]
+-- /share/ruta1/vm5/ruta3.1790545065
+[
+    {
+        "backing-filename-format": "qcow2",
+        "virtual-size": 53687091200,
+        "filename": "/share/ruta1/vm5/ruta3.1790545065",
+        "cluster-size": 65536,
+        "format": "qcow2",
+        "actual-size": 94720,
+        "format-specific": {
+            "type": "qcow2",
+            "data": {
+                "compat": "1.1",
+                "compression-type": "zlib",
+                "lazy-refcounts": true,
+                "refcount-bits": 16,
+                "corrupt": false,
+                "extended-l2": false
+            }
+        },
+        "full-backing-filename": "/share/ruta1/vm5/ruta3.img",
+        "backing-filename": "ruta3.img",
+        "dirty-flag": false
+    },
+    {
+        "virtual-size": 53687091200,
+        "filename": "/share/ruta1/vm5/ruta3.img",
+        "cluster-size": 65536,
+        "format": "qcow2",
+        "actual-size": 2462208,
+        "format-specific": {
+            "type": "qcow2",
+            "data": {
+                "compat": "1.1",
+                "compression-type": "zlib",
+                "lazy-refcounts": true,
+                "refcount-bits": 16,
+                "corrupt": false,
+                "extended-l2": false
+            }
+        },
+        "dirty-flag": false
+    }
+]
+== 00000000-0000-0000-0000-000000000005
+-- /share/ruta1/vm6/ruta8.1790544667
+[
+    {
+        "backing-filename-format": "qcow2",
+        "virtual-size": 137438953472,
+        "filename": "/share/ruta1/vm6/ruta8.1790544667",
+        "cluster-size": 65536,
+        "format": "qcow2",
+        "actual-size": 1129648640,
+        "format-specific": {
+            "type": "qcow2",
+            "data": {
+                "compat": "1.1",
+                "compression-type": "zlib",
+                "lazy-refcounts": true,
+                "refcount-bits": 16,
+                "corrupt": false,
+                "extended-l2": false
+            }
+        },
+        "full-backing-filename": "/share/ruta1/vm6/ruta8.img",
+        "backing-filename": "ruta8.img",
+        "dirty-flag": false
+    },
+    {
+        "virtual-size": 137438953472,
+        "filename": "/share/ruta1/vm6/ruta8.img",
+        "cluster-size": 65536,
+        "format": "qcow2",
+        "actual-size": 24775692800,
+        "format-specific": {
+            "type": "qcow2",
+            "data": {
+                "compat": "1.1",
+                "compression-type": "zlib",
+                "lazy-refcounts": true,
+                "refcount-bits": 16,
+                "corrupt": false,
+                "extended-l2": false
+            }
+        },
+        "dirty-flag": false
+    }
+]
+-- /share/ruta1/vm6/ruta9.1790544667
+[
+    {
+        "backing-filename-format": "qcow2",
+        "virtual-size": 53687091200,
+        "filename": "/share/ruta1/vm6/ruta9.1790544667",
+        "cluster-size": 65536,
+        "format": "qcow2",
+        "actual-size": 82432,
+        "format-specific": {
+            "type": "qcow2",
+            "data": {
+                "compat": "1.1",
+                "compression-type": "zlib",
+                "lazy-refcounts": true,
+                "refcount-bits": 16,
+                "corrupt": false,
+                "extended-l2": false
+            }
+        },
+        "full-backing-filename": "/share/ruta1/vm6/ruta9.img",
+        "backing-filename": "ruta9.img",
+        "dirty-flag": false
+    },
+    {
+        "virtual-size": 53687091200,
+        "filename": "/share/ruta1/vm6/ruta9.img",
+        "cluster-size": 65536,
+        "format": "qcow2",
+        "actual-size": 2449920,
+        "format-specific": {
+            "type": "qcow2",
+            "data": {
+                "compat": "1.1",
+                "compression-type": "zlib",
+                "lazy-refcounts": true,
+                "refcount-bits": 16,
+                "corrupt": false,
+                "extended-l2": false
+            }
+        },
+        "dirty-flag": false
+    }
+]

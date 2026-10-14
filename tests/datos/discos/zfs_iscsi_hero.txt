@@ -1,0 +1,13 @@
+== /etc/config/hero_zfs_lun.json
+  "lun":{}
+== /etc/config/hero_iscsi_scst.json
+  "portal":{
+    "service_enable":true
+    "service_port":3260
+    "iqn_prefix":"iqn.2004-04.com.example:destino-1"
+  "target":{}
+  "initiator":{
+    "0":{
+      "initiator_id":0
+      "name":"iqn.2004-04.com.example:destino-2"
+      "alias":"Default Policy"

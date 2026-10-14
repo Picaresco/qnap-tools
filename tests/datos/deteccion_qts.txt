@@ -1,0 +1,9 @@
+sistema=qts
+modelo=TS-X83XU
+firmware=5.2.10
+build=20260514
+nombre=NAS-EJEMPLO-2
+paquete.QKVM.enable=FALSE
+paquete.QKVM.ruta=/share/CACHEDEV1_DATA/.qpkg/QKVM
+paquete.container-station.enable=
+paquete.container-station.ruta=

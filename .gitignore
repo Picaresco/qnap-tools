@@ -1,0 +1,20 @@
+# Datos reales de los NAS y credenciales: nunca al repositorio
+.env
+CLAUDE.md
+pruebas/claves/
+pruebas/resultados/
+ensayo/
+
+# Estado local de herramientas
+.claude/
+.remember/
+.superpowers/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+dist/
+build/

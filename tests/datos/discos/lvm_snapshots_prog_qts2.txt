@@ -1,0 +1,50 @@
+[Global]
+lastRetentionTime = 1791842400
+[Retention1]
+source_lv_id = 1
+retention = 2
+expiremin = 0
+keepAmount = 0
+hourAmount = 24
+dayAmount = 7
+weekAmount = 4
+monthAmount = 12
+[Retention2]
+source_lv_id = 2
+retention = 0
+expiremin = 4320
+keepAmount = 0
+hourAmount = 24
+dayAmount = 7
+weekAmount = 4
+monthAmount = 12
+[Schedule2]
+source_lv_id = 2
+Schedule = 1
+MonthDay = 0
+WeekDay = 0
+Hour = 12
+Minute = 0
+ScheduleTime = 1791882051
+vital = 0
+smart = 1
+schedule_status = 2
+snapshot_type = 0
+[Retention3]
+source_lv_id = 3
+retention = 2
+expiremin = 0
+keepAmount = 0
+hourAmount = 24
+dayAmount = 7
+weekAmount = 4
+monthAmount = 12
+[Retention4]
+source_lv_id = 4
+retention = 2
+expiremin = 0
+keepAmount = 0
+hourAmount = 24
+dayAmount = 7
+weekAmount = 4
+monthAmount = 12

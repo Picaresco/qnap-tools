@@ -1,0 +1,91 @@
+  pool: zpool1
+ state: ONLINE
+status: Some supported features are not enabled on the pool. The pool can
+	still be used, but some features are unavailable.
+  scan: scrub repaired 0 in 0 days 00:40:19 with 0 errors on Sun Jul 19 02:40:21 2026
+ prune: last pruned 0 entries, 0 entries are pruned ever
+        total pruning count #208, avg. pruning rate = 0 (entry/sec)
+expand: none requested
+ ztier: [reloc] none requested
+        [smart] none requested
+ renew: none requested
+config:
+
+	NAME                                        STATE     READ WRITE CKSUM
+	zpool1                                      ONLINE       0     0     0
+	  mirror-0                                  ONLINE       0     0     0
+	    qzfs/enc_0/disk_0x3_SERIE0001_3  ONLINE       0     0     0
+	    qzfs/enc_0/disk_0x4_SERIE0002_3  ONLINE       0     0     0
+
+errors: No known data errors
+
+  pool: zpool2
+ state: ONLINE
+status: Some supported features are not enabled on the pool. The pool can
+	still be used, but some features are unavailable.
+  scan: scrub repaired 0 in 0 days 00:19:07 with 0 errors on Sun Jul 19 02:19:10 2026
+ prune: last pruned 0 entries, 0 entries are pruned ever
+        total pruning count #140, avg. pruning rate = 0 (entry/sec)
+expand: none requested
+ ztier: [reloc] none requested
+        [smart] none requested
+ renew: none requested
+config:
+
+	NAME                                             STATE     READ WRITE CKSUM
+	zpool2                                           ONLINE       0     0     0
+	  qzfs/enc_0/disk_0x5_SERIE0003_3         ONLINE       0     0     0
+	  qzfs/enc_0/disk_0x6_SERIE0004_3         ONLINE       0     0     0
+	  qzfs/enc_0/disk_0x7_SERIE0005_3         ONLINE       0     0     0
+	  qzfs/enc_0/disk_0x8_SERIE0006_3         ONLINE       0     0     0
+	logs
+	  mirror-4                                       ONLINE       0     0     0
+	    qzfs/enc_23/disk_0x170001_SERIE0007_6  ONLINE       0     0     0
+	    qzfs/enc_23/disk_0x170002_SERIE0008_6  ONLINE       0     0     0
+
+errors: No known data errors
+
+  pool: zpool256
+ state: ONLINE
+status: Some supported features are not enabled on the pool. The pool can
+	still be used, but some features are unavailable.
+  scan: none requested
+ prune: never
+expand: none requested
+ ztier: [reloc] none requested
+        [smart] none requested
+ renew: none requested
+config:
+
+	NAME                                             STATE     READ WRITE CKSUM
+	zpool256                                         ONLINE       0     0     0
+	  mirror-0                                       ONLINE       0     0     0
+	    qzfs/enc_23/disk_0x170001_SERIE0007_2  ONLINE       0     0     0
+	    qzfs/enc_23/disk_0x170002_SERIE0008_2  ONLINE       0     0     0
+	cache
+	  qzfs/enc_23/disk_0x170001_SERIE0007_3    ONLINE       0     0     0
+	  qzfs/enc_23/disk_0x170002_SERIE0008_3    ONLINE       0     0     0
+
+errors: No known data errors
+
+  pool: zpoolExt2
+ state: ONLINE
+  scan: none requested
+ prune: never
+expand: none requested
+ ztier: [reloc] none requested
+        [smart] none requested
+ renew: none requested
+config:
+
+	NAME                                        STATE     READ WRITE CKSUM
+	zpoolExt2                                   ONLINE       0     0     0
+	  mirror-0                                  ONLINE       0     0     0
+	    qzfs/enc_0/disk_0x3_SERIE0001_2  ONLINE       0     0     0
+	    qzfs/enc_0/disk_0x4_SERIE0002_2  ONLINE       0     0     0
+	    qzfs/enc_0/disk_0x5_SERIE0003_2  ONLINE       0     0     0
+	    qzfs/enc_0/disk_0x6_SERIE0004_2  ONLINE       0     0     0
+	    qzfs/enc_0/disk_0x7_SERIE0005_2  ONLINE       0     0     0
+	    qzfs/enc_0/disk_0x8_SERIE0006_2  ONLINE       0     0     0
+
+errors: No known data errors

@@ -1,0 +1,21 @@
+==lineas 3646
+[3987007.651408] hal_device remove QXG virtual
+[3987007.652457] hal_device remove QXG virtual
+[3987011.722013] br-000000000001: port 2(veth0000001) entered blocking state
+[3987011.722019] br-000000000001: port 2(veth0000001) entered disabled state
+[3987011.722074] device veth0000001 entered promiscuous mode
+[3987011.722184] br-000000000001: port 2(veth0000001) entered blocking state
+[3987011.722187] br-000000000001: port 2(veth0000001) entered forwarding state
+[3987011.723020] br-000000000001: port 2(veth0000001) entered disabled state
+[3987011.736053] !@[/etc/init.d/net_event_setup.sh]rename_trct_nic() called
+[3987011.736066] !@[/etc/init.d/net_event_setup.sh]rename_trct_nic() called
+[3987015.170036] IPVS: ftp: loaded support on port[0] = 21
+[3987015.244475] eth0: renamed from veth0000002
+[3987015.248902] br-000000000001: port 2(veth0000001) entered blocking state
+[3987015.248907] br-000000000001: port 2(veth0000001) entered forwarding state
+[3987015.253513] hal_device remove QXG virtual
+[3999364.848029] device-mapper: thin: Message received with 6 arguments instead of 2.
+[4006909.100735] device-mapper: thin: Message received with 6 arguments instead of 2.
+[4020965.558816] device-mapper: thin: Message received with 6 arguments instead of 2.
+[4035704.539724] flush_memory.sh (24714): drop_caches: 3
+[4042565.468082] device-mapper: thin: Message received with 6 arguments instead of 2.

@@ -1,0 +1,45 @@
+contenedor1	imagen1:latest	running	Up 16 hours (healthy)	0.0.0.0:5100->3000/tcp	red1	2026-10-13 11:28:17 +0200 CEST	proyecto1
+contenedor2	imagen2:1.0	running	Up 5 days (healthy)	0.0.0.0:5105->80/tcp	red2	2026-10-08 16:01:03 +0200 CEST	proyecto2
+contenedor3	imagen3:1.0	running	Up 5 days (healthy)	0.0.0.0:5106->8000/tcp	red3,red2	2026-10-08 16:00:29 +0200 CEST	proyecto3
+contenedor4	imagen4:1.0	running	Up 5 days (healthy)	0.0.0.0:5085->8443/tcp	red4	2026-10-08 09:06:45 +0200 CEST	proyecto4
+contenedor5	imagen5:1.0	exited	Exited (0) 7 days ago		red5	2026-10-06 14:24:51 +0200 CEST	proyecto5
+contenedor6	imagen5:1.0	exited	Exited (0) 7 days ago		red5	2026-10-06 14:24:51 +0200 CEST	proyecto5
+contenedor7	imagen5:1.0	exited	Exited (0) 7 days ago		red5	2026-10-06 14:24:51 +0200 CEST	proyecto5
+contenedor8	imagen6:1.0	exited	Exited (0) 8 days ago		red6	2026-10-05 23:04:04 +0200 CEST	proyecto6
+contenedor9	imagen7:2-imagen24	running	Up 8 days	80/tcp, 443/tcp, 2019/tcp, 443/udp, 0.0.0.0:8443->8443/tcp	red7	2026-10-05 12:13:45 +0200 CEST	proyecto7
+proyecto7	imagen8	running	Up 8 days (healthy)	8000/tcp	red7	2026-10-05 12:13:38 +0200 CEST	proyecto7
+contenedor10	imagen9:17-imagen24	running	Up 11 days	5432/tcp	red8	2026-10-02 14:56:05 +0200 CEST	proyecto8
+contenedor11	imagen10:0.2	running	Up 11 days	8000/tcp	red8	2026-10-02 14:56:05 +0200 CEST	proyecto8
+contenedor12	imagen10:0.2	running	Up 11 days (healthy)	0.0.0.0:5110->8000/tcp	red8	2026-10-02 14:55:59 +0200 CEST	proyecto8
+contenedor13	imagen9:17-imagen24	running	Up 12 days (healthy)	5432/tcp	red8	2026-10-01 15:33:57 +0200 CEST	proyecto8
+contenedor14	imagen11:2	running	Up 12 days (healthy)	3000/tcp, 3443/tcp	red9,red2	2026-10-01 13:16:15 +0200 CEST	proyecto2
+contenedor15	imagen12:latest	running	Up 13 days (healthy)	0.0.0.0:5090->5090/tcp	red10	2026-09-30 15:18:20 +0200 CEST	proyecto9
+contenedor16	imagen9:15-imagen24	running	Up 13 days (healthy)		red9	2026-09-30 15:06:13 +0200 CEST	proyecto2
+contenedor17	imagen13:latest	running	Up 2 weeks (healthy)	8080/tcp	red1	2026-09-24 10:08:38 +0200 CEST	proyecto1
+contenedor18	imagen14:1.0	running	Up 2 weeks (healthy)	0.0.0.0:5075->5065/tcp	red11	2026-09-23 16:29:59 +0200 CEST	imagen14
+contenedor19	imagen15:latest	running	Up 3 weeks (healthy)	0.0.0.0:5055->5050/tcp	red12	2026-09-18 15:38:39 +0200 CEST	proyecto10
+contenedor20	imagen9:17-imagen24	running	Up 3 weeks (healthy)	5432/tcp	red12	2026-09-18 15:38:34 +0200 CEST	proyecto10
+contenedor21	imagen16:1.0	running	Up 4 weeks (healthy)	0.0.0.0:5095->5095/tcp	red13	2026-09-15 14:17:06 +0200 CEST	proyecto11
+contenedor22	imagen17:latest	running	Up 5 weeks (healthy)	0.0.0.0:5066->5066/tcp	red14	2026-09-07 12:16:28 +0200 CEST	proyecto12
+contenedor23	imagen18:1.0	running	Up 5 weeks (healthy)	0.0.0.0:5065->5065/tcp	red15	2026-09-03 14:19:29 +0200 CEST	imagen18
+contenedor24	imagen19:1.0	running	Up 6 weeks (healthy)	0.0.0.0:5010->5010/tcp	red16	2026-09-01 09:59:41 +0200 CEST	imagen19
+contenedor25	contenedor25:1.0	running	Up 6 weeks		red7,red17	2026-08-31 16:10:20 +0200 CEST	contenedor25
+contenedor26	imagen20:0000000000000000000000000000000000000000000000000000000000000003	exited	Exited (0) 6 weeks ago		red18	2026-08-27 16:43:32 +0200 CEST	proyecto13
+contenedor27	imagen21:1.0	exited	Exited (0) 6 weeks ago		red19	2026-08-27 15:00:39 +0200 CEST	proyecto14
+contenedor28	imagen22:1.0	running	Up 6 weeks (healthy)	0.0.0.0:5099->5099/tcp	red20	2026-08-26 11:05:35 +0200 CEST	proyecto15
+contenedor29	imagen23:v4.90.1	exited	Exited (0) 6 weeks ago		red21	2026-08-20 15:15:33 +0200 CEST	proyecto16
+contenedor30	imagen24:3.20	exited	Exited (0) 7 weeks ago		red21	2026-08-20 15:11:14 +0200 CEST	proyecto16
+contenedor31	imagen25:6-imagen24	exited	Exited (0) 6 weeks ago		red21	2026-08-20 14:13:32 +0200 CEST	proyecto16
+contenedor32	imagen26:8.0	exited	Exited (0) 6 weeks ago		red21	2026-08-20 14:13:32 +0200 CEST	proyecto16
+contenedor33	imagen13:latest	running	Up 6 weeks (healthy)	8080/tcp	red10	2026-08-19 15:08:29 +0200 CEST	proyecto9
+contenedor34	imagen13:latest	running	Up 6 weeks (healthy)	8080/tcp	red12	2026-08-15 17:56:40 +0200 CEST	proyecto10
+contenedor35	imagen27	running	Up 6 weeks (healthy)	0.0.0.0:5080->5080/tcp	red22	2026-08-01 21:07:22 +0200 CEST	proyecto17
+contenedor36	imagen28	running	Up 6 weeks (healthy)	0.0.0.0:5070->5070/tcp	red23	2026-08-01 19:31:23 +0200 CEST	contenedor36
+contenedor37	imagen29:nas	running	Up 6 weeks (healthy)	3000/tcp	red24	2026-07-28 14:23:45 +0200 CEST	proyecto19
+contenedor38	imagen7:2-imagen24	running	Up 6 weeks	80/tcp, 443/tcp, 0.0.0.0:1221->1221/tcp, 2019/tcp, 443/udp, 0.0.0.0:3000->3000/tcp	red24	2026-07-14 18:02:07 +0200 CEST	proyecto20
+contenedor39	imagen30:3.11-slim	running	Up 6 weeks	0.0.0.0:5004->5004/tcp	red25	2026-06-25 10:02:01 +0200 CEST	proyecto21
+contenedor40	imagen31:latest	running	Up 6 weeks (unhealthy)	0.0.0.0:8088->8088/tcp, 0.0.0.0:1514->514/udp	red26	2026-06-13 13:03:54 +0200 CEST	imagen31
+contenedor41	imagen32	running	Up 6 weeks (healthy)	0.0.0.0:3001->3001/tcp	red27	2026-06-11 17:37:18 +0200 CEST	proyecto22
+contenedor42	imagen33	running	Up 6 weeks (healthy)	3000/tcp	red24	2026-05-22 15:50:41 +0200 CEST	proyecto20
+contenedor43	imagen34	running	Up 6 weeks (healthy)	6379/tcp	red24	2026-05-22 15:35:19 +0200 CEST	proyecto20
+contenedor44	imagen35	exited	Exited (137) 6 weeks ago		host	2025-12-30 12:38:24 +0100 CET	contenedor44

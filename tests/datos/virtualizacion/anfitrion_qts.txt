@@ -1,0 +1,12 @@
+hilos=8
+model name	: Intel(R) Xeon(R) CPU E3-1246 v3 @ 3.50GHz
+virt=vmx
+carga=12.00 8.24 5.64 8/3014 17904
+MemTotal:       32770624 kB
+MemFree:         1694984 kB
+MemAvailable:    3454288 kB
+SwapTotal:      24540080 kB
+SwapFree:       13186400 kB
+socket=/QVS/var/run/libvirt/libvirt-sock-ro
+socket=/var/run/docker.sock
+socket=/var/run/system-docker.sock

@@ -1,0 +1,7 @@
+==paquetes 21
+QuLog 1.8.2.956 TRUE
+NotificationCenter 1.10.0.3331 TRUE
+MalwareRemover 6.6.9 TRUE
+SecurityCounselor
+QuFirewall
+ResourceMonitor 1.2.0 TRUE

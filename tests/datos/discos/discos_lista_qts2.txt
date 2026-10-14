@@ -1,0 +1,27 @@
+Enclosure  Port  Sys_Name          Type      Size      Alias                 Signature   Partitions  Model  
+NAS_HOST   1     /dev/sda          SSD:data  465.76 GB 3.5" SATA SSD 1       --          5           Samsung SSD 870 EVO 500GB
+NAS_HOST   2     /dev/sdb          SSD:data  465.76 GB 3.5" SATA SSD 2       --          5           Samsung SSD 870 EVO 500GB
+NAS_HOST   3     /dev/sdc          HDD:data  3.64 TB   3.5" SATA HDD 3       --          5           WDC WD40EFAX-68JH4N1
+NAS_HOST   4     /dev/sdd          HDD:data  7.28 TB   3.5" SATA HDD 4       --          5           HGST HUS728T8TALE6L4
+NAS_HOST   5     /dev/sdf          HDD:data  3.64 TB   3.5" SATA HDD 5       --          5           WDC WD40EFAX-68JH4N1
+NAS_HOST   6     /dev/sde          HDD:data  3.64 TB   3.5" SATA HDD 6       --          5           WDC WD40EFAX-68JH4N1
+NAS_HOST   7     /dev/sdj          HDD:data  3.64 TB   3.5" SATA HDD 7       --          5           WDC WD40EFAX-68JH4N1
+NAS_HOST   8     /dev/sdi          HDD:data  7.28 TB   3.5" SATA HDD 8       --          5           WDC WD8005FFBX-68CAKN0
+NAS_HOST   9     /dev/sdh          HDD:data  3.64 TB   3.5" SATA HDD 9       --          5           WDC WD40EFAX-68JH4N1
+NAS_HOST   10    /dev/sdg          HDD:data  7.28 TB   3.5" SATA HDD 10      --          5           HGST HUS728T8TALE6L4
+NAS_HOST   11    /dev/sdl          HDD:data  7.28 TB   3.5" SATA HDD 11      --          5           HGST HUS728T8TALE6L4
+NAS_HOST   12    /dev/sdk          HDD:data  7.28 TB   3.5" SATA HDD 12      --          5           HGST HUS728T8TALE6L4
+NAS_HOST   P2-1  /dev/nvme0n1      SSD:cache 1.82 TB   PCIe SSD 2-1          --          5           WD Red SN700 2000GB 
+NAS_HOST   P2-2  /dev/nvme1n1      SSD:cache 1.82 TB   PCIe SSD 2-2          --          5           WD Red SN700 2000GB 
+EXDR#1     1     /dev/sdv          HDD:data  5.46 TB   3.5" SATA HDD 1       --          5           HGST HUS726T6TALE6L4
+EXDR#1     2     /dev/sdy          HDD:data  5.46 TB   3.5" SATA HDD 2       --          5           HGST HUS726T6TALE6L4
+EXDR#1     3     /dev/sdo          HDD:data  5.46 TB   3.5" SATA HDD 3       --          5           HGST HUS726T6TALE6L4
+EXDR#1     4     /dev/sdq          HDD:data  5.46 TB   3.5" SATA HDD 4       --          5           HGST HUS726T6TALE6L4
+EXDR#1     5     /dev/sds          HDD:data  5.46 TB   3.5" SATA HDD 5       --          5           HGST HUS726T6TALE6L4
+EXDR#1     6     /dev/sdz          HDD:data  5.46 TB   3.5" SATA HDD 6       --          5           HGST HUS726T6TALE6L4
+EXDR#1     7     /dev/sdr          HDD:data  5.46 TB   3.5" SATA HDD 7       --          5           HGST HUS726T6TALE6L4
+EXDR#1     8     /dev/sdt          HDD:data  5.46 TB   3.5" SATA HDD 8       --          5           HGST HUS726T6TALE6L4
+EXDR#1     9     /dev/sdp          HDD:data  5.46 TB   3.5" SATA HDD 9       --          5           HGST HUS726T6TALE6L4
+EXDR#1     10    /dev/sdx          HDD:data  5.46 TB   3.5" SATA HDD 10      --          5           HGST HUS726T6TALE6L4
+EXDR#1     11    /dev/sdu          HDD:data  5.46 TB   3.5" SATA HDD 11      --          5           HGST HUS726T6TALE6L4
+EXDR#1     12    /dev/sdw          HDD:data  5.46 TB   3.5" SATA HDD 12      --          5           HGST HUS726T6TALE6L4

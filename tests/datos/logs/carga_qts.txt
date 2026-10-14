@@ -1,0 +1,10 @@
+==encendido
+4049086.44 22184316.49
+==carga
+5.50 5.34 5.49 3/2804 19862
+==hilos 8
+==memoria
+MemTotal:       32770624 kB
+MemAvailable:    3769612 kB
+SwapTotal:      24540080 kB
+SwapFree:       13205980 kB

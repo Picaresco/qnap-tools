@@ -1,0 +1,27 @@
+Enclosure Port Sys_Name          Size      Type   RAID        RAID_Type    Pool TMeta  VolType      VolName 
+NAS_HOST  1    /dev/sda(X)       465.76 GB data   /dev/md1    RAID 1       1    64 GB  flexible     volumen1
+NAS_HOST  2    /dev/sdb(X)       465.76 GB data   /dev/md1    RAID 1       1    64 GB  flexible     volumen1
+NAS_HOST  3    /dev/sdc(X)       3.64 TB   data   /dev/md2    RAID 5,512   2    64 GB  flexible     volumen2
+NAS_HOST  4    /dev/sdd(X)       7.28 TB   data   /dev/md3    RAID 1       3    64 GB  flexible     volumen3,volumen4
+NAS_HOST  5    /dev/sdf(X)       3.64 TB   data   /dev/md2    RAID 5,512   2    64 GB  flexible     volumen2
+NAS_HOST  6    /dev/sde(X)       3.64 TB   data   /dev/md2    RAID 5,512   2    64 GB  flexible     volumen2
+NAS_HOST  7    /dev/sdj(X)       3.64 TB   data   /dev/md2    RAID 5,512   2    64 GB  flexible     volumen2
+NAS_HOST  8    /dev/sdi(X)       7.28 TB   data   /dev/md2    RAID 5,512   2    64 GB  flexible     volumen2
+NAS_HOST  9    /dev/sdh(X)       3.64 TB   data   /dev/md2    RAID 5,512   2    64 GB  flexible     volumen2
+NAS_HOST  10   /dev/sdg(X)       7.28 TB   data   /dev/md2    RAID 5,512   2    64 GB  flexible     volumen2
+NAS_HOST  11   /dev/sdl(X)       7.28 TB   data   /dev/md3    RAID 1       3    64 GB  flexible     volumen3,volumen4
+NAS_HOST  12   /dev/sdk(X)       7.28 TB   data   /dev/md2    RAID 5,512   2    64 GB  flexible     volumen2
+NAS_HOST  P2-1 /dev/nvme0n1(X)   1.82 TB   cache  /dev/md4    RAID 1       256  --     flexible     volumen5
+NAS_HOST  P2-2 /dev/nvme1n1(X)   1.82 TB   cache  /dev/md4    RAID 1       256  --     flexible     volumen5
+EXDR#1    1    /dev/sdv(X)       5.46 TB   data   /dev/md5    RAID 5,512   4    64 GB  flexible     volumen6,volumen7,volumen8
+EXDR#1    2    /dev/sdy(X)       5.46 TB   data   /dev/md5    RAID 5,512   4    64 GB  flexible     volumen6,volumen7,volumen8
+EXDR#1    3    /dev/sdo(X)       5.46 TB   data   /dev/md5    RAID 5,512   4    64 GB  flexible     volumen6,volumen7,volumen8
+EXDR#1    4    /dev/sdq(X)       5.46 TB   data   /dev/md5    RAID 5,512   4    64 GB  flexible     volumen6,volumen7,volumen8
+EXDR#1    5    /dev/sds(X)       5.46 TB   data   /dev/md5    RAID 5,512   4    64 GB  flexible     volumen6,volumen7,volumen8
+EXDR#1    6    /dev/sdz(X)       5.46 TB   data   /dev/md5    RAID 5,512   4    64 GB  flexible     volumen6,volumen7,volumen8
+EXDR#1    7    /dev/sdr(X)       5.46 TB   data   /dev/md5    RAID 5,512   4    64 GB  flexible     volumen6,volumen7,volumen8
+EXDR#1    8    /dev/sdt(X)       5.46 TB   data   /dev/md5    RAID 5,512   4    64 GB  flexible     volumen6,volumen7,volumen8
+EXDR#1    9    /dev/sdp(X)       5.46 TB   data   /dev/md5    RAID 5,512   4    64 GB  flexible     volumen6,volumen7,volumen8
+EXDR#1    10   /dev/sdx(X)       5.46 TB   data   /dev/md5    RAID 5,512   4    64 GB  flexible     volumen6,volumen7,volumen8
+EXDR#1    11   /dev/sdu(X)       5.46 TB   data   /dev/md5    RAID 5,512   4    64 GB  flexible     volumen6,volumen7,volumen8
+EXDR#1    12   /dev/sdw(X)       5.46 TB   data   /dev/md5    RAID 5,512   4    64 GB  flexible     volumen6,volumen7,volumen8

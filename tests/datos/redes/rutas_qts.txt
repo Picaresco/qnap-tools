@@ -1,0 +1,37 @@
+default via 192.0.2.36 dev br0  proto static  metric 100 
+192.0.2.37/24 dev br0  proto kernel  scope link  src 192.0.2.21 
+192.0.2.38/24 dev lxcbr0  proto kernel  scope link  src 192.0.2.23 linkdown 
+192.0.2.39/24 dev lxdbr0  proto kernel  scope link  src 192.0.2.24 
+127.0.0.0/8 dev lo  scope link 
+192.0.2.40/16 dev eth4  proto kernel  scope link  src 192.0.2.2 
+192.0.2.41/22 dev br-000000000020  proto kernel  scope link  src 192.0.2.19 
+192.0.2.42/22 dev br-000000000016  proto kernel  scope link  src 192.0.2.15 
+192.0.2.43/22 dev br-000000000008  proto kernel  scope link  src 192.0.2.7 
+192.0.2.44/22 dev br-000000000011  proto kernel  scope link  src 192.0.2.10 
+192.0.2.45/22 dev br-000000000012  proto kernel  scope link  src 192.0.2.11 
+192.0.2.46/22 dev br-000000000017  proto kernel  scope link  src 192.0.2.16 
+192.0.2.47/22 dev br-000000000006  proto kernel  scope link  src 192.0.2.5 
+192.0.2.48/22 dev br-000000000015  proto kernel  scope link  src 192.0.2.14 
+192.0.2.49/22 dev br-000000000005  proto kernel  scope link  src 192.0.2.4 
+192.0.2.50/22 dev br-000000000009  proto kernel  scope link  src 192.0.2.8 
+192.0.2.51/22 dev br-000000000019  proto kernel  scope link  src 192.0.2.18 
+192.0.2.52/22 dev br-000000000014  proto kernel  scope link  src 192.0.2.13 
+192.0.2.53/22 dev br-000000000018  proto kernel  scope link  src 192.0.2.17 
+192.0.2.54/22 dev br-000000000010  proto kernel  scope link  src 192.0.2.9 linkdown 
+192.0.2.55/22 dev br-000000000007  proto kernel  scope link  src 192.0.2.6 
+192.0.2.56/22 dev br-000000000013  proto kernel  scope link  src 192.0.2.12 
+192.0.2.57/22 dev br-000000000021  proto kernel  scope link  src 192.0.2.20 
+192.0.2.58/22 dev br-000000000024  proto kernel  scope link  src 192.0.2.27 
+192.0.2.59/22 dev br-000000000028  proto kernel  scope link  src 192.0.2.31 
+192.0.2.60/22 dev br-000000000030  proto kernel  scope link  src 192.0.2.33 
+192.0.2.61/22 dev br-000000000031  proto kernel  scope link  src 192.0.2.34 
+192.0.2.62/22 dev br-000000000003  proto kernel  scope link  src 192.0.2.1 
+192.0.2.63/22 dev br-000000000004  proto kernel  scope link  src 192.0.2.3 
+192.0.2.64/22 dev br-000000000025  proto kernel  scope link  src 192.0.2.28 
+192.0.2.65/22 dev br-000000000026  proto kernel  scope link  src 192.0.2.29 
+192.0.2.66/22 dev br-000000000027  proto kernel  scope link  src 192.0.2.30 
+192.0.2.67/22 dev br-000000000029  proto kernel  scope link  src 192.0.2.32 
+192.0.2.68/22 dev br-000000000032  proto kernel  scope link  src 192.0.2.35 
+192.0.2.69/22 dev br-000000000022  proto kernel  scope link  src 192.0.2.25 linkdown 
+192.0.2.70/22 dev br-000000000023  proto kernel  scope link  src 192.0.2.26 linkdown 
+224.1.6.71 dev br0  scope link 

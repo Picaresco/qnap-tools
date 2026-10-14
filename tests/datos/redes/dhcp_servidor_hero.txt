@@ -1,0 +1,58 @@
+== dhcpd_docker0.conf
+max-lease-time 43200;
+default-lease-time 43200;
+ddns-update-style interim;
+allow booting;
+allow bootp;
+class "pxeclients" {
+match if substring(option vendor-class-identifier,0,9)="PXEClient";
+}
+subnet 192.0.2.2 netmask 255.255.255.0{
+interface "docker0";
+range 192.0.2.3 192.0.2.4;
+option routers 192.0.2.5;
+option domain-name-servers 192.0.2.5, 0.0.0.0;
+}
+== dhcpd_lxcbr0.conf
+max-lease-time 43200;
+default-lease-time 43200;
+ddns-update-style interim;
+allow booting;
+allow bootp;
+class "pxeclients" {
+match if substring(option vendor-class-identifier,0,9)="PXEClient";
+}
+subnet 192.0.2.6 netmask 255.255.255.0{
+interface "lxcbr0";
+range 192.0.2.7 192.0.2.8;
+option routers 192.0.2.9;
+option domain-name-servers 192.0.2.9, 0.0.0.0;
+}
+== dhcpd_lxdbr0.conf
+max-lease-time 43200;
+default-lease-time 43200;
+ddns-update-style interim;
+allow booting;
+allow bootp;
+class "pxeclients" {
+match if substring(option vendor-class-identifier,0,9)="PXEClient";
+}
+subnet 192.0.2.10 netmask 255.255.255.0{
+interface "lxdbr0";
+range 192.0.2.11 192.0.2.12;
+option routers 192.0.2.13;
+option domain-name-servers 192.0.2.13, 0.0.0.0;
+}
+== dhcpd_qvs2.conf
+max-lease-time 86400;
+default-lease-time 86400;
+ddns-update-style interim;
+allow booting;
+allow bootp;
+class "pxeclients" {
+match if substring(option vendor-class-identifier,0,9)="PXEClient";
+}
+subnet 192.0.2.14 netmask 255.255.255.0{
+interface "qvs2";
+range 192.0.2.1 192.0.2.15;
+}

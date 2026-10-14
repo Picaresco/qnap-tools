@@ -1,0 +1,4 @@
+nivel=2
+zumbador=TRUE
+aviso_espacio=TRUE
+espacio_minimo=3072

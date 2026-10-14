@@ -1,0 +1,21 @@
+{
+  "comandos": [
+    {"id": "raid_conf", "cmd": "grep -v -i bitmap /etc/config/raid.conf | head -150", "da": "grupos RAID segun QTS: nivel, miembros, repuestos, estado", "nas": "qts"},
+    {"id": "md_detalle_datos", "cmd": "for m in md1 md2 md3 md4 md5; do mdadm --detail /dev/$m | head -24; done", "da": "detalle de cada RAID de datos: estado, discos activos/caidos/repuesto, progreso de reconstruccion", "nas": "qts"},
+    {"id": "lvm_pools", "cmd": "grep -v -i bitmap /etc/config/qlvm.conf | head -200", "da": "pools de almacenamiento y volumenes logicos segun QTS: nombre, umbral, tipo (thin/thick), tamano", "nas": "qts"},
+    {"id": "lvm_meta", "cmd": "for f in /etc/config/lvm/backup/vg*; do echo \"== $f\"; grep -E '^[[:space:]]*[a-z0-9_]+ \\{|extent_size|extent_count|pe_count|status =|creation_time|thin_pool|transaction_id' $f | head -90; done", "da": "metadatos LVM (copia de respaldo en texto): VG, PV, LV, thin pools, tamanos", "nas": "qts"},
+    {"id": "dm_lista", "cmd": "dmsetup ls | head -100", "da": "dispositivos device-mapper: volumenes, thin pools, cache, cifrado", "nas": "qts"},
+    {"id": "thin_uso", "cmd": "dmsetup status | grep -E 'thin-pool|flashcache|cache|crypt' | cut -c1-300 | head -40", "da": "ocupacion de datos y metadatos de cada thin pool; estado de cache y cifrado", "nas": "qts"},
+    {"id": "cache_ssd", "cmd": "cat /etc/config/ssdcache.conf", "da": "cache SSD: volumenes acelerados, modo, algoritmo, activada o no", "nas": "qts"},
+    {"id": "snapshots", "cmd": "grep -E '^\\[|^(name|description|fssize|Count|First|Last|expiremin) =' /etc/config/qsnapshot/snapshot.conf | head -120", "da": "snapshots existentes por volumen: nombre, tamano, caducidad", "nas": "qts"},
+    {"id": "snapshots_prog", "cmd": "grep -v -i bitmap /etc/config/qsnapshot/snapshotSchedule.conf", "da": "programacion y retencion de snapshots por volumen", "nas": "qts"},
+    {"id": "discos_temp_qts", "cmd": "for n in 1 2 3 4 5 6 7 8 9 10 11 12; do echo \"== $n\"; get_hd_temp $n; done", "da": "temperatura por bahia de la cabina principal", "nas": "qts"},
+    {"id": "expansion", "cmd": "hal_app --se_getinfo enc_id=1", "da": "estado de la unidad de expansion", "nas": "qts"},
+    {"id": "iscsi", "cmd": "grep -E '^\\[|^(bServiceEnable|servicePort|targetIQNPrefix|bSupportMultiACL|initiatorIQN|initiatorAlias) ' /etc/config/iscsi_trgt.conf | grep -v InitiatorKey", "da": "servicio iSCSI: activo, puerto, prefijo IQN, iniciadores", "nas": "qts"},
+    {"id": "drbd", "cmd": "cat /proc/drbd", "da": "capa drbd de los volumenes (estado de conexion y sincronizacion)", "nas": "qts"}
+  ],
+  "limites": [
+    {"que": "lvs / pvs / vgs / lvdisplay", "motivo": "no verificado: pueden tomar bloqueos y reescribir cache y copias de metadatos en /etc/lvm; se sustituyen por qlvm.conf, la copia en /etc/config/lvm/backup y dmsetup status"},
+    {"que": "Claves CHAP y de iniciador iSCSI", "motivo": "existen en iscsi_trgt.conf (seccion InitiatorKey); se excluyen a proposito"}
+  ]
+}

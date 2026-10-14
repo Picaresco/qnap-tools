@@ -1,0 +1,11 @@
+Enclosure  Port  Sys_Name          Type      Size      Alias                 Signature   Partitions  Model  
+NAS_HOST   1     /dev/sdc          HDD:data  3.64 TB   3.5" SATA HDD 1       --          5           WDC WD4003FFBX-68MU3N0
+NAS_HOST   2     /dev/sdd          HDD:data  3.64 TB   3.5" SATA HDD 2       --          5           WDC WD4003FFBX-68MU3N0
+NAS_HOST   3     /dev/sde          HDD:data  2.73 TB   3.5" SATA HDD 3       --          5           WDC WD3001FFSX-68JNUN0
+NAS_HOST   4     /dev/sdf          HDD:data  3.64 TB   3.5" SATA HDD 4       --          5           WDC WD4003FFBX-68MU3N0
+NAS_HOST   5     /dev/sdg          HDD:data  2.73 TB   3.5" SATA HDD 5       --          5           WDC WD3001FFSX-68JNUN0
+NAS_HOST   6     /dev/sdh          HDD:data  2.73 TB   3.5" SATA HDD 6       --          5           WDC WD3001FFSX-68JNUN0
+NAS_HOST   7     /dev/sdi          HDD:data  7.28 TB   3.5" SATA HDD 7       --          5           WDC WD80EFZZ-68BTXN0
+NAS_HOST   8     /dev/sdj          HDD:spare 7.28 TB   3.5" SATA HDD 8       --          --          WDC WD80EFZZ-68BTXN0
+NAS_HOST   C1    /dev/sda          SSD:cache 465.76 GB mSATA SATA SSD 1      --          5           Samsung SSD 850 EVO mSATA 500GB
+NAS_HOST   C2    /dev/sdb          SSD:cache 111.79 GB mSATA SATA SSD 2      --          5           KINGSTON SMS200S3120G

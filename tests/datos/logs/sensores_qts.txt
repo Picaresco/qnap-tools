@@ -1,0 +1,7 @@
+cpu=38 C/100 F
+sistema=32 C/90 F
+ventiladores=4
+ventilador1=6279 RPM
+ventilador2=5973 RPM
+ventilador3=5921 RPM
+ventilador4=5947 RPM

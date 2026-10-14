@@ -1,0 +1,249 @@
+uri=qemu:///system
+== 00000000-0000-0000-0000-000000000006
+  <description>descripcion de ejemplo 1</description>
+      <qvs:name>vm1</qvs:name>
+      <qvs:os type="win2012r2" arch="x86"/>
+      <qvs:auto_start_delay enable="off">60</qvs:auto_start_delay>
+      <qvs:snapshot type="external"/>
+  <memory unit='KiB'>4194304</memory>
+  <currentMemory unit='KiB'>4194304</currentMemory>
+  <vcpu placement='static' cpuset='0-3'>2</vcpu>
+    <type arch='x86_64' machine='pc-i440fx-7.0'>hvm</type>
+    <boot dev='cdrom'/>
+    <boot dev='hd'/>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2' cache='writeback'/>
+      <source file='/share/ruta1/vm1/ruta10.1790544225' startupPolicy='optional' index='2'/>
+      <backingStore type='file' index='3'>
+        <source file='/share/ruta1/vm1/ruta10.img'/>
+        <backingStore/>
+      </backingStore>
+      <target dev='hda' bus='ide'/>
+    </disk>
+    <disk type='file' device='cdrom'>
+      <driver name='qemu' type='raw'/>
+      <source file='/QVS/guest_tools.iso' startupPolicy='optional' index='1'/>
+      <backingStore/>
+      <target dev='hdb' bus='ide'/>
+    </disk>
+    <interface type='bridge'>
+      <mac address='00:11:22:33:44:00'/>
+      <source bridge='qvs2'/>
+      <target dev='vnet0'/>
+      <model type='e1000'/>
+    </interface>
+    <graphics type='vnc' port='5900' autoport='yes' listen='127.0.0.1' keymap='es'>
+      <model type='vga' vram='16384' heads='1' primary='yes'/>
+== 00000000-0000-0000-0000-000000000002
+  <description>descripcion de ejemplo 2</description>
+      <qvs:name>vm2</qvs:name>
+      <qvs:os type="win2012r2" arch="x86"/>
+      <qvs:auto_start_delay enable="off">60</qvs:auto_start_delay>
+      <qvs:snapshot type="external"/>
+  <memory unit='KiB'>4194304</memory>
+  <currentMemory unit='KiB'>4194304</currentMemory>
+  <vcpu placement='static' cpuset='0-3'>2</vcpu>
+    <type arch='x86_64' machine='pc-i440fx-7.0'>hvm</type>
+    <boot dev='cdrom'/>
+    <boot dev='hd'/>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2' cache='writeback'/>
+      <source file='/share/ruta1/vm2/ruta4.1790572518' startupPolicy='optional' index='6'/>
+      <backingStore type='file' index='7'>
+        <source file='/share/ruta1/vm2/ruta4.img'/>
+        <backingStore/>
+      </backingStore>
+      <target dev='hda' bus='ide'/>
+    </disk>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2' cache='writeback'/>
+      <source file='/share/ruta1/vm2/ruta5.1790572518' startupPolicy='optional' index='4'/>
+      <backingStore type='file' index='5'>
+        <source file='/share/ruta1/vm2/ruta5.img'/>
+        <backingStore/>
+      </backingStore>
+      <target dev='hdb' bus='ide'/>
+    </disk>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2' cache='writeback'/>
+      <source file='/share/ruta1/vm2/ruta6.1790572518' startupPolicy='optional' index='2'/>
+      <backingStore type='file' index='3'>
+        <source file='/share/ruta1/vm2/ruta6.img'/>
+        <backingStore/>
+      </backingStore>
+      <target dev='hdc' bus='ide'/>
+    </disk>
+    <disk type='file' device='cdrom'>
+      <driver name='qemu' type='raw'/>
+      <source file='/QVS/guest_tools.iso' startupPolicy='optional' index='1'/>
+      <backingStore/>
+      <target dev='hdd' bus='ide'/>
+    </disk>
+    <interface type='bridge'>
+      <mac address='00:11:22:33:44:01'/>
+      <source bridge='qvs2'/>
+      <target dev='vnet1'/>
+      <model type='e1000'/>
+    </interface>
+    <graphics type='vnc' port='5901' autoport='yes' listen='127.0.0.1' keymap='es'>
+      <model type='vga' vram='16384' heads='1' primary='yes'/>
+== 00000000-0000-0000-0000-000000000004
+      <qvs:name>vm3</qvs:name>
+      <qvs:os type="win2019" arch="x86"/>
+      <qvs:auto_start_delay enable="off">60</qvs:auto_start_delay>
+      <qvs:snapshot type="external"/>
+  <memory unit='KiB'>4194304</memory>
+  <currentMemory unit='KiB'>4194304</currentMemory>
+  <vcpu placement='static' cpuset='0-3'>4</vcpu>
+    <type arch='x86_64' machine='pc-i440fx-7.0'>hvm</type>
+    <boot dev='cdrom'/>
+    <boot dev='hd'/>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2' cache='writeback'/>
+      <source file='/share/ruta1/vm3/vm3.1790199623' startupPolicy='optional'/>
+      <backingStore type='file'>
+        <source file='/share/ruta1/vm3/vm3.1715887104'/>
+        <backingStore type='file'>
+          <source file='/share/ruta1/vm3/vm3.1715862105_1'/>
+          <backingStore type='file'>
+            <source file='/share/ruta1/vm3/vm3.img'/>
+            <backingStore/>
+          </backingStore>
+        </backingStore>
+      </backingStore>
+      <target dev='hda' bus='ide'/>
+    </disk>
+    <disk type='file' device='cdrom'>
+      <driver name='qemu' type='raw'/>
+      <target dev='hdb' bus='ide'/>
+    </disk>
+    <interface type='bridge'>
+      <mac address='00:11:22:33:44:02'/>
+      <source bridge='qvs2'/>
+      <model type='e1000'/>
+    </interface>
+    <graphics type='vnc' port='-1' autoport='yes' listen='127.0.0.1' keymap='es'>
+      <model type='vga' vram='16384' heads='1' primary='yes'/>
+== 00000000-0000-0000-0000-000000000003
+  <description>descripcion de ejemplo 3</description>
+      <qvs:name>vm4</qvs:name>
+      <qvs:os type="win11" arch="x86"/>
+      <qvs:auto_start_delay enable="off">60</qvs:auto_start_delay>
+      <qvs:snapshot type="external"/>
+  <memory unit='KiB'>4194304</memory>
+  <currentMemory unit='KiB'>4194304</currentMemory>
+  <vcpu placement='static' cpuset='0-3'>2</vcpu>
+    <type arch='x86_64' machine='pc-q35-7.0'>hvm</type>
+    <loader type='rom'>/QVS/usr/share/qemu/edk2-202605/OVMF_TPM.fd</loader>
+    <boot dev='cdrom'/>
+    <boot dev='hd'/>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2' cache='writeback' discard='unmap' detect_zeroes='unmap'/>
+      <source file='/share/ruta1/vm4/ruta7.1790274085' startupPolicy='optional'/>
+      <backingStore type='file'>
+        <source file='/share/ruta1/vm4/ruta7.img'/>
+        <backingStore/>
+      </backingStore>
+      <target dev='vda' bus='virtio'/>
+    </disk>
+    <disk type='file' device='cdrom'>
+      <driver name='qemu' type='raw'/>
+      <target dev='sda' bus='sata'/>
+    </disk>
+    <disk type='file' device='cdrom'>
+      <driver name='qemu' type='raw'/>
+      <source file='/QVS/guest_tools.iso' startupPolicy='optional'/>
+      <target dev='sdb' bus='sata'/>
+    </disk>
+    <interface type='bridge'>
+      <mac address='00:11:22:33:44:03'/>
+      <source bridge='qvs2'/>
+      <model type='e1000'/>
+    </interface>
+    <tpm model='tpm-tis'>
+    <graphics type='vnc' port='-1' autoport='yes' listen='127.0.0.1' keymap='es'>
+      <model type='vga' vram='16384' heads='1' primary='yes'/>
+== 00000000-0000-0000-0000-000000000001
+  <description>descripcion de ejemplo 4</description>
+      <qvs:name>vm5</qvs:name>
+      <qvs:os type="win2025" arch="x86"/>
+      <qvs:auto_start_delay enable="off">60</qvs:auto_start_delay>
+      <qvs:snapshot type="external"/>
+  <memory unit='KiB'>4194304</memory>
+  <currentMemory unit='KiB'>4194304</currentMemory>
+  <vcpu placement='static' cpuset='0-3'>2</vcpu>
+    <type arch='x86_64' machine='pc-q35-7.0'>hvm</type>
+    <loader type='rom'>/QVS/usr/share/qemu/edk2-202605/OVMF_TPM.fd</loader>
+    <boot dev='cdrom'/>
+    <boot dev='hd'/>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2' cache='writethrough' discard='unmap' detect_zeroes='unmap'/>
+      <source file='/share/ruta1/vm5/ruta2.1790545065' startupPolicy='optional'/>
+      <backingStore type='file'>
+        <source file='/share/ruta1/vm5/ruta2.img'/>
+        <backingStore/>
+      </backingStore>
+      <target dev='vda' bus='virtio'/>
+    </disk>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2' cache='writethrough'/>
+      <source file='/share/ruta1/vm5/ruta3.1790545065' startupPolicy='optional'/>
+      <backingStore type='file'>
+        <source file='/share/ruta1/vm5/ruta3.img'/>
+        <backingStore/>
+      </backingStore>
+      <target dev='vdb' bus='virtio'/>
+    </disk>
+    <disk type='file' device='cdrom'>
+      <driver name='qemu' type='raw'/>
+      <source file='/QVS/guest_tools.iso' startupPolicy='optional'/>
+      <target dev='sda' bus='sata'/>
+    </disk>
+    <interface type='bridge'>
+      <mac address='00:11:22:33:44:04'/>
+      <source bridge='qvs2'/>
+      <model type='e1000'/>
+    </interface>
+    <graphics type='vnc' port='-1' autoport='yes' listen='127.0.0.1' keymap='es'>
+      <model type='vga' vram='16384' heads='1' primary='yes'/>
+== 00000000-0000-0000-0000-000000000005
+  <description>descripcion de ejemplo 5</description>
+      <qvs:name>vm6</qvs:name>
+      <qvs:os type="win2022" arch="x86"/>
+      <qvs:auto_start_delay enable="off">60</qvs:auto_start_delay>
+      <qvs:snapshot type="external"/>
+  <memory unit='KiB'>4194304</memory>
+  <currentMemory unit='KiB'>4194304</currentMemory>
+  <vcpu placement='static' cpuset='0-3'>2</vcpu>
+    <type arch='x86_64' machine='pc-i440fx-7.0'>hvm</type>
+    <loader type='rom'>/QVS/usr/share/qemu/edk2-202605/OVMF_TPM.fd</loader>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2' cache='writethrough'/>
+      <source file='/share/ruta1/vm6/ruta8.1790544667' startupPolicy='optional'/>
+      <backingStore type='file'>
+        <source file='/share/ruta1/vm6/ruta8.img'/>
+        <backingStore/>
+      </backingStore>
+      <target dev='vda' bus='virtio'/>
+    </disk>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2' cache='writethrough'/>
+      <source file='/share/ruta1/vm6/ruta9.1790544667' startupPolicy='optional'/>
+      <backingStore type='file'>
+        <source file='/share/ruta1/vm6/ruta9.img'/>
+        <backingStore/>
+      </backingStore>
+      <target dev='vdb' bus='virtio'/>
+    </disk>
+    <disk type='file' device='cdrom'>
+      <driver name='qemu' type='raw'/>
+      <source file='/QVS/guest_tools.iso' startupPolicy='optional'/>
+      <target dev='hda' bus='ide'/>
+    </disk>
+    <interface type='bridge'>
+      <mac address='00:11:22:33:44:05'/>
+      <source bridge='qvs2'/>
+      <model type='e1000'/>
+    </interface>
+    <graphics type='vnc' port='-1' autoport='yes' listen='127.0.0.1' keymap='es'>
+      <model type='vga' vram='16384' heads='1' primary='yes'/>

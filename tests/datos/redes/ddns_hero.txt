@@ -1,0 +1,51 @@
+==myqnapcloud
+QNAP DDNS Service/Enable = TRUE
+QNAP DDNS Service/Host Name = nas-ejemplo
+QNAP DDNS Service/Domain Name Server = myqnapcloud.com
+==ddns
+[selfHOST.de]
+enable = 0
+hostname = 1
+[PeanutHull]
+enable = 0
+hostname = 
+[STRATO]
+enable = 0
+hostname = 
+[DyNS]
+enable = 0
+hostname = 
+[PubYun]
+enable = 0
+hostname = 
+[DDNS-Now]
+enable = 0
+hostname = 
+[global]
+[myQNAPcloud]
+enable = 1
+hostname = nas-ejemplo.myqnapcloud.com
+[GoogleDomains]
+enable = 0
+hostname = 
+[Two-DNS]
+enable = 0
+hostname = 
+[DynDNS]
+enable = 0
+hostname = 
+[NO-IP]
+enable = 0
+hostname = 
+[FreeDNS]
+enable = 0
+hostname = 
+[OVH]
+enable = 0
+hostname = 
+[DHS]
+enable = 0
+hostname = 
+[ipcam]
+enable = 0
+hostname = 

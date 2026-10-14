@@ -1,0 +1,35 @@
+red7	bridge	local	false	[{"Subnet":"192.0.2.3/22","Gateway":"192.0.2.4"}]	contenedor9=192.0.2.5/22 contenedor25=192.0.2.6/22 proyecto7=192.0.2.7/22 
+red11	bridge	local	false	[{"Subnet":"192.0.2.8/22","Gateway":"192.0.2.9"}]	contenedor18=192.0.2.10/22 
+red6	bridge	local	false	[{"Subnet":"192.0.2.11/22","Gateway":"192.0.2.12"}]	
+red19	bridge	local	false	[{"Subnet":"192.0.2.13/22","Gateway":"192.0.2.14"}]	
+bridge	bridge	local	false	[{"Subnet":"192.0.2.15/24","Gateway":"192.0.2.16"}]	
+red13	bridge	local	false	[{"Subnet":"192.0.2.17/22","Gateway":"192.0.2.18"}]	contenedor21=192.0.2.19/22 
+red15	bridge	local	false	[{"Subnet":"192.0.2.20/22","Gateway":"192.0.2.21"}]	contenedor23=192.0.2.22/22 
+red8	bridge	local	false	[{"Subnet":"192.0.2.23/22","Gateway":"192.0.2.24"}]	contenedor12=192.0.2.25/22 contenedor10=192.0.2.26/22 contenedor13=192.0.2.27/22 contenedor11=192.0.2.28/22 
+red28	bridge	local	false	[{"Subnet":"192.0.2.29/22","Gateway":"192.0.2.30"}]	
+red22	bridge	local	false	[{"Subnet":"192.0.2.31/22","Gateway":"192.0.2.32"}]	contenedor35=192.0.2.33/22 
+red1	bridge	local	false	[{"Subnet":"192.0.2.34/22","Gateway":"192.0.2.1"}]	contenedor17=192.0.2.35/22 contenedor1=192.0.2.2/22 
+red21	bridge	local	false	[{"Subnet":"192.0.2.36/22","Gateway":"192.0.2.37"}]	
+red25	bridge	local	false	[{"Subnet":"192.0.2.38/22","Gateway":"192.0.2.39"}]	contenedor39=192.0.2.40/22 
+red23	bridge	local	false	[{"Subnet":"192.0.2.41/22","Gateway":"192.0.2.42"}]	contenedor36=192.0.2.43/22 
+red10	bridge	local	false	[{"Subnet":"192.0.2.44/22","Gateway":"192.0.2.45"}]	contenedor15=192.0.2.46/22 contenedor33=192.0.2.47/22 
+host	host	local	false	null	
+red29	bridge	local	false	[{"Subnet":"192.0.2.48/22","Gateway":"192.0.2.49"}]	
+red24	bridge	local	false	[{"Subnet":"192.0.2.50/22","Gateway":"192.0.2.51"}]	contenedor37=192.0.2.52/22 contenedor42=192.0.2.53/22 contenedor38=192.0.2.54/22 contenedor43=192.0.2.55/22 
+red26	bridge	local	false	[{"Subnet":"192.0.2.56/22","Gateway":"192.0.2.57"}]	contenedor40=192.0.2.58/22 
+red3	bridge	local	false	[{"Subnet":"192.0.2.59/22","Gateway":"192.0.2.60"}]	contenedor3=192.0.2.61/22 
+red20	bridge	local	false	[{"Subnet":"192.0.2.62/22","Gateway":"192.0.2.63"}]	contenedor28=192.0.2.64/22 
+red27	bridge	local	false	[{"Subnet":"192.0.2.65/22","Gateway":"192.0.2.66"}]	contenedor41=192.0.2.67/22 
+red30	bridge	local	false	[{"Subnet":"192.0.2.68/22","Gateway":"192.0.2.69"}]	
+none	null	local	false	null	
+red16	bridge	local	false	[{"Subnet":"192.0.2.70/22","Gateway":"192.0.2.71"}]	contenedor24=192.0.2.72/22 
+red17	bridge	local	false	[{"Subnet":"192.0.2.73/22","Gateway":"192.0.2.74"}]	contenedor25=192.0.2.75/22 
+red18	bridge	local	false	[{"Subnet":"192.0.2.76/22","Gateway":"192.0.2.77"}]	
+red31	qnet	local	false	[{"Subnet":"0.0.0.0/0","Gateway":"192.0.2.78"}]	
+red32	qnet	local	false	[{"Subnet":"192.0.2.79/24","Gateway":"192.0.2.78"}]	
+red12	bridge	local	false	[{"Subnet":"192.0.2.80/22","Gateway":"192.0.2.81"}]	contenedor20=192.0.2.82/22 contenedor34=192.0.2.83/22 contenedor19=192.0.2.84/22 
+red14	bridge	local	false	[{"Subnet":"192.0.2.85/22","Gateway":"192.0.2.86"}]	contenedor22=192.0.2.87/22 
+red4	bridge	local	false	[{"Subnet":"192.0.2.88/22","Gateway":"192.0.2.89"}]	contenedor4=192.0.2.90/22 
+red5	bridge	local	false	[{"Subnet":"192.0.2.91/22","Gateway":"192.0.2.92"}]	
+red9	bridge	local	true	[{"Subnet":"192.0.2.93/22","Gateway":"192.0.2.94"}]	contenedor16=192.0.2.95/22 contenedor14=192.0.2.96/22 
+red2	bridge	local	false	[{"Subnet":"192.0.2.97/22","Gateway":"192.0.2.98"}]	contenedor14=192.0.2.99/22 contenedor2=192.0.2.100/22 contenedor3=192.0.2.101/22 

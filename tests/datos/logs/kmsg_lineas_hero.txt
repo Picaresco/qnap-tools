@@ -1,0 +1,21 @@
+==lineas 24
+2026-09-28 19:52:42 +02:00 <3> [   83.869431] FAT-fs (sdg1): bogus number of reserved sectors
+2026-09-28 19:52:42 +02:00 <3> [   95.018425] FAT-fs (sdg1): bogus number of reserved sectors
+2026-09-28 19:52:42 +02:00 <3> [   95.035588] FAT-fs (sdg1): bogus number of reserved sectors
+2026-09-28 19:52:42 +02:00 <1> [  104.711916] Register_Device: Launch the fnotify thread: 18446612687717604736
+2026-09-28 19:52:42 +02:00 <3> [  110.466837] FAT-fs (sdg1): bogus number of reserved sectors
+2026-09-28 19:53:08 +02:00 <3> [  375.460324] kvm_amd: CPU 1 isn't AMD or Hygon
+2026-09-28 19:53:08 +02:00 <3> [  375.488415] kvm_amd: CPU 1 isn't AMD or Hygon
+2026-09-28 19:53:09 +02:00 <3>  failed to prefill DIMM database from DMI data
+2026-10-13 17:14:03 +02:00 <3> [    1.404685] Spectre V2 : Kernel not compiled with retpoline; no mitigation available!
+2026-10-13 17:14:03 +02:00 <1> [   19.310544] qm2_i2c_init : Find 111d:8061. SDA 11 SCL 7
+2026-10-13 17:14:03 +02:00 <3> [   22.865743] FAT-fs (sdg1): bogus number of reserved sectors
+2026-10-13 17:14:03 +02:00 <3> [   86.775674] FAT-fs (sdg1): bogus number of reserved sectors
+2026-10-13 17:14:03 +02:00 <3> [   86.792967] FAT-fs (sdg1): bogus number of reserved sectors
+2026-10-13 17:14:03 +02:00 <3> [   96.947017] FAT-fs (sdg1): bogus number of reserved sectors
+2026-10-13 17:14:03 +02:00 <3> [   96.964224] FAT-fs (sdg1): bogus number of reserved sectors
+2026-10-13 17:14:03 +02:00 <1> [  107.176961] Register_Device: Launch the fnotify thread: 18446612687807909568
+2026-10-13 17:14:03 +02:00 <3> [  113.013907] FAT-fs (sdg1): bogus number of reserved sectors
+2026-10-13 17:14:35 +02:00 <3> [  387.151874] kvm_amd: CPU 1 isn't AMD or Hygon
+2026-10-13 17:14:35 +02:00 <3> [  387.181330] kvm_amd: CPU 1 isn't AMD or Hygon
+2026-10-13 17:14:39 +02:00 <3>  failed to prefill DIMM database from DMI data

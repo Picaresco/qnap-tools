@@ -1,0 +1,92 @@
+lo               UNKNOWN        127.0.0.1/8 ::1/128 
+br-000000000003  UP             192.0.2.1/22 
+eth0             DOWN           
+eth3             DOWN           
+eth2             DOWN           
+eth1             DOWN           
+eth5             UP             
+eth4             UP             192.0.2.2/16 
+bond0            DOWN           
+bond1            DOWN           
+bond2            DOWN           
+bond3            DOWN           
+br-000000000004  UP             192.0.2.3/22 
+bond4            DOWN           
+bond5            DOWN           
+dummy0           DOWN           
+br-000000000005  UP             192.0.2.4/22 
+veth0000001@if271 UP             
+br-000000000006  UP             192.0.2.5/22 
+br-000000000007  UP             192.0.2.6/22 
+br-000000000008  UNKNOWN        192.0.2.7/22 
+br-000000000009  UP             192.0.2.8/22 
+br-000000000010  DOWN           192.0.2.9/22 
+br-000000000011  UP             192.0.2.10/22 
+br-000000000012  UP             192.0.2.11/22 
+br-000000000013  UNKNOWN        192.0.2.12/22 
+br-000000000014  UP             192.0.2.13/22 
+br-000000000015  UP             192.0.2.14/22 
+br-000000000016  UNKNOWN        192.0.2.15/22 
+br-000000000017  UNKNOWN        192.0.2.16/22 
+br-000000000018  UP             192.0.2.17/22 
+br-000000000019  UP             192.0.2.18/22 
+br-000000000020  UP             192.0.2.19/22 
+br-000000000021  UNKNOWN        192.0.2.20/22 
+br0              UP             192.0.2.21/24 
+docker0          UP             192.0.2.22/24 
+lxcbr0           DOWN           192.0.2.23/24 
+lxdbr0           UNKNOWN        192.0.2.24/24 
+qvs1             DOWN           
+veth0000002@if297 UP             
+veth0000003@if299 UP             
+veth0000004@if43 UP             
+veth0000005@if557 UP             
+veth0000006@if45 UP             
+veth0000007@if559 UP             
+veth0000008@if561 UP             
+veth0000009@if49 UP             
+veth0000010@if563 UP             
+veth0000011@if51 UP             
+veth0000012@if565 UP             
+veth0000013@if53 UP             
+veth0000014@if55 UP             
+br-000000000022  DOWN           192.0.2.25/22 
+veth0000015@if57 UP             
+veth0000016@if59 UP             
+veth0000017@if316 UP             
+br-000000000023  DOWN           192.0.2.26/22 
+veth0000018@if63 UP             
+veth0000019@if69 UP             
+veth0000020@if73 UP             
+veth0000021@if77 UP             
+vnet0            UNKNOWN        
+vnet1            UNKNOWN        
+vnet2            UNKNOWN        
+br-000000000024  UP             192.0.2.27/22 
+veth0000022@if93 UP             
+veth0000023@if95 UP             
+br-000000000025  UP             192.0.2.28/22 
+veth0000024@if356 UP             
+vnet7            UNKNOWN        
+veth0000025@if111 UP             
+br-000000000026  UP             192.0.2.29/22 
+veth0000026@if625 UP             
+br-000000000027  UP             192.0.2.30/22 
+veth0000027@if371 UP             
+vnet3            UNKNOWN        
+veth0000028@if377 UP             
+veth0000029@if635 UP             
+veth0000030@if637 UP             
+br-000000000028  UP             192.0.2.31/22 
+br-000000000029  UP             192.0.2.32/22 
+veth0000031@if641 UP             
+veth0000032@if135 UP             
+veth0000033@if651 UP             
+br-000000000030  UP             192.0.2.33/22 
+br-000000000031  UP             192.0.2.34/22 
+veth0000034@if187 UP             
+veth0000035@if446 UP             
+veth0000036@if448 UP             
+br-000000000032  UP             192.0.2.35/22 
+veth0000037@if455 UP             
+veth0000038@if242 UP             

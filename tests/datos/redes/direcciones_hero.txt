@@ -1,0 +1,18 @@
+lo               UNKNOWN        127.0.0.1/8 ::1/128 
+eth1             DOWN           
+eth0             UP             192.0.2.16/24 fe80::200:5eff:fe00:5301/64 
+eth3             DOWN           
+eth2             DOWN           
+bond0            DOWN           
+bond1            DOWN           
+bond2            DOWN           
+bond3            DOWN           
+dummy0           DOWN           
+br-000000000001  DOWN           192.0.2.17/22 
+br-000000000002  DOWN           192.0.2.18/24 
+docker0          DOWN           192.0.2.5/24 
+lxcbr0           DOWN           192.0.2.9/24 
+lxdbr0           DOWN           192.0.2.13/24 
+qvs2             UP             192.0.2.19/24 
+vnet0            UNKNOWN        
+vnet1            UNKNOWN        

@@ -1,0 +1,1 @@
+"/share/CACHEDEV1_DATA/carpeta12" 192.0.2.3(sec=sys,ro,async,wdelay,insecure,no_subtree_check,no_root_squash,fsid=00000000000000000000000000000001) 

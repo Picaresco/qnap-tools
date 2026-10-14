@@ -1,0 +1,246 @@
+[Global]
+Count = 27
+[Sequence]
+[Snapshot30021]
+snapshotId = 30021
+name = GMT+01_2026-10-08_0254
+size = 4294967296
+expiremin = 0
+time = 1791420881
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot30022]
+snapshotId = 30022
+name = GMT+01_2026-10-08_0854
+size = 4294967296
+expiremin = 0
+time = 1791442480
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot30023]
+snapshotId = 30023
+name = GMT+01_2026-10-08_1454
+size = 4294967296
+expiremin = 0
+time = 1791464089
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot30024]
+snapshotId = 30024
+name = GMT+01_2026-10-08_2054
+size = 4294967296
+expiremin = 0
+time = 1791485678
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot30001]
+snapshotId = 30001
+name = GMT+01_2026-10-09_0254
+size = 4294967296
+expiremin = 0
+time = 1791507280
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot30002]
+snapshotId = 30002
+name = GMT+01_2026-10-09_0854
+size = 4294967296
+expiremin = 0
+time = 1791528892
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot30003]
+snapshotId = 30003
+name = GMT+01_2026-10-09_1454
+size = 4294967296
+expiremin = 0
+time = 1791550485
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot30004]
+snapshotId = 30004
+name = GMT+01_2026-10-09_2054
+size = 4294967296
+expiremin = 0
+time = 1791572079
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot30005]
+snapshotId = 30005
+name = GMT+01_2026-10-10_0254
+size = 4294967296
+expiremin = 0
+time = 1791593680
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot30006]
+snapshotId = 30006
+name = GMT+01_2026-10-10_0854
+size = 4294967296
+expiremin = 0
+time = 1791615279
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot30007]
+snapshotId = 30007
+name = GMT+01_2026-10-10_1454
+size = 4294967296
+expiremin = 0
+time = 1791636895
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot30008]
+snapshotId = 30008
+name = GMT+01_2026-10-10_2054
+size = 4294967296
+expiremin = 0
+time = 1791658492
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot30009]
+snapshotId = 30009
+name = GMT+01_2026-10-11_0254
+size = 4294967296
+expiremin = 0
+time = 1791680094
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot30010]
+snapshotId = 30010
+name = GMT+01_2026-10-11_0854
+size = 4294967296
+expiremin = 0
+time = 1791701679
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot30011]
+snapshotId = 30011
+name = GMT+01_2026-10-11_1454
+size = 4294967296
+expiremin = 0
+time = 1791723280
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot10002]
+snapshotId = 10002
+name = GMT+01_2026-10-11_1700
+size = 7365197824
+expiremin = 0
+time = 1791730827
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot30012]
+snapshotId = 30012
+name = GMT+01_2026-10-11_2054
+size = 4294967296
+expiremin = 0
+time = 1791744880
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot30013]
+snapshotId = 30013
+name = GMT+01_2026-10-12_0254
+size = 4294967296
+expiremin = 0
+time = 1791766482
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot30014]
+snapshotId = 30014
+name = GMT+01_2026-10-12_0854
+size = 4294967296
+expiremin = 0
+time = 1791788080
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot30015]
+snapshotId = 30015
+name = GMT+01_2026-10-12_1454
+size = 4294967296
+expiremin = 0
+time = 1791809680
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot10003]
+snapshotId = 10003
+name = GMT+01_2026-10-12_1700
+size = 7365197824
+expiremin = 0
+time = 1791817222
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot30016]
+snapshotId = 30016
+name = GMT+01_2026-10-12_2054
+size = 4294967296
+expiremin = 0
+time = 1791831281
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot30017]
+snapshotId = 30017
+name = GMT+01_2026-10-13_0254
+size = 4294967296
+expiremin = 0
+time = 1791852883
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot30018]
+snapshotId = 30018
+name = GMT+01_2026-10-13_0854
+size = 4294967296
+expiremin = 0
+time = 1791874510
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot30019]
+snapshotId = 30019
+name = GMT+01_2026-10-13_1454
+size = 4294967296
+expiremin = 0
+time = 1791896082
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot10001]
+snapshotId = 10001
+name = GMT+01_2026-10-13_1700
+size = 7365197824
+expiremin = 0
+time = 1791903632
+vital = 0
+snapshot_type = 0
+replicated = 1
+[Snapshot30020]
+snapshotId = 30020
+name = GMT+01_2026-10-13_2054
+size = 4294967296
+expiremin = 0
+time = 1791917678
+vital = 0
+snapshot_type = 0
+replicated = 1

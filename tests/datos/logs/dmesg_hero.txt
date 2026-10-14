@@ -1,0 +1,21 @@
+==lineas 1932
+[ 5557.589129] qvs2: port 2(vnet1) entered blocking state
+[ 5557.594290] qvs2: port 2(vnet1) entered listening state
+[ 5557.624619] !@[/etc/init.d/net_event_setup.sh]rename_trct_nic() called
+[ 5572.930754] qvs2: port 2(vnet1) entered learning state
+[ 5588.290757] qvs2: port 2(vnet1) entered forwarding state
+[ 5588.296111] qvs2: topology change detected, propagating
+[ 5971.447874] perf: interrupt took too long (2501 > 2500), lowering kernel.perf_event_max_sample_rate to 79000
+[ 6103.710762] hrtimer: interrupt took 9373 ns
+[ 8211.690578] perf: interrupt took too long (3129 > 3126), lowering kernel.perf_event_max_sample_rate to 63000
+[35535.857303] ext2 filesystem being mounted at /tmp/nasconfig_tmp supports timestamps until 2038-01-19 (0x7fffffff)
+[35537.772974] ext2 filesystem being mounted at /tmp/nasconfig_tmp supports timestamps until 2038-01-19 (0x7fffffff)
+[35539.165577] ext2 filesystem being mounted at /tmp/nasconfig_tmp supports timestamps until 2038-01-19 (0x7fffffff)
+[35555.657635] ext2 filesystem being mounted at /tmp/config supports timestamps until 2038-01-19 (0x7fffffff)
+[35555.692196] ext2 filesystem being mounted at /tmp/config supports timestamps until 2038-01-19 (0x7fffffff)
+[35555.834447] ext2 filesystem being mounted at /tmp/config supports timestamps until 2038-01-19 (0x7fffffff)
+[35557.059488] ext2 filesystem being mounted at /tmp/config supports timestamps until 2038-01-19 (0x7fffffff)
+[35557.087172] ext2 filesystem being mounted at /tmp/config supports timestamps until 2038-01-19 (0x7fffffff)
+[35569.196544] ext2 filesystem being mounted at /tmp/config supports timestamps until 2038-01-19 (0x7fffffff)
+[35571.201183] ext2 filesystem being mounted at /tmp/config supports timestamps until 2038-01-19 (0x7fffffff)
+[35571.237288] ext2 filesystem being mounted at /tmp/config supports timestamps until 2038-01-19 (0x7fffffff)

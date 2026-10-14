@@ -1,0 +1,10 @@
+192.0.2.44 dev br-000000000001 FAILED 
+192.0.2.45 dev lxdbr0 FAILED 
+192.0.2.46 dev lxcbr0 FAILED 
+192.0.2.47 dev qvs2 lladdr 00:11:22:33:44:11 STALE 
+192.0.2.48 dev eth0 lladdr 00:11:22:33:44:12 REACHABLE 
+192.0.2.49 dev eth0 FAILED 
+192.0.2.50 dev br-000000000002 FAILED 
+192.0.2.51 dev qvs2 FAILED 
+192.0.2.36 dev eth0 lladdr 00:11:22:33:44:13 REACHABLE 
+192.0.2.52 dev docker0 FAILED 

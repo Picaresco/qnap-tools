@@ -1,0 +1,4 @@
+cpu=56 C/132 F
+sistema=41 C/106 F
+ventiladores=1
+ventilador1=1368 RPM

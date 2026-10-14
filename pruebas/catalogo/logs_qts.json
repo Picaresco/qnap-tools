@@ -1,0 +1,6 @@
+{"comandos": [
+ {"id": "qulogd_log", "nas": "qts", "da": "traza del demonio de QuLog Center (tamano y ultimas lineas)", "cmd": "ls -la /var/log/qulog/ | cut -c1-90; tail -3 /var/log/qulog/qulogd.log | cut -c1-140"},
+ {"id": "red_logs", "nas": "qts", "da": "logs del gestor de red (en QTS estan en /var/log/network, con bootup.log en /mnt/HDA_ROOT/.logs)", "cmd": "ls -la /var/log/network/ | cut -c1-110 | head -20"},
+ {"id": "sin_python3", "nas": "qts", "da": "confirma que no hay python3 ni sqlite3: los .log SQLite solo se leen con las utilidades *_log_tool", "cmd": "ls /QVS/usr/bin/python3 /usr/local/bin/python3 /usr/bin/python3 /usr/bin/sqlite3 /usr/local/bin/sqlite3 2>&1; ls /usr/local/bin/ | grep -i python"}
+],
+"limites": []}

@@ -1,0 +1,26 @@
+0:	from all lookup local
+19000:	from all fwmark 0x900/0xff00 lookup 20011
+19000:	from all fwmark 0xa00/0xff00 lookup 20012
+19000:	from all fwmark 0xb00/0xff00 lookup 20013
+19000:	from all fwmark 0xc00/0xff00 lookup 20014
+19000:	from all fwmark 0xd00/0xff00 lookup 20015
+19000:	from all fwmark 0xe00/0xff00 lookup 20016
+19000:	from all fwmark 0x100/0xff00 lookup 20003
+19496:	from all fwmark 0x10000/0xf0000 lookup main
+19498:	from all lookup 19498
+20003:	from 192.0.2.16 lookup 20003
+20003:	from all oif eth0 lookup 20003
+20011:	from 192.0.2.17 lookup 20011
+20011:	from all oif br-000000000001 lookup 20011
+20012:	from 192.0.2.18 lookup 20012
+20012:	from all oif br-000000000002 lookup 20012
+20013:	from 192.0.2.5 lookup 20013
+20013:	from all oif docker0 lookup 20013
+20014:	from 192.0.2.9 lookup 20014
+20014:	from all oif lxcbr0 lookup 20014
+20015:	from 192.0.2.13 lookup 20015
+20015:	from all oif lxdbr0 lookup 20015
+20016:	from 192.0.2.19 lookup 20016
+20016:	from all oif qvs2 lookup 20016
+32766:	from all lookup main
+32767:	from all lookup default

@@ -1,0 +1,10 @@
+[
+  {"cmd": "log_tool", "requiere": ["-q"], "solo_flags": ["-q", "-v", "-s", "-l", "-o", "-e", "-i", "-d", "-g", "-u", "-p", "-m", "-k", "-A", "-N", "-C", "-G"], "nota": "ayuda: -q 'Query the data of event logs' con sus filtros; quedan fuera -c initdb, -r rmdb, -f flushdb, -y modifydb, -b maxlog, -a append. -u/-p/-m/-A/-N/-C/-G son filtros cuando van con -q. Comprobado en nas1: md5 y mtime de event.log identicos antes y despues de consultar"},
+  {"cmd": "conn_log_tool", "requiere": ["-q"], "solo_flags": ["-q", "-v", "-s", "-l", "-o", "-e", "-g", "--gdpr"], "nota": "ayuda: -q 'Query the data of connection logs'; fuera -c -r -f -y -b -a -S"},
+  {"cmd": "notice_log_tool", "requiere": ["-q"], "solo_flags": ["-q", "-v", "-s", "-l", "-o", "-e"], "nota": "ayuda: -q 'Query the data of notice logs'; fuera -c -r -f -M -R -b -E -a. Comprobado: md5 de notice.log identico antes y despues"},
+  {"cmd": "getsysinfo", "solo_flags": [], "max_posicionales": 0, "nota": "sin argumentos imprime su uso"},
+  {"cmd": "getsysinfo", "sub": ["cputmp", "systmp", "sysfan", "sysfannum", "hdnum", "hdtmp", "hdstatus", "hdmodel", "hdcapacity", "hdsmart", "model", "sysvolnum", "vol_desc", "vol_fs", "vol_totalsize", "vol_freesize", "vol_status"], "max_posicionales": 2, "solo_flags": [], "nota": "su propio uso describe todas las claves como 'get ...'; no tiene claves de escritura"},
+  {"cmd": "hal_app", "solo_flags": ["--se_enum", "--se_getinfo", "--se_get_status"], "max_posicionales": 1, "deny": ["^(?!enc_id=[0-9]+$)[^-]"], "nota": "ayuda: --se_enum 'Enumerate the system enclosure', --se_getinfo 'Retrieve the specified enclosure infomation', --se_get_status 'Get specified enc_id status'; el unico posicional admitido es enc_id=N"},
+  {"cmd": "zcat", "nota": "descomprime a la salida estandar, no toca el fichero"},
+  {"cmd": "upsc", "nota": "cliente NUT de consulta: lista variables del SAI, no tiene ordenes de escritura (eso es upscmd/upsrw)"}
+]

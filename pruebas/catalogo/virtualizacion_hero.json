@@ -1,0 +1,298 @@
+{
+ "comandos": [
+  {
+   "id": "vm_lista",
+   "nas": "hero",
+   "da": "VMs definidas (por UUID) y su estado",
+   "cmd": "LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system list --all 2>&1"
+  },
+  {
+   "id": "vm_resumen",
+   "nas": "hero",
+   "da": "Por VM: nombre visible, descripcion, SO, RAM, vCPU, tipo de maquina/firmware, arranque automatico, tipo de snapshot, discos, NIC y puente",
+   "cmd": "for d in $(LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system list --all --uuid) ; do echo == $d; LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system dumpxml $d | grep -E 'qvs:name|<description|qvs:os |auto_start_delay|qvs:snapshot|<memory|<vcpu|machine=|<loader|<boot |source file|source bridge|mac address|model type|<graphics'; done"
+  },
+  {
+   "id": "vm_xml",
+   "nas": "hero",
+   "da": "XML completo de cada VM (toda la configuracion: CPU, discos, controladoras, NIC, video, USB, passthrough)",
+   "cmd": "for d in $(LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system list --all --uuid) ; do LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system dumpxml $d; done"
+  },
+  {
+   "id": "vm_dominfo",
+   "nas": "hero",
+   "da": "Estado, vCPU, tiempo de CPU, memoria maxima y usada, persistente, autostart de libvirt",
+   "cmd": "for d in $(LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system list --all --uuid) ; do LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system dominfo $d; done"
+  },
+  {
+   "id": "vm_discos",
+   "nas": "hero",
+   "da": "Discos y CD de cada VM y el fichero de imagen que usa cada uno",
+   "cmd": "for d in $(LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system list --all --uuid) ; do echo == $d; LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system domblklist --details $d; done"
+  },
+  {
+   "id": "vm_discos_uso",
+   "nas": "hero",
+   "da": "Capacidad, espacio asignado y fisico de cada disco virtual",
+   "cmd": "for d in $(LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system list --all --uuid) ; do echo == $d; LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system domblkinfo $d --all --human 2>&1; done"
+  },
+  {
+   "id": "vm_nics",
+   "nas": "hero",
+   "da": "NIC de cada VM: interfaz vnet, puente (conmutador virtual), modelo y MAC",
+   "cmd": "for d in $(LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system list --all --uuid) ; do echo == $d; LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system domiflist $d; done"
+  },
+  {
+   "id": "vm_estadisticas",
+   "nas": "hero",
+   "da": "Uso en vivo de las VMs encendidas: CPU, memoria (balloon/rss), E/S de disco y de red por dispositivo",
+   "cmd": "LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system domstats 2>&1"
+  },
+  {
+   "id": "vm_memoria",
+   "nas": "hero",
+   "da": "Estadisticas de memoria de las VMs encendidas",
+   "cmd": "for d in $(LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system list --uuid) ; do echo == $d; LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system dommemstat $d; done"
+  },
+  {
+   "id": "vm_vcpus",
+   "nas": "hero",
+   "da": "Estado y afinidad de cada vCPU de las VMs encendidas",
+   "cmd": "for d in $(LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system list --uuid) ; do echo == $d; LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system vcpuinfo $d; done"
+  },
+  {
+   "id": "vm_ip_arp",
+   "nas": "hero",
+   "da": "IP de las VMs encendidas segun la tabla ARP del anfitrion (puede salir vacia)",
+   "cmd": "for d in $(LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system list --uuid) ; do echo == $d; LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system domifaddr $d --source arp 2>&1; done"
+  },
+  {
+   "id": "vm_ip_agente",
+   "nas": "hero",
+   "da": "PRUEBA DE LIMITE: IP por el agente del invitado; libvirt lo prohibe en solo lectura",
+   "cmd": "for d in $(LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system list --uuid) ; do LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system domifaddr $d --source agent 2>&1; done"
+  },
+  {
+   "id": "vm_vnc",
+   "nas": "hero",
+   "da": "Puerto VNC de la consola de las VMs encendidas",
+   "cmd": "for d in $(LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system list --uuid) ; do echo == $d; LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system vncdisplay $d 2>&1; done"
+  },
+  {
+   "id": "vm_snap_libvirt",
+   "nas": "hero",
+   "da": "Snapshots conocidos por libvirt (VS usa snapshots externos propios: suele salir vacio)",
+   "cmd": "for d in $(LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system list --all --uuid) ; do echo == $d; LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system snapshot-list $d --parent 2>&1; done"
+  },
+  {
+   "id": "vm_snap_vs",
+   "nas": "hero",
+   "da": "Snapshots de VS: un XML por snapshot en la carpeta .meta de cada VM (nombre = marca de tiempo)",
+   "cmd": "ls -la /share/Vms/*/.*.meta/snapshot 2>&1"
+  },
+  {
+   "id": "vm_imagen",
+   "nas": "hero",
+   "da": "Formato, tamano virtual y real, y cadena de imagenes base (snapshots externos) de un disco",
+   "cmd": "for d in $(LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system list --all --uuid) ; do for f in $(LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system domblklist $d | awk '$1 ~ /^(hd|sd|vd)/ && $2 ~ /^\\/share/ {print $2}') ; do LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/qemu-img info -U --backing-chain $f 2>&1; done; done"
+  },
+  {
+   "id": "libvirt_redes",
+   "nas": "hero",
+   "da": "Redes y pools de almacenamiento de libvirt (VS no los usa: cuelga las NIC de puentes qvsN)",
+   "cmd": "LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system net-list --all 2>&1; LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system pool-list --all --details 2>&1"
+  },
+  {
+   "id": "nodo",
+   "nas": "hero",
+   "da": "Anfitrion visto por libvirt: CPU, nucleos, RAM, memoria libre, versiones de libvirt y QEMU",
+   "cmd": "LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system nodeinfo; LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system nodememstats; LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system version; LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system maxvcpus"
+  },
+  {
+   "id": "nodo_capacidades",
+   "nas": "hero",
+   "da": "Modelos de CPU y tipos de maquina que admite el hipervisor",
+   "cmd": "LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r -c qemu:///system capabilities | grep -E '<model>|<vendor>|<machine ' | head -40"
+  },
+  {
+   "id": "sin_uri_sistema",
+   "nas": "hero",
+   "da": "PRUEBA DE LIMITE: la guardia debe bloquear virsh sin '-c qemu:///system' (caeria en la sesion de usuario)",
+   "cmd": "LD_LIBRARY_PATH=/QVS/usr/lib:/QVS/usr/lib64:/QVS/lib /QVS/usr/bin/virsh -r list --all"
+  },
+  {
+   "id": "vs_conf",
+   "nas": "hero",
+   "da": "Configuracion de VS: carpeta de VMs, puertos web, optimizador y reserva de memoria",
+   "cmd": "cat /QVS/qvs.conf"
+  },
+  {
+   "id": "vs_bd_ficheros",
+   "nas": "hero",
+   "da": "Base de datos de VS (qvs.db, SQLite) y sus copias; registros de arranque; copias automaticas de la configuracion",
+   "cmd": "ls -la /share/*/.qpkg/.QKVM/db 2>&1; ls /share/*/.qpkg/.QKVM/backup 2>&1 | tail -5"
+  },
+  {
+   "id": "arc_zfs",
+   "nas": "hero",
+   "da": "Tamano del ARC de ZFS (compite con las VMs por la RAM)",
+   "cmd": "for p in _vfs_zfs_arc_max _vfs_zfs_arc_min _vfs_zfs_arc_meta_used _vfs_zfs_arc_meta_limit _vfs_zfs_arc_cache_target_size; do echo $p=$(cat /sys/module/zfs/parameters/$p 2>&1) ; done; ls /sys/module/zfs/parameters | grep -i -E 'arc.*(size|used)'"
+  },
+  {
+   "id": "ct_version",
+   "nas": "hero",
+   "da": "Version del motor Docker y resumen: contenedores, imagenes, driver, raiz de datos, CPU y memoria",
+   "cmd": "$(getcfg container-station Install_Path -f /etc/config/qpkg.conf)/bin/docker info --format 'version={{.ServerVersion}} driver={{.Driver}} raiz={{.DockerRootDir}} contenedores={{.Containers}} en_marcha={{.ContainersRunning}} parados={{.ContainersStopped}} imagenes={{.Images}} cpus={{.NCPU}} mem={{.MemTotal}} cgroup={{.CgroupVersion}}' 2>&1"
+  },
+  {
+   "id": "ct_lista",
+   "nas": "hero",
+   "da": "Contenedores, imagen, estado, tiempo y puertos publicados",
+   "cmd": "$(getcfg container-station Install_Path -f /etc/config/qpkg.conf)/bin/docker ps -a --no-trunc --format 'table {{.Names}}\\t{{.Image}}\\t{{.State}}\\t{{.Status}}\\t{{.Ports}}\\t{{.Networks}}\\t{{.Size}}' 2>&1"
+  },
+  {
+   "id": "ct_detalle",
+   "nas": "hero",
+   "da": "Por contenedor: imagen, estado, codigo de salida, fechas, politica de reinicio, redes, montajes, limites de CPU/RAM y proyecto compose (sin variables de entorno)",
+   "cmd": "for n in $($(getcfg container-station Install_Path -f /etc/config/qpkg.conf)/bin/docker ps -a --format '{{.Names}}') ; do $(getcfg container-station Install_Path -f /etc/config/qpkg.conf)/bin/docker inspect $n --format 'nombre={{.Name}} imagen={{.Config.Image}} estado={{.State.Status}} salida={{.State.ExitCode}} inicio={{.State.StartedAt}} fin={{.State.FinishedAt}} reinicio={{.HostConfig.RestartPolicy.Name}} mem={{.HostConfig.Memory}} cpus={{.HostConfig.NanoCpus}} privilegiado={{.HostConfig.Privileged}} redes={{range $k,$v := .NetworkSettings.Networks}}{{$k}}={{$v.IPAddress}} {{end}} montajes={{range .Mounts}}{{.Type}}:{{.Source}}->{{.Destination}} {{end}} compose={{index .Config.Labels \"com.docker.compose.project\"}}'; done"
+  },
+  {
+   "id": "ct_imagenes",
+   "nas": "hero",
+   "da": "Imagenes locales, etiqueta, tamano y fecha",
+   "cmd": "$(getcfg container-station Install_Path -f /etc/config/qpkg.conf)/bin/docker images --format 'table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}\\t{{.CreatedSince}}' 2>&1"
+  },
+  {
+   "id": "ct_compose",
+   "nas": "hero",
+   "da": "Aplicaciones compose, estado y fichero de definicion",
+   "cmd": "$(getcfg container-station Install_Path -f /etc/config/qpkg.conf)/bin/docker compose ls -a 2>&1"
+  },
+  {
+   "id": "ct_redes",
+   "nas": "hero",
+   "da": "Redes de Docker: driver, subred, puerta de enlace y contenedores conectados",
+   "cmd": "$(getcfg container-station Install_Path -f /etc/config/qpkg.conf)/bin/docker network ls 2>&1; for n in $($(getcfg container-station Install_Path -f /etc/config/qpkg.conf)/bin/docker network ls --format '{{.Name}}') ; do $(getcfg container-station Install_Path -f /etc/config/qpkg.conf)/bin/docker network inspect $n --format '{{.Name}} driver={{.Driver}} {{range .IPAM.Config}}subred={{.Subnet}} gw={{.Gateway}} {{end}}contenedores={{range .Containers}}{{.Name}} {{end}}'; done"
+  },
+  {
+   "id": "ct_volumenes",
+   "nas": "hero",
+   "da": "Volumenes de Docker y su punto de montaje",
+   "cmd": "$(getcfg container-station Install_Path -f /etc/config/qpkg.conf)/bin/docker volume ls --format 'table {{.Name}}\\t{{.Driver}}\\t{{.Mountpoint}}' 2>&1"
+  },
+  {
+   "id": "ct_espacio",
+   "nas": "hero",
+   "da": "Espacio que ocupan imagenes, contenedores, volumenes y cache",
+   "cmd": "$(getcfg container-station Install_Path -f /etc/config/qpkg.conf)/bin/docker system df 2>&1"
+  },
+  {
+   "id": "ct_recursos",
+   "nas": "hero",
+   "da": "CPU, memoria, red y E/S de los contenedores en marcha (una sola muestra)",
+   "cmd": "$(getcfg container-station Install_Path -f /etc/config/qpkg.conf)/bin/docker stats --no-stream --format 'table {{.Name}}\\t{{.CPUPerc}}\\t{{.MemUsage}}\\t{{.MemPerc}}\\t{{.NetIO}}\\t{{.BlockIO}}\\t{{.PIDs}}' 2>&1"
+  },
+  {
+   "id": "ct_logs",
+   "nas": "hero",
+   "da": "Ultimas lineas del registro de un contenedor",
+   "cmd": "for n in $($(getcfg container-station Install_Path -f /etc/config/qpkg.conf)/bin/docker ps -a --format '{{.Names}}' | head -2) ; do echo == $n; $(getcfg container-station Install_Path -f /etc/config/qpkg.conf)/bin/docker logs --tail 3 $n 2>&1 | cut -c1-200; done"
+  },
+  {
+   "id": "ct_interno",
+   "nas": "hero",
+   "da": "Docker interno de Container Station (system-docker): sus propios contenedores de servicio",
+   "cmd": "echo contenedores_internos=$($(getcfg container-station Install_Path -f /etc/config/qpkg.conf)/bin/docker -H unix:///var/run/system-docker.sock ps -a -q 2>&1 | wc -l) ; $(getcfg container-station Install_Path -f /etc/config/qpkg.conf)/bin/docker -H unix:///var/run/system-docker.sock ps -a --format '{{.Names}} {{.Image}} {{.State}}' 2>&1"
+  },
+  {
+   "id": "ct_lxd",
+   "nas": "hero",
+   "da": "Si hay contenedores o VMs de LXD (solo mirando su carpeta de datos; el cliente lxc no se ejecuta)",
+   "cmd": "ls /var/lib/lxd/containers /var/lib/lxd/virtual-machines 2>&1"
+  },
+  {
+   "id": "ct_datos",
+   "nas": "hero",
+   "da": "Datos propios de Container Station: plantillas, aplicaciones y su base ctstation.sqlite",
+   "cmd": "ls -la /share/*/.qpkg/container-station/data 2>&1"
+  }
+ ],
+ "sql": [
+  {
+   "id": "bd_vms",
+   "da": "Inventario de VMs segun VS, tambien con VS parada: nombre, CPU, RAM, SO, firmware, arranque automatico, fechas de creacion y ultimo arranque/apagado, avisos",
+   "db": "/share/ZFS600_DATA/.qpkg/.QKVM/db/qvs.db",
+   "consulta": "select id, uuid, name, cores, memory, os_type, machine, bios, auto_start, auto_start_delay, snapshot_type, tpm_model, create_time, last_bootup_time, last_shutdown_time, warning from vms_vm"
+  },
+  {
+   "id": "bd_discos",
+   "da": "Discos de cada VM: ruta, tamano, formato, bus, cache",
+   "db": "/share/ZFS600_DATA/.qpkg/.QKVM/db/qvs.db",
+   "consulta": "select vm_id, dev, bus, format, size, cache, path, root_path from vms_disk"
+  },
+  {
+   "id": "bd_nics",
+   "da": "NIC de cada VM: MAC, puente y modelo",
+   "db": "/share/ZFS600_DATA/.qpkg/.QKVM/db/qvs.db",
+   "consulta": "select vm_id, mac, bridge, model, type, queues from vms_adapter"
+  },
+  {
+   "id": "bd_snap_prog",
+   "da": "Snapshots programados por VM y su ultimo resultado",
+   "db": "/share/ZFS600_DATA/.qpkg/.QKVM/db/qvs.db",
+   "consulta": "select s.name, s.vm_id, s.last_started_localtime, s.last_finished_localtime, s.error_message, p.enable, p.frequency, p.hour, p.minute, p.days from schedule_schedulesnapshot s left join schedule_schedule p on p.id = s.schedule_id"
+  },
+  {
+   "id": "bd_copias",
+   "da": "Tareas de copia de seguridad de VMs: destino, retencion, ultima ejecucion y error (sin la credencial)",
+   "db": "/share/ZFS600_DATA/.qpkg/.QKVM/db/qvs.db",
+   "consulta": "select name, vm_id, target_type, target_path, strategy, retention, last_started_localtime, last_finished_localtime, error_message from backups_backup"
+  },
+  {
+   "id": "bd_registro",
+   "da": "Registro de eventos de VS (encendidos, apagados, errores) con usuario y VM",
+   "db": "/share/ZFS600_DATA/.qpkg/.QKVM/db/qvs.db",
+   "consulta": "select localtime, severity, username, vm_name, message_en, error_message from logs_log order by id desc limit 25"
+  },
+  {
+   "id": "bd_tareas",
+   "da": "Tareas de VS (importar, clonar, exportar, snapshots) y su estado",
+   "db": "/share/ZFS600_DATA/.qpkg/.QKVM/db/qvs.db",
+   "consulta": "select id, state, title, creation_time, task_queue_name from tasks_task order by id desc limit 15"
+  }
+ ],
+ "limites": [
+  {
+   "que": "Arrancar, parar, crear, clonar o borrar VMs y contenedores; snapshots; cambiar CPU/RAM/discos/red",
+   "motivo": "Son escrituras. virsh se lanza siempre con -r (libvirt las rechaza) y docker solo con subcomandos de consulta"
+  },
+  {
+   "que": "Datos de dentro del invitado por el agente QEMU (IP, hostname, SO, discos del invitado): virsh domifaddr --source agent, guestinfo, domfsinfo, domhostname",
+   "motivo": "libvirt los prohibe en conexion de solo lectura ('read only access prevents virDomainInterfaceAddresses'): hablar con el agente exige conexion de escritura. Alternativa de lectura: cruzar la MAC de la NIC con la tabla ARP del NAS (ip neigh)"
+  },
+  {
+   "que": "Captura de pantalla de la consola (virsh screenshot) y consola serie/VNC",
+   "motivo": "screenshot escribe un fichero en el NAS y exige conexion de escritura; la consola es interactiva"
+  },
+  {
+   "que": "API HTTP de Virtualization Station (/qvs/...)",
+   "motivo": "Exige login por POST (crea sesion y deja registro; VS banea la IP tras fallos). No aporta inventario que no este ya en virsh + qvs.db; lo unico propio seria el estado calculado por VS (progreso de tareas en curso, avisos de la interfaz)"
+  },
+  {
+   "que": "Contrasenas de VNC, credenciales de copias remotas y usuarios de VS",
+   "motivo": "Estan en qvs.db (vms_graphic.password, credentials_credential, users_user) y en dumpxml --security-info: se excluyen a proposito"
+  },
+  {
+   "que": "Variables de entorno de los contenedores (docker inspect completo)",
+   "motivo": "Suelen llevar contrasenas (MYSQL_ROOT_PASSWORD...). El MCP debe usar --format con campos concretos o filtrar .Config.Env"
+  },
+  {
+   "que": "Contenedores LXD (lxc list/info)",
+   "motivo": "No verificado: el cliente lxc crea ~/.config/lxc y un certificado de cliente en su primera ejecucion (escribe en el NAS). Solo se comprueba si hay instancias mirando /var/lib/lxd/containers"
+  },
+  {
+   "que": "Inventario de VMs con Virtualization Station parada o desactivada (caso nas2)",
+   "motivo": "Sin libvirtd no hay virsh. Queda qvs.db (SQLite), pero leerlo pide python3 con sqlite3 y en ese caso el unico esta dentro del paquete QKVM, en una ruta que el arnes no prueba"
+  }
+ ]
+}

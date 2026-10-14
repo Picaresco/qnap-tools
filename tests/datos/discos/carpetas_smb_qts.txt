@@ -1,0 +1,307 @@
+[global]
+invalid users = guest
+[carpeta8]
+comment = System default share
+path = /share/CACHEDEV1_DATA/carpeta8
+browsable = yes
+recycle bin = yes
+invalid users = "guest"
+read list = 
+write list = "admin",@"administrators"
+valid users = "root","admin",@"administrators"
+[carpeta9]
+comment = System default share
+path = /share/CACHEDEV1_DATA/carpeta9
+browsable = yes
+recycle bin = yes
+invalid users = "guest"
+read list = "usuario42","usuario43","usuario44","usuario45","usuario46","usuario47","usuario48","usuario49","usuario50","usuario51"
+write list = "admin",@"administrators","usuario52",@"everyone"
+valid users = "root","admin","usuario42","usuario43","usuario44","usuario45",@"administrators",@"everyone","usuario52","usuario46","usuario47","usuario48","usuario49","usuario50","usuario51"
+[carpeta10]
+comment = System default share
+path = /share/CACHEDEV1_DATA/carpeta10
+browsable = yes
+recycle bin = yes
+invalid users = "guest"
+read list = 
+write list = "admin",@"administrators"
+valid users = "root","admin",@"administrators"
+[carpeta11]
+comment = comentario de ejemplo 1
+path = /share/CACHEDEV1_DATA/carpeta11
+browsable = yes
+recycle bin = yes
+invalid users = "guest"
+read list = 
+write list = "admin",@"administrators"
+valid users = "root","admin",@"administrators"
+[carpeta12]
+comment = 
+path = /share/CACHEDEV1_DATA/carpeta12
+browsable = yes
+recycle bin = yes
+invalid users = "guest"
+read list = 
+write list = "admin",@"administrators"
+valid users = "root","admin",@"administrators"
+[carpeta13]
+comment = 
+path = /share/CACHEDEV1_DATA/carpeta13
+browsable = yes
+recycle bin = yes
+invalid users = "guest"
+read list = 
+write list = "admin",@"administrators"
+valid users = "root","admin",@"administrators"
+[carpeta14]
+comment = System default share
+path = /share/CACHEDEV3_DATA/carpeta14
+browsable = yes
+recycle bin = yes
+invalid users = "guest"
+read list = 
+write list = "admin",@"administrators"
+valid users = "root","admin",@"administrators"
+[carpeta15]
+comment = 
+path = /share/CACHEDEV3_DATA/carpeta15
+browsable = yes
+recycle bin = yes
+invalid users = "guest","usuario52"
+read list = 
+write list = "admin",@"administrators"
+valid users = "root","admin",@"administrators"
+[carpeta16]
+comment = 
+path = /share/CACHEDEV1_DATA/carpeta16
+browsable = yes
+recycle bin = yes
+invalid users = "guest"
+read list = @"grupo53",@"grupo54"
+write list = "admin",@"administrators"
+valid users = "root","admin",@"grupo53",@"grupo54",@"administrators"
+[carpeta17]
+comment = comentario de ejemplo 2
+path = /share/CACHEDEV1_DATA/carpeta17
+browsable = yes
+recycle bin = yes
+invalid users = "guest"
+read list = 
+write list = "admin",@"administrators"
+valid users = "root","admin",@"administrators"
+[carpeta18]
+comment = comentario de ejemplo 3
+path = /share/CACHEDEV1_DATA/carpeta18
+browsable = yes
+recycle bin = yes
+invalid users = "guest"
+read list = 
+write list = "admin",@"grupo54","usuario45",@"administrators"
+valid users = "root","admin",@"grupo54","usuario45",@"administrators"
+[carpeta19]
+comment = 
+path = /share/CACHEDEV1_DATA/carpeta19
+browsable = yes
+recycle bin = yes
+invalid users = "guest"
+read list = @"grupo55"
+write list = "admin",@"administrators"
+valid users = "root","admin",@"administrators",@"grupo55"
+[carpeta20]
+comment = System default share
+path = /share/CACHEDEV1_DATA/carpeta20
+browsable = yes
+recycle bin = yes
+invalid users = "guest"
+read list = 
+write list = "admin","usuario42","usuario43","usuario44","usuario45",@"administrators","usuario56","usuario57","usuario58","usuario59","usuario60","usuario61","usuario62","usuario63","usuario64","usuario65","usuario66","usuario67","usuario68","usuario69","usuario70","usuario71","usuario72","usuario73","usuario74","usuario75","usuario76","usuario77","usuario78","usuario46","usuario47","usuario48","usuario49","usuario50","usuario51"
+valid users = "root","admin","usuario42","usuario43","usuario44","usuario45",@"administrators","usuario56","usuario57","usuario58","usuario59","usuario60","usuario61","usuario62","usuario63","usuario64","usuario65","usuario66","usuario67","usuario68","usuario69","usuario70","usuario71","usuario72","usuario73","usuario74","usuario75","usuario76","usuario77","usuario78","usuario46","usuario47","usuario48","usuario49","usuario50","usuario51"
+[carpeta21]
+comment = System default share
+path = /share/CACHEDEV1_DATA/carpeta21
+browsable = yes
+recycle bin = yes
+invalid users = "guest","usuario52"
+read list = 
+write list = "admin",@"administrators"
+valid users = "root","admin",@"administrators"
+[carpeta22]
+comment = 
+path = /share/CACHEDEV1_DATA/carpeta22
+browsable = yes
+recycle bin = yes
+invalid users = "guest"
+read list = 
+write list = "admin",@"administrators"
+valid users = "root","admin",@"administrators"
+[carpeta23]
+comment = comentario de ejemplo 4
+path = /share/CACHEDEV1_DATA/carpeta23
+browsable = yes
+recycle bin = yes
+invalid users = "guest"
+read list = 
+write list = "admin",@"administrators"
+valid users = "root","admin",@"administrators"
+[carpeta24]
+comment = 
+path = /share/CACHEDEV1_DATA/carpeta24
+browsable = yes
+recycle bin = yes
+invalid users = "guest"
+read list = 
+write list = "admin","usuario44",@"administrators"
+valid users = "root","admin","usuario44",@"administrators"
+[carpeta25]
+comment = 
+path = /share/CACHEDEV1_DATA/carpeta25
+browsable = yes
+recycle bin = yes
+invalid users = "guest","usuario52"
+read list = "usuario43","usuario45"
+write list = "admin",@"administrators","usuario62"
+valid users = "root","admin","usuario45","usuario43",@"administrators","usuario62"
+[carpeta26]
+comment = 
+path = /share/CACHEDEV3_DATA/carpeta26
+browsable = yes
+recycle bin = yes
+invalid users = "guest"
+read list = 
+write list = @"administrators","admin"
+valid users = "root",@"administrators","admin"
+[carpeta27]
+comment = comentario de ejemplo 5
+path = /share/CACHEDEV1_DATA/carpeta27
+browsable = yes
+recycle bin = no
+invalid users = "guest"
+read list = 
+write list = "admin",@"administrators",@"grupo79"
+valid users = "root","admin",@"administrators",@"grupo79"
+[carpeta28]
+comment = 
+path = /share/CACHEDEV1_DATA/carpeta28
+browsable = yes
+recycle bin = no
+invalid users = "guest"
+read list = "usuario48"
+write list = @"administrators","admin",@"grupo55"
+valid users = "root",@"administrators","admin",@"grupo55","usuario48"
+[carpeta29]
+comment = 
+path = /share/CACHEDEV1_DATA/carpeta29
+browsable = yes
+recycle bin = yes
+invalid users = 
+read list = 
+write list = "admin",@"administrators"
+valid users = "root","admin",@"administrators"
+[carpeta30]
+comment = 
+path = /share/CACHEDEV1_DATA/carpeta30
+browsable = yes
+recycle bin = yes
+invalid users = 
+read list = 
+write list = "admin",@"administrators"
+valid users = "root","admin",@"administrators"
+[carpeta31]
+comment = 
+path = /share/CACHEDEV1_DATA/carpeta31
+browsable = yes
+recycle bin = yes
+invalid users = 
+read list = 
+write list = "admin",@"administrators"
+valid users = "root","admin",@"administrators"
+[carpeta32]
+comment = 
+path = /share/CACHEDEV1_DATA/carpeta32
+browsable = yes
+recycle bin = yes
+invalid users = 
+read list = 
+write list = "admin",@"administrators"
+valid users = "root","admin",@"administrators"
+[carpeta33]
+comment = comentario de ejemplo 6
+path = /share/CACHEDEV4_DATA/carpeta33
+browsable = yes
+recycle bin = yes
+invalid users = "guest"
+read list = 
+write list = @"administrators","admin"
+valid users = "root",@"administrators","admin"
+[carpeta34]
+comment = comentario de ejemplo 6
+path = /share/CACHEDEV1_DATA/carpeta34
+browsable = yes
+recycle bin = yes
+invalid users = "guest"
+read list = 
+write list = @"administrators","admin"
+valid users = "root",@"administrators","admin"
+[carpeta35]
+comment = System default share
+path = /share/CACHEDEV1_DATA/carpeta35
+browsable = yes
+recycle bin = yes
+invalid users = 
+read list = 
+write list = "admin",@"administrators"
+valid users = "root","admin",@"administrators"
+[carpeta36]
+comment = comentario de ejemplo 7
+path = %H
+browsable = yes
+invalid users = "guest"
+read list = "usuario80"
+write list = "usuario80"
+valid users = "usuario80"
+[carpeta37]
+comment = 
+path = /share/CACHEDEV1_DATA/FTP
+browsable = yes
+recycle bin = yes
+invalid users = "guest"
+read list = 
+write list = "admin",@"administrators","usuario46","usuario47"
+valid users = "root","admin",@"administrators","usuario46","usuario47"
+[volumen6]
+comment = comentario de ejemplo 8
+path = /share/external/DEV3301_1
+browsable = yes
+recycle bin = no
+invalid users = "guest"
+read list = 
+write list = "admin",@"administrators"
+valid users = "root","admin",@"administrators"
+[volumen7]
+comment = comentario de ejemplo 8
+path = /share/external/DEV3307_1
+browsable = yes
+recycle bin = no
+invalid users = "guest"
+read list = 
+write list = "admin",@"administrators"
+valid users = "root","admin",@"administrators"
+[carpeta39 (usuario38@192.0.2.1)]
+comment = comentario de ejemplo 9
+path = /share/external/.nd/0/00000000-0000-0000-0000-000000000001
+browsable = yes
+recycle bin = no
+invalid users = "guest"
+read list = 
+write list = "admin"
+valid users = "root","admin"
+[carpeta40 (admin@192.0.2.2)]
+comment = comentario de ejemplo 9
+path = /share/external/.nd/0/00000000-0000-0000-0000-000000000002
+browsable = yes
+recycle bin = no
+invalid users = "guest"
+read list = 
+write list = "admin"
+valid users = "root","admin"

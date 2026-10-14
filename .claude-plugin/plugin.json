@@ -1,0 +1,98 @@
+{
+  "name": "qnap-tools",
+  "version": "0.4.0",
+  "description": "Consulta una flota de NAS QNAP (QTS y QuTS hero) por SSH, en solo lectura: inventario de NAS, red, discos, almacenamiento y carpetas, máquinas virtuales y contenedores, registros, avisos y estado del sistema.",
+  "author": {
+    "name": "picaresco"
+  },
+  "license": "MIT",
+  "keywords": [
+    "qnap",
+    "nas",
+    "qts",
+    "quts-hero",
+    "ssh"
+  ],
+  "userConfig": {
+    "ssh_user": {
+      "type": "string",
+      "title": "Usuario SSH de los NAS",
+      "description": "Usuario común a toda la flota. En cada NAS debe pertenecer al grupo administrators y tener permitido el acceso por SSH.",
+      "required": true
+    },
+    "ssh_password": {
+      "type": "string",
+      "title": "Contraseña de ese usuario",
+      "description": "Se usa para entrar la primera vez en cada NAS y para sudo. Después se entra con clave SSH donde el NAS lo admite.",
+      "required": true,
+      "sensitive": true
+    }
+  },
+  "mcpServers": {
+    "qnap-flota": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "qnap-tools==0.4.0",
+        "qnap-tools-flota"
+      ],
+      "env": {
+        "QNAP_TOOLS_USER": "${user_config.ssh_user}",
+        "QNAP_TOOLS_PASSWORD": "${user_config.ssh_password}",
+        "QNAP_TOOLS_DATA": "${CLAUDE_PLUGIN_DATA}"
+      }
+    },
+    "qnap-redes": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "qnap-tools==0.4.0",
+        "qnap-tools-redes"
+      ],
+      "env": {
+        "QNAP_TOOLS_USER": "${user_config.ssh_user}",
+        "QNAP_TOOLS_PASSWORD": "${user_config.ssh_password}",
+        "QNAP_TOOLS_DATA": "${CLAUDE_PLUGIN_DATA}"
+      }
+    },
+    "qnap-discos": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "qnap-tools==0.4.0",
+        "qnap-tools-discos"
+      ],
+      "env": {
+        "QNAP_TOOLS_USER": "${user_config.ssh_user}",
+        "QNAP_TOOLS_PASSWORD": "${user_config.ssh_password}",
+        "QNAP_TOOLS_DATA": "${CLAUDE_PLUGIN_DATA}"
+      }
+    },
+    "qnap-virtualizacion": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "qnap-tools==0.4.0",
+        "qnap-tools-virtualizacion"
+      ],
+      "env": {
+        "QNAP_TOOLS_USER": "${user_config.ssh_user}",
+        "QNAP_TOOLS_PASSWORD": "${user_config.ssh_password}",
+        "QNAP_TOOLS_DATA": "${CLAUDE_PLUGIN_DATA}"
+      }
+    },
+    "qnap-logs": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "qnap-tools==0.4.0",
+        "qnap-tools-logs"
+      ],
+      "env": {
+        "QNAP_TOOLS_USER": "${user_config.ssh_user}",
+        "QNAP_TOOLS_PASSWORD": "${user_config.ssh_password}",
+        "QNAP_TOOLS_DATA": "${CLAUDE_PLUGIN_DATA}"
+      }
+    }
+  }
+}

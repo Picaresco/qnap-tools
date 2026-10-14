@@ -1,0 +1,60 @@
+== 1
+modelo=SSD 870 EVO 500GB
+temperatura=32 C/89 F
+smart=GOOD
+estado=0
+== 2
+modelo=SSD 870 EVO 500GB
+temperatura=34 C/93 F
+smart=GOOD
+estado=0
+== 3
+modelo=WD40EFAX-68JH4N1
+temperatura=34 C/93 F
+smart=GOOD
+estado=0
+== 4
+modelo=HUS728T8TALE6L4
+temperatura=41 C/105 F
+smart=GOOD
+estado=0
+== 5
+modelo=WD40EFAX-68JH4N1
+temperatura=30 C/86 F
+smart=GOOD
+estado=0
+== 6
+modelo=WD40EFAX-68JH4N1
+temperatura=32 C/89 F
+smart=GOOD
+estado=0
+== 7
+modelo=WD40EFAX-68JH4N1
+temperatura=33 C/91 F
+smart=GOOD
+estado=0
+== 8
+modelo=WD8005FFBX-68CAKN0
+temperatura=39 C/102 F
+smart=GOOD
+estado=0
+== 9
+modelo=WD40EFAX-68JH4N1
+temperatura=31 C/87 F
+smart=GOOD
+estado=0
+== 10
+modelo=HUS728T8TALE6L4
+temperatura=39 C/102 F
+smart=GOOD
+estado=0
+== 11
+modelo=HUS728T8TALE6L4
+temperatura=40 C/104 F
+smart=GOOD
+estado=0
+== 12
+modelo=HUS728T8TALE6L4
+temperatura=40 C/104 F
+smart=GOOD
+estado=0

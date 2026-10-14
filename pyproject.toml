@@ -1,0 +1,51 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "qnap-tools"
+dynamic = ["version"]
+description = "Servidores MCP de solo lectura para consultar una flota de NAS QNAP por SSH"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+dependencies = [
+    "mcp[cli]>=1,<2",
+    "paramiko>=3.4",
+]
+
+keywords = ["qnap", "nas", "qts", "quts-hero", "mcp", "claude-code", "ssh"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Topic :: System :: Systems Administration",
+]
+
+[project.urls]
+Homepage = "https://github.com/Picaresco/qnap-tools"
+Repository = "https://github.com/Picaresco/qnap-tools"
+Issues = "https://github.com/Picaresco/qnap-tools/issues"
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+qnap-tools-flota = "qnap_tools.flota.servidor:main"
+qnap-tools-redes = "qnap_tools.redes.servidor:main"
+qnap-tools-discos = "qnap_tools.discos.servidor:main"
+qnap-tools-virtualizacion = "qnap_tools.virtualizacion.servidor:main"
+qnap-tools-logs = "qnap_tools.logs.servidor:main"
+
+[tool.hatch.version]
+path = "src/qnap_tools/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/qnap_tools"]
+
+# Solo el paquete: el laboratorio (pruebas/) y los documentos no van a PyPI
+[tool.hatch.build.targets.sdist]
+include = ["src", "README.md", "pyproject.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

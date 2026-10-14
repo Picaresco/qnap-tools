@@ -1,0 +1,43 @@
+{
+  "comandos": [
+    {"id": "discos_lista", "cmd": "qcli_storage -d", "da": "discos por cabina y bahia: dispositivo, tipo (HDD/SSD, datos/cache), tamano, modelo", "nas": "ambos"},
+    {"id": "discos_reparto", "cmd": "qcli_storage -p", "da": "a que RAID/vdev, pool y volumen/carpeta pertenece cada disco", "nas": "ambos"},
+    {"id": "volumenes_rutas", "cmd": "qcli_storage -v", "da": "id de volumen, nombre y punto de montaje", "nas": "ambos"},
+    {"id": "discos_detalle", "cmd": "for f in /etc/enclosure_*.conf; do echo \"== $f\"; grep -E '^\\[PhysicalDisk|^(port_id|pd_sys_name|vendor|model|serial_no|revision|capacity|sector_size|type|status|rotation_speed|link_speed|max_link_speed) =' $f; done", "da": "por disco: modelo, numero de serie, firmware, sectores, rpm, velocidad de enlace, estado", "nas": "ambos"},
+    {"id": "cabinas", "cmd": "hal_app --se_enum", "da": "cabinas (NAS, QM2, expansion, USB): modelo, estado, n. de discos y ventiladores", "nas": "ambos"},
+    {"id": "cabinas_mapa", "cmd": "cat /etc/config/enclosure.map", "da": "id de cabina, numero de serie y modelo de cada unidad de expansion", "nas": "ambos"},
+    {"id": "smart_atributos", "cmd": "for f in /tmp/smart/smart_*.info; do echo \"== $f\"; cat $f; done", "da": "atributos SMART de cada disco (id, nombre, valor, peor, umbral, bruto) que mantiene el propio NAS", "nas": "ambos"},
+    {"id": "smart_umbrales", "cmd": "cat /tmp/smart_warning.conf", "da": "politica de avisos SMART configurada", "nas": "ambos"},
+    {"id": "ssd_vida", "cmd": "for f in /tmp/disk/disk_*.info; do echo \"== $f\"; grep SSD_LIFE $f; done", "da": "vida consumida de cada SSD (%)", "nas": "ambos"},
+    {"id": "discos_temp", "cmd": "for n in 1 2 3 4 5 6 7 8 9 10 11 12; do echo \"== $n\"; getsysinfo hdmodel $n; getsysinfo hdtmp $n; getsysinfo hdsmart $n; getsysinfo hdstatus $n; done", "da": "por bahia: modelo, temperatura, salud SMART y estado", "nas": "ambos"},
+    {"id": "nvme_lista", "cmd": "nvme list", "da": "unidades NVMe: modelo, serie, firmware, uso", "nas": "ambos"},
+    {"id": "nvme_smart", "cmd": "for d in /dev/nvme0 /dev/nvme1; do echo \"== $d\"; nvme smart-log $d; done", "da": "SMART NVMe: temperatura, desgaste, errores, horas", "nas": "ambos"},
+    {"id": "ata_identidad", "cmd": "hdparm -I /dev/sda | head -45", "da": "identidad ATA de un disco: modelo, serie, firmware, capacidades", "nas": "ambos"},
+    {"id": "particiones", "cmd": "cat /proc/partitions | head -90", "da": "dispositivos de bloque y particiones", "nas": "ambos"},
+    {"id": "md_estado", "cmd": "cat /proc/mdstat", "da": "RAID md: nivel, miembros, discos caidos, progreso de resincronizacion", "nas": "ambos"},
+    {"id": "md_sync", "cmd": "for d in /sys/block/md*/md; do echo \"== $d\"; cat $d/level $d/array_state $d/sync_action $d/degraded $d/mismatch_cnt 2>/dev/null | tr '\\n' ' '; echo; done", "da": "por md: nivel, estado, accion en curso (resync/check/idle), degradado, discrepancias", "nas": "ambos"},
+    {"id": "md_detalle", "cmd": "mdadm --detail /dev/md9", "da": "detalle de un RAID md (aqui el de sistema)", "nas": "ambos"},
+    {"id": "volumenes_conf", "cmd": "grep -E '^\\[VOL|^(volId|volName|raidId|raidName|encryption|ssdCache|mappingName|status|filesystem|volType|readOnly|internal|unclean) =' /etc/volume.conf", "da": "volumenes: nombre, RAID o dataset, cifrado, cache SSD, estado", "nas": "ambos"},
+    {"id": "ocupacion", "cmd": "df -h | grep -E 'Filesystem|/share/'", "da": "capacidad, usado y libre de cada volumen montado", "nas": "ambos"},
+    {"id": "montajes", "cmd": "grep -E ' /share/| /mnt/ext' /proc/mounts | cut -c1-170", "da": "sistemas de ficheros montados, tipo y opciones (incluye externos)", "nas": "ambos"},
+    {"id": "carpetas_enlaces", "cmd": "ls -l /share/ | head -80", "da": "carpetas compartidas y en que volumen vive cada una", "nas": "ambos"},
+    {"id": "carpetas_smb", "cmd": "grep -E '^\\[|^[[:space:]]*(path|comment|valid users|invalid users|read list|write list|admin users|browsable|browseable|guest ok|recycle bin|recycle bin admin only|read only|writable|hosts allow|hosts deny|encrypted) *=' /etc/config/smb.conf", "da": "carpetas SMB: ruta, permisos por usuario/grupo (lectura, escritura, denegado), invitados, papelera de red", "nas": "ambos"},
+    {"id": "carpetas_uso", "cmd": "cat /etc/config/volumeStatus.conf", "da": "por carpeta: tamano usado, n. de ficheros y directorios, ultima actualizacion", "nas": "ambos"},
+    {"id": "carpetas_nfs", "cmd": "cat /etc/exports; cat /etc/config/nfssetting", "da": "exportaciones NFS (carpeta, hosts, opciones) y ajustes del servicio", "nas": "ambos"},
+    {"id": "carpetas_acl", "cmd": "getfacl -p /share/Public | head -24", "da": "ACL POSIX de la raiz de una carpeta (getfacl sobre el enlace lista tambien el primer nivel: se corta con head)", "nas": "ambos"},
+    {"id": "cuotas_conf", "cmd": "head -40 /etc/config/usr_quota.conf; head -20 /etc/config/grp_quota.conf", "da": "cuotas: si estan activas, tamano por defecto y por usuario/grupo", "nas": "ambos"},
+    {"id": "cuotas_uso", "cmd": "repquota -a | head -40", "da": "uso real y limites de cuota por usuario", "nas": "ambos"},
+    {"id": "externos", "cmd": "cat /etc/config/external_share.conf; cat /etc/config/usb_share_mapping; grep external /proc/mounts", "da": "dispositivos externos USB/eSATA conectados y su carpeta", "nas": "ambos"}
+  ],
+  "limites": [
+    {"que": "qcli_storage -d/-p con sudo en un NAS grande", "motivo": "en nas2 (varios discos) como root no termina en 40 s; sin sudo responde al momento y solo pierde la columna Signature: lanzarlo siempre sin sudo"},
+    {"que": "getsysinfo hdtmp/hdsmart sin sudo", "motivo": "no da error: devuelve 0 C y '--' en silencio; usarlo siempre con sudo"},
+    {"que": "Temperatura y ventiladores de la cabina de expansion via qcli_hdd -i", "motivo": "exige sesion qcli; la temperatura de sus discos sale de los ficheros SMART"},
+    {"que": "Toda la familia qcli_* salvo qcli_storage (pool, raid, hdd, volume, sharedfolder, quota, cache, iscsi, snapshots, externaldevice, recyclebin)", "motivo": "exige 'qcli -l user= pw=' incluso como root: abre una sesion de QTS (y saveauthsid la guarda en el NAS) y pasa la contrasena por linea de comandos; no es lectura pura"},
+    {"que": "Lanzar o programar autotest SMART, escaneo de bloques defectuosos, prueba de velocidad de discos", "motivo": "son pruebas activas, fuera del modo lectura"},
+    {"que": "SMART en vivo con smartctl", "motivo": "no hay smartctl; se leen los ficheros /tmp/smart que refresca el NAS (con sudo) y nvme smart-log"},
+    {"que": "Tamano real de cada carpeta o de subcarpetas", "motivo": "du recursivo sobre /share esta vetado; solo el dato que cachea el NAS en volumeStatus.conf"},
+    {"que": "Contenido de la papelera de red y ficheros abiertos", "motivo": "requiere recorrer /share o herramientas de sesion SMB no exploradas en esta pata"},
+    {"que": "ACL de ficheros y subcarpetas", "motivo": "solo se lee la ACL de la raiz de cada carpeta; nada recursivo"}
+  ]
+}

@@ -1,0 +1,10 @@
+version=27.1.2-qnap8
+driver=overlay2
+raiz=/share/CACHEDEV3_DATA/ruta1/container-station-data/lib/docker
+contenedores=45
+en_marcha=34
+en_pausa=0
+parados=11
+imagenes=137
+cpus=8
+memoria=33557118976

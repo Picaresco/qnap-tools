@@ -1,0 +1,26 @@
+Query database search count [5]...
+	 date1 [2000-01-01]...
+	 date2 [2099-12-31]...
+	 keyword [Malware]...
+event_id,event_type,event_date,event_time,event_user,event_ip,event_comp,event_desc,event_msgid,event_timet,event_app_id,event_app_name,event_category_id,event_category,event_client_id,event_client_app,event_client_agent,
+3770,  0,2026-10-14,03:01:01,---,---,localhost,[Malware Remover] Scan completed., 19,1791939661,A227,Malware Remover,C001,General,---,localhost,---,
+3769,  0,2026-10-14,03:00:02,---,---,localhost,[Malware Remover] Started scanning.,  1,1791939602,A227,Malware Remover,C001,General,---,localhost,---,
+3706,  0,2026-09-28,03:01:14,---,---,localhost,[Malware Remover] Scan completed., 19,1790557274,A227,Malware Remover,C001,General,---,localhost,---,
+3705,  0,2026-09-28,03:00:02,---,---,localhost,[Malware Remover] Started scanning.,  1,1790557202,A227,Malware Remover,C001,General,---,localhost,---,
+3597,  0,2026-09-25,01:37:41,admin,192.0.2.5,localhost,[App Center] Updated Malware Remover from 7.0.1 to 7.0.2., 88,1790293061,A039,App Center,C001,Installing/Updating/Removing Apps,00000000-0000-0000-0000-000000000001,carpeta7 Desktop,Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (K,
+3596,  0,2026-09-25,01:37:39,admin,192.0.2.5,localhost,[App Center] Malware Remover enabled., 47,1790293059,A039,App Center,C001,Installing/Updating/Removing Apps,00000000-0000-0000-0000-000000000001,carpeta7 Desktop,Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (K,
+3595,  0,2026-09-25,01:37:14,admin,192.0.2.5,localhost,[App Center] Installed Malware Remover 7.0.2 in "texto10"., 46,1790293034,A039,App Center,C001,Installing/Updating/Removing Apps,00000000-0000-0000-0000-000000000001,carpeta7 Desktop,Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (K,
+3060,  0,2026-09-02,20:30:09,---,---,localhost,[Malware Remover] Scan completed., 19,1788373809,A227,Malware Remover,C001,General,---,localhost,---,
+3052,  0,2026-09-02,20:28:22,---,---,localhost,[Malware Remover] Started scanning.,  1,1788373702,A227,Malware Remover,C001,General,---,localhost,---,
+2889,  0,2026-07-28,03:00:53,---,---,localhost,[Malware Remover] Scan completed., 19,1785200453,A227,Malware Remover,C001,General,---,localhost,---,
+2888,  0,2026-07-28,03:00:01,---,---,localhost,[Malware Remover] Started scanning.,  1,1785200401,A227,Malware Remover,C001,General,---,localhost,---,
+2777,  0,2026-07-20,03:00:54,---,---,localhost,[Malware Remover] Scan completed., 19,1784509254,A227,Malware Remover,C001,General,---,localhost,---,
+2776,  0,2026-07-20,03:00:01,---,---,localhost,[Malware Remover] Started scanning.,  1,1784509201,A227,Malware Remover,C001,General,---,localhost,---,
+2720,  0,2026-07-19,03:00:55,---,---,localhost,[Malware Remover] Scan completed., 19,1784422855,A227,Malware Remover,C001,General,---,localhost,---,
+2718,  0,2026-07-19,03:00:01,---,---,localhost,[Malware Remover] Started scanning.,  1,1784422801,A227,Malware Remover,C001,General,---,localhost,---,
+2174,  0,2026-06-13,03:00:52,---,---,localhost,[Malware Remover] Scan completed., 19,1781312452,A227,Malware Remover,C001,General,---,localhost,---,
+2173,  0,2026-06-13,03:00:01,---,---,localhost,[Malware Remover] Started scanning.,  1,1781312401,A227,Malware Remover,C001,General,---,localhost,---,
+2121,  0,2026-06-11,03:00:53,---,---,localhost,[Malware Remover] Scan completed., 19,1781139653,A227,Malware Remover,C001,General,---,localhost,---,
+2120,  0,2026-06-11,03:00:01,---,---,localhost,[Malware Remover] Started scanning.,  1,1781139601,A227,Malware Remover,C001,General,---,localhost,---,
+2056,  0,2026-06-10,21:51:06,admin,192.0.2.1,localhost,[App Center] Updated Malware Remover from 7.0.0 to 7.0.1., 88,1781121066,A039,App Center,C001,Installing/Updating/Removing Apps,00000000-0000-0000-0000-000000000002,carpeta7 Desktop,Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (K,
+Done. Return value is 0

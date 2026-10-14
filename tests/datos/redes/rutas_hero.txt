@@ -1,0 +1,9 @@
+default via 192.0.2.36 dev eth0 proto static metric 100 
+192.0.2.14/24 dev qvs2 proto kernel scope link src 192.0.2.19 
+192.0.2.6/24 dev lxcbr0 proto kernel scope link src 192.0.2.9 linkdown 
+192.0.2.2/24 dev docker0 proto kernel scope link src 192.0.2.5 linkdown 
+192.0.2.10/24 dev lxdbr0 proto kernel scope link src 192.0.2.13 linkdown 
+127.0.0.0/8 dev lo scope link 
+192.0.2.29/22 dev br-000000000001 proto kernel scope link src 192.0.2.17 linkdown 
+192.0.2.30/24 dev br-000000000002 proto kernel scope link src 192.0.2.18 linkdown 
+192.0.2.37/24 dev eth0 proto kernel scope link src 192.0.2.16 

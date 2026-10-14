@@ -1,0 +1,25 @@
+== dhcpd_docker0.leases
+==lineas 2
+authoring-byte-order little-endian;
+server-duid "...";
+== dhcpd_lxcbr0.leases
+==lineas 2
+authoring-byte-order little-endian;
+server-duid "...";
+== dhcpd_lxdbr0.leases
+==lineas 2
+authoring-byte-order little-endian;
+server-duid "...";
+== dhcpd_qvs2.leases
+==lineas 11
+authoring-byte-order little-endian;
+lease 192.0.2.1 {
+  starts 4 2026/09/24 18:56:59;
+  ends 4 2026/09/24 19:45:12;
+  tstp 4 2026/09/24 19:45:12;
+  cltt 4 2026/09/24 19:41:15;
+  binding state free;
+  hardware ethernet 00:11:22:33:44:00;
+  uid "...";
+}
+server-duid "...";

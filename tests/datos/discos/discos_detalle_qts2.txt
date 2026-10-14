@@ -1,0 +1,376 @@
+== /etc/enclosure_0.conf
+[PhysicalDisk_1]
+port_id = 1
+pd_sys_name = /dev/sda
+type = 0
+vendor = Samsung
+model = SSD 870 EVO 500GB
+serial_no = SERIE0001
+status = 0
+sector_size = 512
+capacity = 976773168
+revision = SVT02B6Q
+rotation_speed = 0
+[PhysicalDisk_2]
+port_id = 2
+pd_sys_name = /dev/sdb
+type = 0
+vendor = Samsung
+model = SSD 870 EVO 500GB
+serial_no = SERIE0002
+status = 0
+sector_size = 512
+capacity = 976773168
+revision = SVT02B6Q
+rotation_speed = 0
+[PhysicalDisk_3]
+port_id = 3
+pd_sys_name = /dev/sdc
+type = 0
+vendor = WDC
+model = WD40EFAX-68JH4N1
+serial_no = SERIE0003
+status = 0
+sector_size = 512
+capacity = 7814037168
+revision = 83.00A83
+rotation_speed = 5400
+[PhysicalDisk_4]
+port_id = 4
+pd_sys_name = /dev/sdd
+type = 0
+vendor = HGST
+model = HUS728T8TALE6L4
+serial_no = SERIE0004
+status = 0
+sector_size = 512
+capacity = 15628053168
+revision = V8GNW9G0
+rotation_speed = 7200
+[PhysicalDisk_5]
+port_id = 5
+pd_sys_name = /dev/sdf
+type = 0
+vendor = WDC
+model = WD40EFAX-68JH4N1
+serial_no = SERIE0005
+status = 0
+sector_size = 512
+capacity = 7814037168
+revision = 83.00A83
+rotation_speed = 5400
+[PhysicalDisk_6]
+port_id = 6
+pd_sys_name = /dev/sde
+type = 0
+vendor = WDC
+model = WD40EFAX-68JH4N1
+serial_no = SERIE0006
+status = 0
+sector_size = 512
+capacity = 7814037168
+revision = 83.00A83
+rotation_speed = 5400
+[PhysicalDisk_7]
+port_id = 7
+pd_sys_name = /dev/sdj
+type = 0
+vendor = WDC
+model = WD40EFAX-68JH4N1
+serial_no = SERIE0007
+status = 0
+sector_size = 512
+capacity = 7814037168
+revision = 83.00A83
+rotation_speed = 5400
+[PhysicalDisk_9]
+port_id = 9
+pd_sys_name = /dev/sdh
+type = 0
+vendor = WDC
+model = WD40EFAX-68JH4N1
+serial_no = SERIE0008
+status = 0
+sector_size = 512
+capacity = 7814037168
+revision = 83.00A83
+rotation_speed = 5400
+[PhysicalDisk_10]
+port_id = 10
+pd_sys_name = /dev/sdg
+type = 0
+vendor = HGST
+model = HUS728T8TALE6L4
+serial_no = SERIE0009
+status = 0
+sector_size = 512
+capacity = 15628053168
+revision = V8GNW9U0
+rotation_speed = 7200
+[PhysicalDisk_11]
+port_id = 11
+pd_sys_name = /dev/sdl
+type = 0
+vendor = HGST
+model = HUS728T8TALE6L4
+serial_no = SERIE0010
+status = 0
+sector_size = 512
+capacity = 15628053168
+revision = V8GNW9G0
+rotation_speed = 7200
+[PhysicalDisk_8]
+port_id = 8
+pd_sys_name = /dev/sdi
+type = 0
+vendor = WDC
+model = WD8005FFBX-68CAKN0
+serial_no = SERIE0011
+status = 0
+sector_size = 512
+capacity = 15628053168
+revision = 83.00A83
+rotation_speed = 7200
+[PhysicalDisk_12]
+port_id = 12
+pd_sys_name = /dev/sdk
+type = 0
+vendor = HGST
+model = HUS728T8TALE6L4
+serial_no = SERIE0012
+status = 0
+sector_size = 512
+capacity = 15628053168
+revision = V8GNW9U0
+rotation_speed = 7200
+== /etc/enclosure_0_del.conf
+[PhysicalDisk_8]
+port_id = 8
+pd_sys_name = /dev/sdi
+type = 0
+vendor = WDC
+model = WD40EFAX-68JH4N1
+serial_no = SERIE0013
+status = 0
+sector_size = 512
+capacity = 7814037168
+revision = 83.00A83
+rotation_speed = 5400
+[PhysicalDisk_12]
+port_id = 12
+pd_sys_name = /dev/sdk
+type = 0
+vendor = WDC
+model = WD8005FFBX-68CAKN0
+serial_no = SERIE0014
+status = 0
+sector_size = 512
+capacity = 15628053168
+revision = 83.00A83
+rotation_speed = 7200
+== /etc/enclosure_1.conf
+[PhysicalDisk_1]
+port_id = 1
+pd_sys_name = /dev/sdv
+type = 0
+vendor = HGST
+model = HUS726T6TALE6L4
+serial_no = SERIE0015
+status = 0
+sector_size = 512
+capacity = 11721045168
+revision = VKGNW9U0
+rotation_speed = 7200
+[PhysicalDisk_2]
+port_id = 2
+pd_sys_name = /dev/sdy
+type = 0
+vendor = HGST
+model = HUS726T6TALE6L4
+serial_no = SERIE0016
+status = 0
+sector_size = 512
+capacity = 11721045168
+revision = VKGNW9U0
+rotation_speed = 7200
+[PhysicalDisk_3]
+port_id = 3
+pd_sys_name = /dev/sdo
+type = 0
+vendor = HGST
+model = HUS726T6TALE6L4
+serial_no = SERIE0017
+status = 0
+sector_size = 512
+capacity = 11721045168
+revision = VKGNW9U0
+rotation_speed = 7200
+[PhysicalDisk_4]
+port_id = 4
+pd_sys_name = /dev/sdq
+type = 0
+vendor = HGST
+model = HUS726T6TALE6L4
+serial_no = SERIE0018
+status = 0
+sector_size = 512
+capacity = 11721045168
+revision = VKGNW9U0
+rotation_speed = 7200
+[PhysicalDisk_5]
+port_id = 5
+pd_sys_name = /dev/sds
+type = 0
+vendor = HGST
+model = HUS726T6TALE6L4
+serial_no = SERIE0019
+status = 0
+sector_size = 512
+capacity = 11721045168
+revision = VKGNW9U0
+rotation_speed = 7200
+[PhysicalDisk_6]
+port_id = 6
+pd_sys_name = /dev/sdz
+type = 0
+vendor = HGST
+model = HUS726T6TALE6L4
+serial_no = SERIE0020
+status = 0
+sector_size = 512
+capacity = 11721045168
+revision = VKGNW9U0
+rotation_speed = 7200
+[PhysicalDisk_7]
+port_id = 7
+pd_sys_name = /dev/sdr
+type = 0
+vendor = HGST
+model = HUS726T6TALE6L4
+serial_no = SERIE0021
+status = 0
+sector_size = 512
+capacity = 11721045168
+revision = VKGNW9U0
+rotation_speed = 7200
+[PhysicalDisk_8]
+port_id = 8
+pd_sys_name = /dev/sdt
+type = 0
+vendor = HGST
+model = HUS726T6TALE6L4
+serial_no = SERIE0022
+status = 0
+sector_size = 512
+capacity = 11721045168
+revision = VKGNW9U0
+rotation_speed = 7200
+[PhysicalDisk_9]
+port_id = 9
+pd_sys_name = /dev/sdp
+type = 0
+vendor = HGST
+model = HUS726T6TALE6L4
+serial_no = SERIE0023
+status = 0
+sector_size = 512
+capacity = 11721045168
+revision = VKGNW9U0
+rotation_speed = 7200
+[PhysicalDisk_10]
+port_id = 10
+pd_sys_name = /dev/sdx
+type = 0
+vendor = HGST
+model = HUS726T6TALE6L4
+serial_no = SERIE0024
+status = 0
+sector_size = 512
+capacity = 11721045168
+revision = VKGNW9U0
+rotation_speed = 7200
+[PhysicalDisk_11]
+port_id = 11
+pd_sys_name = /dev/sdu
+type = 0
+vendor = HGST
+model = HUS726T6TALE6L4
+serial_no = SERIE0025
+status = 0
+sector_size = 512
+capacity = 11721045168
+revision = VKGNW9U0
+rotation_speed = 7200
+[PhysicalDisk_12]
+port_id = 12
+pd_sys_name = /dev/sdw
+type = 0
+vendor = HGST
+model = HUS726T6TALE6L4
+serial_no = SERIE0026
+status = 0
+sector_size = 512
+capacity = 11721045168
+revision = VKGNW9U0
+rotation_speed = 7200
+== /etc/enclosure_23.conf
+[PhysicalDisk_1]
+port_id = 1
+pd_sys_name = /dev/nvme0n1
+type = 4
+vendor = WD
+model = Red SN700 2000GB
+serial_no = SERIE0027
+status = 0
+sector_size = 512
+capacity = 3907029168
+revision = 112000WD
+rotation_speed = 0
+[PhysicalDisk_2]
+port_id = 2
+pd_sys_name = /dev/nvme1n1
+type = 4
+vendor = WD
+model = Red SN700 2000GB
+serial_no = SERIE0028
+status = 0
+sector_size = 512
+capacity = 3907029168
+revision = 112000WD
+rotation_speed = 0
+== /etc/enclosure_33.conf
+[PhysicalDisk_5]
+port_id = 5
+pd_sys_name = /dev/sdn
+type = 2
+vendor = WD
+model = Elements 25A3
+serial_no = SERIE0029
+status = 0
+sector_size = 512
+capacity = 39063584768
+revision = 
+rotation_speed = 0
+== /etc/enclosure_33_del.conf
+[PhysicalDisk_5]
+port_id = 5
+pd_sys_name = /dev/sdn
+type = 2
+vendor = WD
+model = Elements 25A3
+serial_no = SERIE0030
+status = 0
+sector_size = 512
+capacity = 39063584768
+rotation_speed = 0
+[PhysicalDisk_3]
+port_id = 3
+pd_sys_name = /dev/sdaa
+type = 2
+vendor = Seagate
+model = Portable
+serial_no = SERIE0031
+status = 0
+sector_size = 512
+capacity = 9767541167
+rotation_speed = 0

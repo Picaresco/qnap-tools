@@ -1,0 +1,13 @@
+==gravedad 1 46178
+==gravedad 2 531
+==gravedad 3 869
+==primero
+Query database...
+event_id,event_type,event_date,event_time,event_user,event_ip,event_comp,event_desc,event_msgid,event_timet,event_app_id,event_app_name,event_category_id,event_category,event_client_id,event_client_app,event_client_agent,
+  1,  0,2024-05-03,07:23:57,admin,192.0.2.4,localhost,[QuLog Center] Event logs: Deleted all local device logs.,  1,1714713837,A056,QuLog Center,C001,Local Log Settings,00000000-0000-0000-0000-000000000002,carpeta8 Desktop,Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/192.0.2.6 Safari/537.36,
+Done. Return value is 0
+==ultimo
+Query database...
+event_id,event_type,event_date,event_time,event_user,event_ip,event_comp,event_desc,event_msgid,event_timet,event_app_id,event_app_name,event_category_id,event_category,event_client_id,event_client_app,event_client_agent,
+47575,  0,2026-10-14,03:15:34,---,---,localhost,[Storage & Snapshots] Snapshot Replica: Finished job "texto1".,1253,1791940534,A002,Storage & Snapshots,C013,Snapshot Replica,---,localhost,---,
+Done. Return value is 0
