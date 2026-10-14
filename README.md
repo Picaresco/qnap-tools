@@ -50,6 +50,26 @@ Al activarlo, Claude Code pide el **usuario SSH** y su **contraseña**. Se cambi
 reciban. `/mcp` debe mostrar `qnap-flota`, `qnap-redes`, `qnap-discos`, `qnap-virtualizacion`
 y `qnap-logs` conectados.
 
+### Actualizar a una versión nueva
+
+Si ya lo tienes instalado, desde la terminal:
+
+```
+claude plugin marketplace update qnap-tools
+claude plugin update qnap-tools@qnap-tools
+```
+
+y reinicia Claude Code. Hacen falta los dos pasos: `plugin update` compara con la copia del
+marketplace que guarda Claude Code y, sin el primero, sigue viendo la versión antigua ("already
+at the latest version"). Se conservan el usuario, la contraseña, el inventario de NAS y las
+claves. `claude plugin list` dice qué versión está instalada; las novedades de cada una están en
+las [releases](https://github.com/Picaresco/qnap-tools/releases).
+
+Si tras actualizar `/mcp` da los servidores sin conectar y, lanzado a mano, `uvx` dice que no
+existe esa versión de `qnap-tools`, es la caché de `uv` con el índice de PyPI de antes de
+publicarse: `uvx --refresh-package qnap-tools --from qnap-tools==<versión> qnap-tools-flota`
+una vez (se cierra solo al no recibir nada) y reinicia Claude Code.
+
 ## Dar de alta un NAS
 
 ```
