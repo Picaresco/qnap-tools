@@ -202,3 +202,227 @@ def test_la_imagen_de_un_disco_en_una_carpeta_con_espacios_se_pide_entera(tmp_pa
     # la ruta llega a qemu-img como un solo argumento, el ultimo
     assert '["/share/Mis VMs/Windows 10 de pruebas/disco 1.img"]' in lineas
     assert '["/share/Vms/vm/datos.img"]' in lineas
+
+# --- las ordenes que leen por una ruta de la carpeta compartida ----------------------------------
+# /share no existe en este PC: las ordenes se ejecutan con "/share/" cambiado por una carpeta
+# temporal (la misma en la ruta pedida, en la comprobacion de que cuelga de ella y en el filtro de
+# las bases), de modo que lo que se prueba es la plantilla de verdad.
+
+QEMU_FICHERO_DE_PEGA = """\
+for a in "$@"; do ultimo="$a"; done
+echo "$*" >> "$PEGA/llamadas"
+nombre=$(basename "$ultimo")
+if [ "$1" = check ]; then cat "$PEGA/chk/$nombre"; exit $(cat "$PEGA/chk/rc"); fi
+[ ! -e "$PEGA/img/$nombre" ] || cat "$PEGA/img/$nombre"
+"""
+XML_VM = """\
+<domain type='kvm'>
+  <name>{uuid}</name>
+  <uuid>{uuid}</uuid>
+  <description>prueba</description>
+  <metadata>
+    <qvs:vm xmlns:qvs="http://example.invalid/qvs">
+      <qvs:name>maquina de pruebas</qvs:name>
+      <qvs:meta_path>{meta}</qvs:meta_path>
+      <qvs:os type="linux" arch="x86"/>
+    </qvs:vm>
+  </metadata>
+  <memory unit='KiB'>2097152</memory>
+  <currentMemory unit='KiB'>2097152</currentMemory>
+  <vcpu placement='static'>2</vcpu>
+  <os>
+    <type arch='x86_64' machine='pc-i440fx-7.0'>hvm</type>
+  </os>
+  <devices>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2' cache='writeback'/>
+      <source file='{disco}'/>
+      <target dev='hda' bus='ide'/>
+    </disk>
+    <graphics type='vnc' port='5901' autoport='no' listen='0.0.0.0' passwd='clave-vnc-123' keymap='es'>
+      <listen type='address' address='0.0.0.0'/>
+    </graphics>
+  </devices>
+</domain>
+"""
+UUID_FICHERO = "12345678-9abc-4def-8123-456789abcdef"
+
+
+class Share:
+    """Una carpeta compartida de pega: tmp/share, con su ruta canonica tal como la ve el sh."""
+
+    def __init__(self, tmp_path):
+        self.tmp = tmp_path
+        self.carpeta = tmp_path / "share"
+        self.carpeta.mkdir(exist_ok=True)
+        r = subprocess.run([SH, "-c", 'readlink -f "%s"' % posix(self.carpeta)], capture_output=True, text=True,
+                           encoding="utf-8", timeout=30)
+        self.real = r.stdout.strip()
+        assert self.real, r.stderr
+        self.raiz = self.real.rsplit("/", 1)[0]       # la carpeta que contiene a share
+
+    def ruta(self, relativa):
+        """La ruta pedida al comando (/share/...) y la que el sh vera de verdad."""
+        return "/share/" + relativa, self.real + "/" + relativa
+
+    def fichero(self, relativa, texto="x"):
+        destino = self.carpeta / relativa
+        destino.parent.mkdir(parents=True, exist_ok=True)
+        destino.write_text(texto, encoding="utf-8", newline="\n")
+        return destino
+
+    def lanzar(self, comando, relativa, qemu=None, fuera=False):
+        """La salida de la orden pedida con /share/<relativa> (o con una ruta fuera de la compartida)."""
+        pega = self.tmp / "pega"
+        pega.mkdir(exist_ok=True)
+        pedida = "/fuera/" + relativa if fuera else self.ruta(relativa)[0]
+        texto = comando.render({"ruta": pedida}).replace("/share/", self.real + "/").replace(
+            "/fuera/", self.raiz + "/")
+        if qemu is not None:
+            (pega / "qemu.sh").write_text(qemu, encoding="utf-8", newline="\n")
+            texto = texto.replace(vc.QEMU_IMG, "sh %s/qemu.sh" % posix(pega))
+        r = subprocess.run([SH, "-c", texto], capture_output=True, text=True, encoding="utf-8",
+                           env={"PEGA": posix(pega), "PATH": os.environ["PATH"]}, timeout=60)
+        return r.returncode, r.stdout
+
+    def imagen(self, nombre, **campos):
+        """La respuesta de qemu-img info para una imagen (sus rutas ya con la carpeta de verdad)."""
+        img = self.tmp / "pega" / "img"
+        img.mkdir(parents=True, exist_ok=True)
+        capa = {"filename": self.ruta(nombre)[1], "format": "qcow2", "virtual-size": 1024, "actual-size": 8}
+        capa.update(campos)
+        (img / nombre.rsplit("/", 1)[-1]).write_text(json.dumps(capa, indent=4) + "\n", encoding="utf-8", newline="\n")
+
+    def comprobacion(self, nombre, rc, salida):
+        chk = self.tmp / "pega" / "chk"
+        chk.mkdir(parents=True, exist_ok=True)
+        (chk / nombre.rsplit("/", 1)[-1]).write_text(salida, encoding="utf-8", newline="\n")
+        (chk / "rc").write_text(str(rc), encoding="utf-8", newline="\n")
+
+    def llamadas(self):
+        return (self.tmp / "pega" / "llamadas").read_text(encoding="utf-8").splitlines()
+
+
+def test_disco_info_recorre_la_cadena_de_una_carpeta_con_espacios_capa_a_capa(tmp_path):
+    s = Share(tmp_path)
+    capa, base = "Mis VMs/vm/disco 1.img.1790544225", "Mis VMs/vm/disco 1.img"
+    s.fichero(capa), s.fichero(base)
+    s.imagen(capa, **{"full-backing-filename": s.ruta(base)[1], "backing-filename": "disco 1.img",
+                      "dirty-flag": False})
+    s.imagen(base, **{"dirty-flag": True})
+    rc, salida = s.lanzar(vc.DISCO_INFO, capa, qemu=QEMU_FICHERO_DE_PEGA)
+    assert rc == 0
+    info = p.disco_info(salida.replace(s.real, "/share"))
+    assert [c["fichero"] for c in info["capas"]] == ["/share/" + capa, "/share/" + base]
+    assert [c["dirty"] for c in info["capas"]] == [False, True] and info["cortada"] is False
+    llamadas = s.llamadas()
+    assert [ll.rsplit("json ", 1)[1] for ll in llamadas] == [s.ruta(capa)[1], s.ruta(base)[1]]
+    assert all(ll.startswith("info -U --output=json ") for ll in llamadas)
+    assert not any("--backing-chain" in ll for ll in llamadas)
+
+
+def test_disco_info_no_sigue_una_base_fuera_de_la_carpeta_compartida(tmp_path):
+    s = Share(tmp_path)
+    s.fichero("vm/capa.img")
+    s.imagen("vm/capa.img", **{"full-backing-filename": "nbd://192.0.2.9:10809/x"})
+    rc, salida = s.lanzar(vc.DISCO_INFO, "vm/capa.img", qemu=QEMU_FICHERO_DE_PEGA)
+    assert rc == 0 and len(s.llamadas()) == 1
+    info = p.disco_info(salida.replace(s.real, "/share"))
+    assert info["base_sin_leer"] == "nbd://192.0.2.9:10809/x" and len(info["capas"]) == 1
+
+
+def test_disco_info_con_una_cadena_sin_fin_se_corta_y_lo_dice(tmp_path):
+    s = Share(tmp_path)
+    s.fichero("vm/bucle.img")
+    s.imagen("vm/bucle.img", **{"full-backing-filename": s.ruta("vm/bucle.img")[1]})
+    rc, salida = s.lanzar(vc.DISCO_INFO, "vm/bucle.img", qemu=QEMU_FICHERO_DE_PEGA)
+    assert rc == 0
+    info = p.disco_info(salida.replace(s.real, "/share"))
+    assert info["cortada"] is True and len(info["capas"]) == vc.MAX_CAPAS_IMAGEN
+
+
+@pytest.mark.parametrize("comando", [vc.DISCO_INFO, vc.DISCO_CHECK])
+def test_una_ruta_fuera_de_la_carpeta_compartida_o_que_no_existe_no_llega_a_qemu(tmp_path, comando):
+    s = Share(tmp_path)
+    (tmp_path / "otra").mkdir()
+    (tmp_path / "otra" / "disco.img").write_text("x", encoding="utf-8")
+    (s.carpeta / "vm" / "carpeta.img").mkdir(parents=True)      # una carpeta con nombre de imagen no vale
+    for relativa, fuera in (("otra/disco.img", True), ("vm/no existe.img", False), ("vm/carpeta.img", False)):
+        rc, salida = s.lanzar(comando, relativa, qemu=QEMU_FICHERO_DE_PEGA, fuera=fuera)
+        assert rc == 0 and salida.strip() == "==rechazada", relativa
+        with pytest.raises(ValueError):
+            (p.disco_info if comando is vc.DISCO_INFO else p.disco_check)(salida)
+    assert not (tmp_path / "pega" / "llamadas").exists()
+
+
+def test_la_comprobacion_da_el_codigo_de_salida_y_nunca_repara(tmp_path):
+    s = Share(tmp_path)
+    s.fichero("vm/disco.img")
+    fichero = s.ruta("vm/disco.img")[1]
+    salida_qemu = json.dumps({"image-end-offset": 4096, "total-clusters": 16, "check-errors": 0, "corruptions": 2,
+                              "filename": fichero, "format": "qcow2"}, indent=4) + "\n"
+    s.comprobacion("disco.img", 2, salida_qemu)
+    rc, salida = s.lanzar(vc.DISCO_CHECK, "vm/disco.img", qemu=QEMU_FICHERO_DE_PEGA)
+    assert rc == 0 and salida.rstrip().endswith("==rc 2")
+    comprobacion = p.disco_check(salida.replace(s.real, "/share"))
+    assert comprobacion["corrupciones"] == 2 and comprobacion["codigo_de_salida"] == 2
+    (llamada,) = s.llamadas()
+    assert llamada.startswith("check -U --output=json ") and " -r" not in llamada and "--repair" not in llamada
+
+
+def escribe_vm(s, carpeta="Mis VMs/maquina 1", xml=None):
+    """Una VM de VS en una carpeta con espacios: <carpeta>/.<uuid>.meta/<uuid>.xml. Devuelve el .xml."""
+    meta = "%s/.%s.meta" % (carpeta, UUID_FICHERO)
+    texto = xml if xml is not None else XML_VM.format(
+        uuid=UUID_FICHERO, meta=s.ruta(meta)[1], disco=s.ruta(carpeta + "/disco 1.img")[1])
+    s.fichero("%s/%s.xml" % (meta, UUID_FICHERO), texto)
+    return "%s/%s.xml" % (meta, UUID_FICHERO)
+
+
+@pytest.mark.parametrize("que", ["el_xml", "la_carpeta_de_metadatos", "la_carpeta_de_la_vm"])
+def test_la_definicion_se_lee_desde_el_xml_su_carpeta_de_metadatos_o_la_de_la_vm(tmp_path, que):
+    s = Share(tmp_path)
+    xml = escribe_vm(s)
+    relativa = {"el_xml": xml, "la_carpeta_de_metadatos": xml.rsplit("/", 1)[0],
+                "la_carpeta_de_la_vm": "Mis VMs/maquina 1"}[que]
+    rc, salida = s.lanzar(vc.VM_DEFINICION_FICHERO, relativa)
+    assert rc == 0
+    vm = p.vm_definicion_fichero(salida.replace(s.real, "/share"))
+    assert vm["uuid"] == UUID_FICHERO and vm["nombre"] == "maquina de pruebas" and vm["vcpus"] == 2
+    assert vm["fichero"] == "/share/" + xml
+    assert vm["discos"][0]["fichero"] == "/share/Mis VMs/maquina 1/disco 1.img"
+    assert vm["graficos"] == {"tipo": "vnc", "puerto": 5901, "autopuerto": False, "escucha": "0.0.0.0",
+                              "teclado": "es"}
+
+
+def test_la_contrasena_de_la_consola_no_sale_del_nas_ni_con_el_xml_real(tmp_path):
+    s = Share(tmp_path)
+    xml = escribe_vm(s)
+    rc, salida = s.lanzar(vc.VM_DEFINICION_FICHERO, xml)
+    assert rc == 0 and "clave-vnc-123" not in salida and "passwd" not in salida
+    # un XML en una sola linea no deja pasar la contrasena: la lectura da un error, no el dato
+    una_linea = "".join(linea.strip() for linea in (tmp_path / "share" / xml).read_text(encoding="utf-8").splitlines())
+    assert "passwd=" in una_linea
+    (tmp_path / "share" / xml).write_text(una_linea + "\n", encoding="utf-8", newline="\n")
+    rc, salida = s.lanzar(vc.VM_DEFINICION_FICHERO, xml)
+    assert "clave-vnc-123" not in salida and "passwd" not in salida
+    with pytest.raises(ValueError):
+        p.vm_definicion_fichero(salida.replace(s.real, "/share"))
+
+
+def test_un_xml_que_no_es_una_definicion_o_una_ruta_que_no_vale_no_se_lee(tmp_path):
+    s = Share(tmp_path)
+    s.fichero("vm/notas.xml", "<notas>\n  <name>esto no es una VM</name>\n</notas>\n")
+    s.fichero("vm/texto.txt", "<domain type='kvm'>\n</domain>\n")
+    rc, salida = s.lanzar(vc.VM_DEFINICION_FICHERO, "vm/notas.xml")
+    assert rc == 0 and salida.strip() == "==no_es_vm" and "esto no es" not in salida
+    for relativa, fuera in (("vm/texto.txt", False), ("vm/no existe.xml", False), ("vacia", False)):
+        rc, salida = s.lanzar(vc.VM_DEFINICION_FICHERO, relativa, fuera=fuera)
+        assert rc == 0 and salida.strip() == "==rechazada", relativa
+    (tmp_path / "otra").mkdir()
+    (tmp_path / "otra" / "vm.xml").write_text("<domain type='kvm'>\n</domain>\n", encoding="utf-8")
+    rc, salida = s.lanzar(vc.VM_DEFINICION_FICHERO, "otra/vm.xml", fuera=True)
+    assert rc == 0 and salida.strip() == "==rechazada"
+    for texto in ("==no_es_vm\n", "==rechazada\n"):
+        with pytest.raises(ValueError):
+            p.vm_definicion_fichero(texto)

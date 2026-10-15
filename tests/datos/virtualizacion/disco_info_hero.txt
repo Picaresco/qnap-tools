@@ -1,0 +1,42 @@
+==fichero /share/ruta1/vm1/disco1.1790544225
+{
+    "virtual-size": 137438953472,
+    "filename": "/share/ruta1/vm1/disco1.1790544225",
+    "cluster-size": 65536,
+    "format": "qcow2",
+    "actual-size": 4325376,
+    "full-backing-filename": "/share/ruta1/vm1/disco1.img",
+    "backing-filename": "disco1.img",
+    "backing-filename-format": "qcow2",
+    "format-specific": {
+        "type": "qcow2",
+        "data": {
+            "compat": "1.1",
+            "compression-type": "zlib",
+            "lazy-refcounts": false,
+            "refcount-bits": 16,
+            "corrupt": false,
+            "extended-l2": false
+        }
+    },
+    "dirty-flag": false
+}
+{
+    "virtual-size": 137438953472,
+    "filename": "/share/ruta1/vm1/disco1.img",
+    "cluster-size": 65536,
+    "format": "qcow2",
+    "actual-size": 24937611776,
+    "format-specific": {
+        "type": "qcow2",
+        "data": {
+            "compat": "1.1",
+            "compression-type": "zlib",
+            "lazy-refcounts": true,
+            "refcount-bits": 16,
+            "corrupt": false,
+            "extended-l2": false
+        }
+    },
+    "dirty-flag": true
+}

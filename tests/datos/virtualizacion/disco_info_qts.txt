@@ -1,0 +1,42 @@
+==fichero /share/ruta2/vm2/disco2.img
+{
+    "virtual-size": 107374182400,
+    "filename": "/share/ruta2/vm2/disco2.img",
+    "cluster-size": 65536,
+    "format": "qcow2",
+    "actual-size": 10737418240,
+    "format-specific": {
+        "type": "qcow2",
+        "data": {
+            "compat": "1.1",
+            "compression-type": "zlib",
+            "lazy-refcounts": false,
+            "refcount-bits": 16,
+            "corrupt": false,
+            "extended-l2": false
+        }
+    },
+    "snapshots": [
+        {
+            "icount": 0,
+            "vm-clock-nsec": 0,
+            "name": "instantanea1",
+            "vm-state-size": 0,
+            "date-sec": 1790544225,
+            "date-nsec": 0,
+            "vm-clock-sec": 0,
+            "id": "1"
+        },
+        {
+            "icount": 0,
+            "vm-clock-nsec": 0,
+            "name": "instantanea2",
+            "vm-state-size": 2147483648,
+            "date-sec": 1790630625,
+            "date-nsec": 0,
+            "vm-clock-sec": 10,
+            "id": "2"
+        }
+    ],
+    "dirty-flag": false
+}

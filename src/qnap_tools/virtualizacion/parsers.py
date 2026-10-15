@@ -483,6 +483,259 @@ def vm_imagenes(texto):
     return vms
 
 
+# ==== una imagen de disco (qemu-img info y check) ===============================================
+
+RECHAZADA_RUTA = ("la ruta no existe, no es un fichero o no cuelga de /share/ (se sigue el enlace de la "
+                  "carpeta compartida)")
+RECHAZADA_XML = ("la ruta no es un fichero .xml (ni una carpeta con uno) que cuelgue de /share/ (se sigue el "
+                 "enlace de la carpeta compartida)")
+NO_ES_VM = "el fichero .xml no es la definicion de una maquina virtual de libvirt"
+MAX_INSTANTANEAS_DISCO = 100
+
+
+def _entero_o_nada(valor):
+    return valor if type(valor) is int else None
+
+
+def _logico_o_nada(valor):
+    return valor if type(valor) is bool else None
+
+
+def _fecha_o_nada(epoch):
+    try:
+        return fecha_utc(epoch) if type(epoch) is int and epoch > 0 else None
+    except (OverflowError, OSError, ValueError):
+        return None
+
+
+def _instantanea_interna(s, que):
+    if not isinstance(s, dict):
+        raise _no_reconocida(que, repr(s)[:80])
+    return {"id": _acotado(s.get("id"), 40), "nombre": _acotado(s.get("name"), MAX_NOMBRE),
+            "estado_de_vm": _entero_o_nada(s.get("vm-state-size")), "creada": _fecha_o_nada(s.get("date-sec"))}
+
+
+def _capa_de_disco(c, que):
+    """Una capa de qemu-img info --output=json con todo lo que dice de su salud."""
+    if not isinstance(c, dict) or not isinstance(c.get("filename"), str):
+        raise _no_reconocida(que, repr(c)[:80])
+    especifico = c.get("format-specific")
+    datos = especifico.get("data") if isinstance(especifico, dict) else None
+    datos = datos if isinstance(datos, dict) else {}
+    instantaneas = c.get("snapshots") or []
+    if not isinstance(instantaneas, list):
+        raise _no_reconocida(que, "snapshots")
+    return {"fichero": _acotado(c["filename"], MAX_RUTA), "formato": _acotado(c.get("format"), 40),
+            "version": _acotado(datos.get("compat"), 40), "virtual": _entero_o_nada(c.get("virtual-size")),
+            "ocupa": _entero_o_nada(c.get("actual-size")), "cluster": _entero_o_nada(c.get("cluster-size")),
+            "base": _acotado(c.get("full-backing-filename") or c.get("backing-filename"), MAX_RUTA),
+            "dirty": _logico_o_nada(c.get("dirty-flag")), "lazy_refcounts": _logico_o_nada(datos.get("lazy-refcounts")),
+            "corrupt": _logico_o_nada(datos.get("corrupt")), "refcount_bits": _entero_o_nada(datos.get("refcount-bits")),
+            "compresion": _acotado(datos.get("compression-type"), 40),
+            "instantaneas": [_instantanea_interna(s, que) for s in instantaneas[:MAX_INSTANTANEAS_DISCO]],
+            "instantaneas_total": len(instantaneas)}
+
+
+def _real_de(lineas, que, rechazada):
+    """La ruta real de una orden que empieza con '==fichero <ruta>'; ValueError si la rechazo."""
+    if lineas and lineas[0].strip() in ("==rechazada", "==no_es_vm"):
+        raise ValueError(rechazada if lineas[0].strip() == "==rechazada" else NO_ES_VM)
+    if not lineas or not lineas[0].startswith("==fichero "):
+        raise _no_reconocida(que, lineas[0] if lineas else "")
+    return _acotado(lineas[0][len("==fichero "):], MAX_RUTA)
+
+
+def disco_info(texto):
+    """Las capas de una imagen de disco, de la que se pidio a la base (qemu-img info --output=json por
+    capa): formato, version, tamano virtual y real, cluster, base, marca de sucia, corrupta e
+    instantaneas internas. 'base_sin_leer' es la base de la ultima capa leida cuando la cadena
+    sigue y no se ha leido (no es un fichero de /share/ o la cadena se corto)."""
+    que = "la informacion de la imagen"
+    lineas = texto.splitlines()
+    fichero = _real_de(lineas, que, RECHAZADA_RUTA)
+    cuerpo = [linea for linea in lineas[1:] if linea.strip()]
+    cortada = CADENA_CORTADA in [linea.strip() for linea in cuerpo]
+    objetos = []
+    for objeto in _objetos_json("\n".join(linea for linea in cuerpo if linea.strip() != CADENA_CORTADA), que):
+        objetos.extend(objeto if isinstance(objeto, list) else [objeto])
+    if not objetos:
+        raise ValueError("%s: qemu-img no pudo leer el fichero (no es una imagen de disco, esta danada o no se "
+                         "pudo abrir)" % que)
+    capas = [_capa_de_disco(c, que) for c in objetos]
+    return {"fichero": fichero, "capas": capas, "base_sin_leer": capas[-1]["base"], "cortada": cortada}
+
+
+def disco_check(texto):
+    """El resultado de qemu-img check --output=json de una imagen: errores de la comprobacion,
+    corrupciones, fugas y donde acaba la imagen. 'soportado' es false si el formato no se puede
+    comprobar (un raw). Una salida sin JSON y con otro codigo es un error."""
+    que = "la comprobacion de la imagen"
+    lineas = texto.splitlines()
+    fichero = _real_de(lineas, que, RECHAZADA_RUTA)
+    ultima = lineas[-1].strip() if lineas else ""
+    rc = MARCA_RC.fullmatch(ultima)
+    if len(lineas) < 3 or lineas[1].strip() != "==check" or not rc:
+        raise _no_reconocida(que, texto.strip()[:80])
+    cuerpo = "\n".join(lineas[2:-1])
+    salida = int(rc.group(1))
+    inicio = cuerpo.find("{")
+    if inicio < 0:
+        if salida == 63 or "does not support" in cuerpo:
+            return {"fichero": fichero, "soportado": False, "codigo_de_salida": salida,
+                    "mensaje": _acotado(cuerpo.strip(), MAX_LINEA)}
+        raise ValueError("%s: qemu-img check no dio resultado (codigo %d): %s"
+                         % (que, salida, _acotado(cuerpo.strip(), MAX_LINEA) or "sin salida"))
+    try:
+        c, _ = json.JSONDecoder().raw_decode(cuerpo, inicio)
+    except ValueError:
+        raise _no_reconocida(que, cuerpo[inicio:])
+    if not isinstance(c, dict):
+        raise _no_reconocida(que, repr(c)[:80])
+    # sin corrupciones ni fugas qemu-img no escribe esos campos
+    contadores = {clave: c.get(origen, 0) for clave, origen in (
+        ("errores_de_comprobacion", "check-errors"), ("corrupciones", "corruptions"), ("fugas", "leaks"))}
+    if not all(type(v) is int for v in contadores.values()):
+        raise _no_reconocida(que, "contadores")
+    return dict({"fichero": fichero, "formato": _acotado(c.get("format"), 40), "soportado": True}, **contadores,
+                fin_de_imagen=_entero_o_nada(c.get("image-end-offset")),
+                clusters={"total": _entero_o_nada(c.get("total-clusters")),
+                          "asignados": _entero_o_nada(c.get("allocated-clusters")),
+                          "fragmentados": _entero_o_nada(c.get("fragmented-clusters")),
+                          "comprimidos": _entero_o_nada(c.get("compressed-clusters"))},
+                codigo_de_salida=salida,
+                avisos_de_qemu=[_acotado(linea, MAX_LINEA) for linea in cuerpo[:inicio].splitlines() if linea.strip()])
+
+
+# ==== la definicion de una VM sin registrar (su <uuid>.xml) =====================================
+
+ATRIBUTOS_DE_CONSOLA = ("type", "port", "autoport", "listen", "keymap")
+
+
+def _atributos_de_consola(lineas):
+    """Los atributos de la consola que pidio la orden por su nombre (nunca la contrasena)."""
+    a = _atributos(" ".join(lineas))
+    return {clave: a[clave] for clave in ATRIBUTOS_DE_CONSOLA if clave in a}
+
+
+def _vm_de_fichero(principal, que):
+    """La VM de las lineas elegidas (como _vm) y lo que _vm no recoge: CPU, reloj, caches de los discos,
+    controladores y los metadatos de Virtualization Station."""
+    lineas = [linea.strip() for linea in principal if linea.strip()]
+    uuid = next((_texto_de(linea) for linea in lineas if linea.startswith("<uuid>")), None)
+    if not uuid or not UUID.fullmatch(uuid):
+        raise _no_reconocida(que, "falta el uuid de la VM")
+    vm = _vm(uuid.lower(), lineas, que)
+    extra = {"cpu": {"modo": None, "modelo": None, "nodos_numa": 0}, "topologia": None, "reloj": None,
+             "menu_de_arranque": None, "caracteristicas": [], "cargador": None, "video": None,
+             "nombre_libvirt": None, "al_apagar": None, "al_reiniciar": None, "al_fallar": None}
+    caches, controladores, canales, hdds = [], [], [], {}
+    origen = {"nas": None, "cpu": None, "meta_path": None, "politica_cpuset": None, "memoria_reservada": None}
+    usb_vs = puertos_serie = 0
+    disco = interfaz = en_video = False
+    fondo = 0
+    for linea in lineas:
+        m = ELEMENTO.match(linea)
+        cierre, elemento, a = m.group(1) == "/", m.group(2), _atributos(linea)
+        if elemento == "disk":
+            disco, fondo = not cierre, 0
+            if not cierre:
+                caches.append(None)
+        elif elemento == "backingStore" and disco:
+            fondo += -1 if cierre else (0 if linea.endswith("/>") else 1)
+        elif elemento == "driver" and disco and not fondo:
+            caches[-1] = a.get("cache")
+        elif elemento == "interface":
+            interfaz = not cierre
+        elif elemento == "video":
+            en_video = not cierre
+        elif elemento == "model" and en_video and not cierre:
+            vram = a.get("vram")
+            extra["video"] = {"modelo": a.get("type"), "memoria": _entero(vram, "la memoria de video") * KIB
+                              if vram else None, "pantallas": _entero(a["heads"], "las pantallas")
+                              if "heads" in a else None}
+        elif elemento == "model" and "fallback" in a and not disco and not interfaz:
+            extra["cpu"]["modelo"] = _acotado(_texto_de(linea), MAX_NOMBRE)
+        elif elemento == "cpu" and not cierre:
+            extra["cpu"]["modo"] = a.get("mode")
+        elif elemento == "topology":
+            extra["topologia"] = {clave: _entero(a[clave], "la topologia") for clave in
+                                  ("sockets", "dies", "cores", "threads") if clave in a}
+        elif elemento == "cell":
+            extra["cpu"]["nodos_numa"] += 1
+        elif elemento == "clock":
+            extra["reloj"] = a.get("offset")
+        elif elemento in ("on_poweroff", "on_reboot", "on_crash"):
+            extra[{"on_poweroff": "al_apagar", "on_reboot": "al_reiniciar", "on_crash": "al_fallar"}[elemento]] = (
+                _acotado(_texto_de(linea), 40))
+        elif elemento == "name" and not cierre:
+            extra["nombre_libvirt"] = _acotado(_texto_de(linea), MAX_NOMBRE)
+        elif elemento == "bootmenu":
+            extra["menu_de_arranque"] = a.get("enable")
+        elif elemento in ("acpi", "apic", "pae"):
+            extra["caracteristicas"].append(elemento)
+        elif elemento == "loader":
+            extra["cargador"] = _acotado(_texto_de(linea), MAX_RUTA)
+        elif elemento == "controller" and not cierre:
+            controladores.append(a)
+        elif elemento == "target" and a.get("type") == "virtio" and not disco and not interfaz:
+            canales.append(_acotado(a.get("name"), MAX_NOMBRE))
+        elif elemento == "qvs:nas_model":
+            origen["nas"] = _acotado(_texto_de(linea), MAX_NOMBRE)
+        elif elemento == "qvs:host_cpu":
+            origen["cpu"] = _acotado(_texto_de(linea), MAX_NOMBRE)
+        elif elemento == "qvs:meta_path":
+            origen["meta_path"] = _acotado(_texto_de(linea), MAX_RUTA)
+        elif elemento == "qvs:cpuset_policy":
+            origen["politica_cpuset"] = _acotado(_texto_de(linea), 40)
+        elif elemento == "qvs:mom" and "reserved_memory" in a:
+            origen["memoria_reservada"] = _entero(a["reserved_memory"], "la memoria reservada")
+        elif elemento == "qvs:hdd" and "dev" in a:
+            tamano = a.get("size")
+            hdds[a["dev"]] = int(tamano) if tamano and re.fullmatch("[0-9]+", tamano) else None
+        elif elemento == "qvs:usb":
+            usb_vs += 1
+        elif elemento == "qvs:serialport":
+            puertos_serie += 1
+    usb = [c for c in controladores if c.get("type") == "usb"]
+    serie = [c for c in controladores if c.get("type") == "virtio-serial"]
+    discos = [{"dispositivo": d["dispositivo"], "bus": d["bus"], "clase": d["clase"], "formato": d["formato"],
+               "fichero": d["fichero"], "cache": caches[i] if i < len(caches) else None, "bases": d["bases"],
+               "tamano": hdds.get(d["dispositivo"])} for i, d in enumerate(vm["discos"])]
+    return dict(extra, uuid=vm["uuid"], nombre=vm["nombre"], descripcion=vm["descripcion"], sistema=vm["sistema"],
+                arquitectura=vm["arquitectura"], arranque_automatico=vm["arranque_automatico"],
+                instantaneas=vm["instantaneas"], memoria=vm["memoria"], memoria_actual=vm["memoria_actual"],
+                vcpus=vm["vcpus"], maquina=vm["maquina"], firmware=vm["firmware"], tpm=vm["tpm"],
+                arranque=vm["arranque"], discos=discos,
+                nics=[{"mac": i["mac"], "modelo": i["modelo"], "conmutador": i["conmutador"], "tipo": i["tipo"]}
+                      for i in vm["interfaces"]],
+                usb={"controlador": usb[0].get("model") if usb else None,
+                     "puertos": _entero(usb[0]["ports"], "los puertos USB") if usb and "ports" in usb[0] else None,
+                     "dispositivos": usb_vs},
+                virtio_serie={"controladores": len(serie), "canales": canales}, puertos_serie=puertos_serie,
+                dispositivos_pasados=vm["dispositivos_pasados"], origen=origen)
+
+
+def vm_definicion_fichero(texto):
+    """La definicion de una VM sin registrar, de su <uuid>.xml: nombre, descripcion, sistema, CPU,
+    memoria, firmware, discos, tarjetas de red, consola, USB, canales virtio y de donde viene. Lo
+    unico que se pide de la consola son su tipo, puerto, direccion y teclado: nunca su contrasena."""
+    que = "la definicion de la VM"
+    lineas = texto.splitlines()
+    fichero = _real_de(lineas, que, RECHAZADA_XML)
+    if "==graficos" not in lineas or "==fin" not in [linea.strip() for linea in lineas]:
+        raise ValueError("%s: la lectura esta incompleta (falta '==graficos' o '==fin')" % que)
+    corte, fin = lineas.index("==graficos"), [linea.strip() for linea in lineas].index("==fin")
+    if not corte < fin or any(linea.strip() for linea in lineas[fin + 1:]):
+        raise _no_reconocida(que, "orden de las partes")
+    vm = _vm_de_fichero(lineas[1:corte], que)
+    consola = _atributos_de_consola(lineas[corte + 1:fin])
+    puerto = _entero(consola["port"], "el puerto de la consola") if "port" in consola else None
+    vm["graficos"] = {"tipo": consola.get("type"), "puerto": puerto if puerto and puerto > 0 else None,
+                      "autopuerto": consola["autoport"] == "yes" if "autoport" in consola else None,
+                      "escucha": consola.get("listen"), "teclado": consola.get("keymap")} if consola else None
+    return dict(vm, fichero=fichero)
+
+
 # ==== instantaneas ==============================================================================
 
 def vm_snap_vs(texto):

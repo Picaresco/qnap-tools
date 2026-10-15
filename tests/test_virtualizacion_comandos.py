@@ -12,7 +12,8 @@ import guardia  # noqa: E402  (la guardia de solo lectura del laboratorio)
 from qnap_tools.comandos import Comando, ParametroInvalido  # noqa: E402
 from qnap_tools.virtualizacion import comandos as vc  # noqa: E402
 
-EJEMPLOS = {"uuid": "12345678-9abc-4def-8123-456789abcdef", "nombre": "web-1", "entero": "50"}
+EJEMPLOS = {"uuid": "12345678-9abc-4def-8123-456789abcdef", "nombre": "web-1", "entero": "50",
+            "ruta": "/share/ruta1/vm1/disco1.img"}
 SECRETOS = re.compile(
     r"shadow|smbpasswd|ssh_host|\.pem|id_rsa|id_ed25519|authorized_keys|qvpn/|openvpn|"
     r"ipsec\.(conf|secrets)|privatekey|security-info|qvs\.db|ctstation|\.sqlite|passwd", re.I)
@@ -21,7 +22,7 @@ VETADO = re.compile(
     r"\blxc\b|\bcurl\b|\bwget\b|sqlite|screenshot|qemu-agent|guestinfo|--source agent|"
     r"\bdu |\bfind |ls -[A-Za-z]*R|\.Config\.Env|\.Config\.Cmd|\.Args|\.Path\b|\{\{ *json *\. *\}\}")
 DE_VM = {"ANFITRION", "VM_ESTADISTICAS", "VM_XML", "VM_IP", "VM_USO", "VM_IMAGENES", "VM_SNAP_LIBVIRT",
-         "VM_SNAP_VS", "VM_GUARDADAS"}
+         "VM_SNAP_VS", "VM_GUARDADAS", "DISCO_INFO", "DISCO_CHECK", "VM_DEFINICION_FICHERO"}
 DE_CONTENEDORES = {"CT_INFO", "CT_LISTA", "CT_COMPOSE", "CT_DETALLE", "CT_STATS", "CT_LOGS",
                    "CT_REDES", "CT_INTERNOS", "CT_LXD"}
 CON_SUDO = {"CT_LXD"}          # las carpetas de LXD solo las lee root
@@ -106,9 +107,76 @@ def test_el_xml_de_una_vm_nunca_sale_entero(nombre):
 @pytest.mark.parametrize("nombre", sorted(todos()))
 def test_qemu_img_solo_describe_la_imagen_y_sin_bloquearla(nombre):
     plantilla = todos()[nombre].plantilla
-    assert plantilla.count("qemu-img") == plantilla.count("qemu-img info -U ")
+    # info describe y check cuenta errores, los dos con -U; check nunca con -r (repara y escribe)
+    assert plantilla.count("qemu-img") == plantilla.count("qemu-img info -U ") + plantilla.count(
+        "qemu-img check -U --output=json ")
+    for uso in re.findall(r"qemu-img [^;|)]*", plantilla):
+        assert " -r" not in uso and "--repair" not in uso, uso
     # --backing-chain abriria la base que diga cada imagen, tambien una direccion de red
     assert "--backing-chain" not in plantilla
+
+
+def test_la_comprobacion_de_una_imagen_solo_lee_y_se_da_tiempo_para_las_grandes():
+    assert vc.DISCO_CHECK.sudo is False and vc.DISCO_CHECK.params == {"ruta": "ruta"}
+    assert vc.DISCO_CHECK.timeout == 120 and vc.DISCO_INFO.sudo is False
+    assert vc.DISCO_CHECK.plantilla.count("check -U --output=json") == 1
+
+
+def test_la_guardia_deja_pasar_check_con_u_y_rechaza_repararlo():
+    qemu = "LD_LIBRARY_PATH=/QVS/usr/lib /QVS/usr/bin/qemu-img "
+    guardia.comprobar(qemu + "check -U --output=json /share/x.img")
+    guardia.comprobar(qemu + "check -U /share/x.img")
+    # -r y --repair REPARAN la imagen: escriben en ella
+    for texto in ("check -r all -U --output=json /share/x.img", "check -U -r leaks /share/x.img",
+                  "check -U --output=json -r all /share/x.img", "check --repair all -U /share/x.img",
+                  "check -U --repair=leaks /share/x.img", "check -rU all /share/x.img",
+                  "check -U -r /share/x.img", "check /share/x.img", "check --output=json /share/x.img",
+                  "check -U -f raw /share/x.img", "check -U -T none /share/x.img",
+                  "check -U --image-opts /share/x.img", "check -U /share/x.img /share/y.img"):
+        with pytest.raises(guardia.Bloqueado):
+            guardia.comprobar(qemu + texto)
+    for texto in ("info /share/x.img", "commit /share/x.img", "resize /share/x.img 1G", "convert a b", "amend a",
+                  "snapshot -c x /share/x.img", "bitmap --add /share/x.img b"):
+        with pytest.raises(guardia.Bloqueado):
+            guardia.comprobar(qemu + texto)
+
+
+def test_la_regla_de_check_dice_por_que_no_admite_reparar():
+    reglas = [r for r in guardia.cargar_reglas()["qemu-img"] if r.get("sub") == ["check"]]
+    assert len(reglas) == 1
+    regla = reglas[0]
+    assert regla["requiere"] == ["-U"] and set(regla["solo_flags"]) == {"-U", "--output=json"}
+    assert "-r" in regla["nota"] and "ESCRIBEN" in regla["nota"]
+
+
+def test_las_ordenes_de_ruta_solo_leen_lo_que_cuelga_de_share():
+    for c in (vc.DISCO_INFO, vc.DISCO_CHECK, vc.VM_DEFINICION_FICHERO):
+        assert c.params == {"ruta": "ruta"} and c.sudo is False and "readlink -f {ruta}" in c.plantilla, c.id
+        assert '"${f#/share/}" != "$f"' in c.plantilla and "==rechazada" in c.plantilla, c.id
+
+
+@pytest.mark.parametrize("valor", ["x.img", "../etc/passwd", "/share/../etc", "/share/a/./b", "", "/share/a\nb",
+                                   "/" + "a" * 513])
+def test_la_ruta_se_valida_antes_de_componer_la_orden(valor):
+    for c in (vc.DISCO_INFO, vc.DISCO_CHECK, vc.VM_DEFINICION_FICHERO):
+        with pytest.raises(ParametroInvalido):
+            c.render({"ruta": valor})
+
+
+def test_una_ruta_con_espacios_o_comillas_viaja_entrecomillada():
+    orden = vc.DISCO_CHECK.render({"ruta": "/share/Mis VMs/it's.img"})
+    assert orden.startswith("f=$(readlink -f '/share/Mis VMs/it'\"'\"'s.img');")
+    guardia.comprobar(orden)
+
+
+def test_la_definicion_de_un_fichero_no_pide_la_consola_entera_ni_los_metadatos_de_la_consola():
+    plantilla = vc.VM_DEFINICION_FICHERO.plantilla
+    # la consola solo por atributos pedidos por su nombre (nunca passwd); ni el elemento ni los metadatos de VS
+    assert not any("graphics" in e or e == "qvs:vm" for e in vc.ELEMENTOS_DEFINICION)
+    assert "passwd" not in plantilla and "password" not in plantilla.lower() and "cat " not in plantilla
+    assert "grep -E '<graphics ' \"$f\" | grep -o -E \"(type|port|autoport|listen|keymap)='[^']*'\"" in plantilla
+    # se comprueba que es un .xml y una definicion de libvirt antes de leerlo
+    assert '"${f%.xml}" != "$f"' in plantilla and "grep -q '^<domain '" in plantilla
 
 
 def test_las_rutas_sacadas_de_una_vm_no_se_recorren_con_un_for():
@@ -216,3 +284,24 @@ def test_el_numero_de_lineas_se_valida_antes_de_componer_la_orden(valor):
 def test_lxd_solo_se_mira_por_sus_carpetas():
     # el cliente lxc crea ~/.config/lxc y un certificado la primera vez: no se ejecuta
     assert "lxc " not in vc.CT_LXD.plantilla and "ls " in vc.CT_LXD.plantilla
+
+
+def test_la_captura_da_valores_validos_a_todas_las_ordenes_con_parametros():
+    # pruebas/captura.py y pruebas/efectos.py abortan si falta el valor de los parametros de una orden
+    import captura
+    datos = Path(__file__).parent / "datos" / "virtualizacion"
+    leidas = {n: (datos / (n.lower() + "_hero.txt")).read_text(encoding="utf-8")
+              for n in ("VM_XML", "VM_IMAGENES", "CT_LISTA")}
+    valores = captura.valores_reales("virtualizacion", leidas.__getitem__, "hero")
+    con_parametros = {n: c for n, c in vars(vc).items() if isinstance(c, Comando) and c.params}
+    assert set(con_parametros) == {"VM_IP", "CT_DETALLE", "CT_LOGS", "DISCO_INFO", "DISCO_CHECK",
+                                   "VM_DEFINICION_FICHERO"}
+    for nombre, comando in con_parametros.items():
+        assert valores.get(nombre), nombre
+        guardia.comprobar(comando.render(valores[nombre]))
+    # un disco que cuelga de /share y la carpeta de su VM (donde VS guarda los metadatos)
+    assert valores["DISCO_INFO"] == valores["DISCO_CHECK"] == {"ruta": "/share/ruta1/vm1/ruta10.1790544225"}
+    assert valores["VM_DEFINICION_FICHERO"] == {"ruta": "/share/ruta1/vm1"}
+    # un NAS sin discos en /share no tiene con que probarlas
+    sin = captura.valores_reales("virtualizacion", dict(leidas, VM_IMAGENES="").__getitem__, "hero")
+    assert sin["DISCO_INFO"] is None and sin["VM_DEFINICION_FICHERO"] is None

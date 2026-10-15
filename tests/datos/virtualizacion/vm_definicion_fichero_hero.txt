@@ -1,0 +1,72 @@
+==fichero /share/ruta1/vm1/.00000000-0000-0000-0000-000000000006.meta/ruta3.xml
+<domain type='kvm'>
+  <name>00000000-0000-0000-0000-000000000006</name>
+  <uuid>00000000-0000-0000-0000-000000000006</uuid>
+  <description>descripcion de ejemplo 1</description>
+      <qvs:name>vm1</qvs:name>
+      <qvs:meta_path>/share/ruta1/vm1/.00000000-0000-0000-0000-000000000006.meta</qvs:meta_path>
+      <qvs:cpuset_policy>shared</qvs:cpuset_policy>
+      <qvs:host_cpu>Intel(R) Xeon(R) CPU D-1602</qvs:host_cpu>
+      <qvs:nas_model>TS-X85</qvs:nas_model>
+      <qvs:os type="win2012r2" arch="x86"/>
+      <qvs:auto_start_delay enable="off">60</qvs:auto_start_delay>
+      <qvs:mom reserved_memory="268435456">0</qvs:mom>
+      <qvs:qvm enable="no"/>
+      <qvs:test enable="no"/>
+        <qvs:hdd dev="hda" bus="ide" size="268435456000" index="1" root="/share/ruta1/vm1/disco1.img"/>
+        <qvs:cdrom dev="hdb" bus="ide" index="1"/>
+        <qvs:nic mac="00:11:22:33:44:00" bridge="qvs2" model="e1000" index="1" type="bridge" queues="1"/>
+      <qvs:snapshot type="external"/>
+  <memory unit='KiB'>4194304</memory>
+  <currentMemory unit='KiB'>4194304</currentMemory>
+  <vcpu placement='static' cpuset='0-3'>2</vcpu>
+    <type arch='x86_64' machine='pc-i440fx-7.0'>hvm</type>
+    <boot dev='cdrom'/>
+    <boot dev='hd'/>
+    <bootmenu enable='no'/>
+    <acpi/>
+    <apic/>
+    <pae/>
+  <cpu mode='custom' match='exact' check='full'>
+    <model fallback='forbid'>Westmere</model>
+    <topology sockets='1' dies='1' cores='2' threads='1'/>
+      <cell id='0' cpus='0-1' memory='4194304' unit='KiB'/>
+  <clock offset='localtime'/>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>restart</on_crash>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2' cache='writeback'/>
+      <source file='/share/ruta1/vm1/disco1.1790544225' startupPolicy='optional' index='2'/>
+      <backingStore type='file' index='3'>
+        <source file='/share/ruta1/vm1/disco1.img'/>
+        <backingStore/>
+      </backingStore>
+      <target dev='hda' bus='ide'/>
+    </disk>
+    <disk type='file' device='cdrom'>
+      <driver name='qemu' type='raw'/>
+      <source file='/QVS/guest_tools.iso' startupPolicy='optional' index='1'/>
+      <backingStore/>
+      <target dev='hdb' bus='ide'/>
+    </disk>
+    <controller type='ide' index='0'>
+    <controller type='usb' index='0' model='nec-xhci' ports='6'>
+    <controller type='pci' index='0' model='pci-root'>
+    <controller type='virtio-serial' index='0'>
+    <interface type='bridge'>
+      <mac address='00:11:22:33:44:00'/>
+      <source bridge='qvs2'/>
+      <model type='e1000'/>
+    </interface>
+      <target type='virtio' name='org.qemu.guest_agent.0'/>
+    <video>
+      <model type='vga' vram='16384' heads='1' primary='yes'/>
+    </video>
+==graficos
+type='vnc'
+port='-1'
+autoport='yes'
+listen='127.0.0.1'
+keymap='es'
+==fin

@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Las 10 herramientas de qnap-virtualizacion sobre NAS simulados que responden con salidas
+"""Las 12 herramientas de qnap-virtualizacion sobre NAS simulados que responden con salidas
 reales anonimizadas (un QuTS hero y un QTS con Virtualization Station y Container Station).
 Los registros de un contenedor y las direcciones de una VM se escriben aqui a mano."""
 import asyncio
 import json
 import re
+import shlex
 from pathlib import Path
 
 import pytest
@@ -25,13 +26,15 @@ ENTORNO = {"QNAP_TOOLS_USER": "usuario", "QNAP_TOOLS_PASSWORD": "secreto"}
 ORDENES = {nombre: c for nombre, c in vars(vc).items() if isinstance(c, Comando)}
 LLAMADAS = {"virtualizacion_resumen": (), "vm_lista": (), "vm_detalle": ("vm1",), "vm_uso": (),
             "vm_snapshots": (), "contenedores_lista": (), "contenedor_detalle": ("contenedor1",),
-            "contenedores_uso": (), "contenedor_logs": ("contenedor1",), "contenedores_redes": ()}
+            "contenedores_uso": (), "contenedor_logs": ("contenedor1",), "contenedores_redes": (),
+            "disco_info": ("/Vms/carpeta/disco1.img",), "vm_definicion_fichero": ("/Vms/carpeta",)}
 DE_VM = ("vm_lista", "vm_detalle", "vm_uso", "vm_snapshots")
+DE_FICHEROS = ("disco_info", "vm_definicion_fichero")
 DE_CONTENEDORES = ("contenedores_lista", "contenedor_detalle", "contenedores_uso", "contenedor_logs",
                    "contenedores_redes")
 # un valor valido de cada tipo de parametro y la expresion que casa con cualquier otro
 CENTINELAS = {"uuid": ("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "[0-9a-f-]{36}"), "entero": ("987654", "[0-9]+"),
-              "nombre": ("zzNOMBREzz", "[A-Za-z0-9_.-]+")}
+              "nombre": ("zzNOMBREzz", "[A-Za-z0-9_.-]+"), "ruta": ("/share/zzRUTAzz", "/share/[^\x00-\x1f]+")}
 GIB = 1024 ** 3
 VM1_HERO = "00000000-0000-0000-0000-000000000006"
 VM3_HERO = "00000000-0000-0000-0000-000000000004"           # apagada, con tres instantaneas
@@ -55,7 +58,9 @@ def patron(comando):
 
 
 P_IP, P_DETALLE, P_LOGS = patron(vc.VM_IP), patron(vc.CT_DETALLE), patron(vc.CT_LOGS)
-CON_PARAMETROS = ((P_IP, vc.VM_IP), (P_DETALLE, vc.CT_DETALLE), (P_LOGS, vc.CT_LOGS))
+P_INFO, P_CHECK, P_DEFINICION = patron(vc.DISCO_INFO), patron(vc.DISCO_CHECK), patron(vc.VM_DEFINICION_FICHERO)
+CON_PARAMETROS = ((P_IP, vc.VM_IP), (P_DETALLE, vc.CT_DETALLE), (P_LOGS, vc.CT_LOGS), (P_INFO, vc.DISCO_INFO),
+                  (P_CHECK, vc.DISCO_CHECK), (P_DEFINICION, vc.VM_DEFINICION_FICHERO))
 
 
 def deteccion(sistema, vs=True, cs=True):
@@ -83,6 +88,9 @@ def nas_simulado(sistema, vs=True, cs=True, **extra):
             respuestas[comando.render()] = dato("%s_%s" % (comando.id, sistema))
     if vs:
         respuestas[P_IP] = dato("vm_ip_" + sistema)
+        respuestas[P_INFO] = dato("disco_info_" + sistema)
+        respuestas[P_CHECK] = dato("disco_check_" + sistema)
+        respuestas[P_DEFINICION] = dato("vm_definicion_fichero_" + sistema)
     if cs:
         respuestas[P_DETALLE] = lambda orden, sudo: dato("ct_detalle_" + sistema).replace(
             'nombre="/contenedor1"', 'nombre="/%s"' % P_DETALLE.match(orden).group("contenedor"))
@@ -206,12 +214,13 @@ def test_no_hay_ninguna_orden_de_la_pata_que_no_use_alguna_herramienta(tmp_path)
         assert sin_uso == [], sistema
 
 
-def test_el_servidor_registra_las_diez_herramientas_con_descripcion(tmp_path):
+def test_el_servidor_registra_las_doce_herramientas_con_descripcion(tmp_path):
     mcp = virt_srv.construir(dict(ENTORNO, QNAP_TOOLS_DATA=str(tmp_path)))
     herramientas = {t.name: t for t in asyncio.run(mcp.list_tools())}
     assert sorted(herramientas) == [
         "contenedor_detalle", "contenedor_logs", "contenedores_lista", "contenedores_redes", "contenedores_uso",
-        "virtualizacion_resumen", "vm_detalle", "vm_lista", "vm_snapshots", "vm_uso"]
+        "disco_info", "virtualizacion_resumen", "vm_definicion_fichero", "vm_detalle", "vm_lista", "vm_snapshots",
+        "vm_uso"]
     assert all(t.description and len(t.description) > 40 for t in herramientas.values())
     assert all("nas" in t.inputSchema["required"] for t in herramientas.values())
     assert herramientas["vm_detalle"].inputSchema["required"] == ["nas", "vm"]
@@ -222,7 +231,7 @@ def test_el_servidor_registra_las_diez_herramientas_con_descripcion(tmp_path):
 
 
 def test_el_servidor_arranca_aunque_falte_la_credencial():
-    assert len(asyncio.run(virt_srv.construir({}).list_tools())) == 10
+    assert len(asyncio.run(virt_srv.construir({}).list_tools())) == 12
 
 
 def test_un_nas_desconocido_y_la_falta_de_credencial_se_dicen_en_el_error(tmp_path):
@@ -266,7 +275,7 @@ def test_el_nas_de_pruebas_sin_paquetes_responde_que_no_estan_activos(tmp_path):
 def test_sin_virtualization_station_no_se_lanza_virsh_y_los_contenedores_siguen(tmp_path):
     h, mundo = uno(tmp_path, vs=False)
     respuestas = todas_las_llamadas(h, "hero")
-    for nombre in DE_VM:
+    for nombre in DE_VM + DE_FICHEROS:
         assert datos(respuestas[nombre])["activo"] is False, nombre
     for nombre in DE_CONTENEDORES:
         assert datos(respuestas[nombre])["activo"] is True, nombre
@@ -280,7 +289,7 @@ def test_sin_container_station_no_se_lanza_docker_y_las_vms_siguen(tmp_path):
     respuestas = todas_las_llamadas(h, "hero")
     for nombre in DE_CONTENEDORES:
         assert datos(respuestas[nombre])["activo"] is False, nombre
-    for nombre in DE_VM:
+    for nombre in DE_VM + DE_FICHEROS:
         assert datos(respuestas[nombre])["activo"] is True, nombre
     resumen = datos(respuestas["virtualizacion_resumen"])
     assert resumen["contenedores"]["activo"] is False and resumen["maquinas_virtuales"]["total"] == 6
@@ -1001,6 +1010,164 @@ def test_una_red_con_muchos_contenedores_llega_acotada_con_su_cuenta(tmp_path):
     contenedores = datos(h.contenedores_redes("hero"))["redes"]["filas"][0]["contenedores"]
     assert contenedores["total"] == 400 and contenedores["truncado"] is True
     assert len(contenedores["filas"]) == virt_srv.MAX_CONECTADOS
+
+
+# --- disco_info y vm_definicion_fichero: lo que se lee por una ruta ------------------------------
+
+def check_con(**campos):
+    """La salida de qemu-img check de la imagen de hero con otros valores (y su codigo de salida)."""
+    base = {"image-end-offset": 4390912, "total-clusters": 2097152, "check-errors": 0, "allocated-clusters": 66,
+            "filename": "/share/ruta1/vm1/disco1.1790544225", "format": "qcow2"}
+    rc = campos.pop("rc", 0)
+    base.update(campos)
+    return "==fichero /share/ruta1/vm1/disco1.1790544225\n==check\n%s\n==rc %d\n" % (json.dumps(base, indent=4), rc)
+
+
+def test_disco_info_da_las_capas_y_la_comprobacion_y_avisa_de_la_base_sucia(tmp_path):
+    h, mundo = uno(tmp_path)
+    d = datos(h.disco_info("hero", "/Vms/carpeta/disco1.img"))
+    assert d["pedida"] == "/share/Vms/carpeta/disco1.img" and d["fichero"].endswith("disco1.1790544225")
+    assert [c["fichero"].rsplit("/", 1)[1] for c in d["capas"]] == ["disco1.1790544225", "disco1.img"]
+    assert [c["dirty"] for c in d["capas"]] == [False, True] and d["capas"][1]["lazy_refcounts"] is True
+    assert d["capas"][0]["base"] == d["capas"][1]["fichero"] and d["capas"][1]["base"] is None
+    assert d["comprobacion"]["soportado"] is True and d["comprobacion"]["corrupciones"] == 0
+    assert "errores" not in d and d["cadena_cortada"] is False and d["base_sin_leer"] is None
+    assert len(d["avisos"]) == 1 and algun(d["avisos"], "disco1.img", "dirty", "lazy-refcounts", "escribe")
+    assert "nunca repara" in d["nota"] and "falsos" in d["nota"]
+    lanzado = lanzadas(mundo, "qemu-img")
+    assert len(lanzado) == 2 and all(" -U" in orden for orden in lanzado)
+    assert not any("--repair" in orden or " -r " in orden for orden in lanzado)
+
+
+def test_disco_info_de_una_imagen_limpia_con_instantaneas_internas_no_avisa(tmp_path):
+    h, _ = uno(tmp_path, "qts")
+    d = datos(h.disco_info("qts", "Vms/otra/disco2.img"))
+    assert d["pedida"] == "/share/Vms/otra/disco2.img" and d["avisos"] == []
+    (capa,) = d["capas"]
+    assert capa["instantaneas_total"] == 2 and [i["nombre"] for i in capa["instantaneas"]] == [
+        "instantanea1", "instantanea2"]
+
+
+def test_disco_info_avisa_de_corrupciones_fugas_y_errores_de_la_comprobacion(tmp_path):
+    h, _ = uno(tmp_path, cambios={P_CHECK: check_con(**{"check-errors": 2, "corruptions": 3, "leaks": 7, "rc": 2})})
+    d = datos(h.disco_info("hero", "/Vms/carpeta/disco1.img"))
+    assert d["comprobacion"]["corrupciones"] == 3 and d["comprobacion"]["fugas"] == 7
+    assert algun(d["avisos"], "3 corrupciones") and algun(d["avisos"], "7 fugas") and algun(d["avisos"], "2 errores")
+
+
+def test_una_imagen_marcada_como_corrupta_avisa(tmp_path):
+    corrupta = dato("disco_info_qts").replace('"corrupt": false', '"corrupt": true')
+    h, _ = uno(tmp_path, "qts", cambios={P_INFO: corrupta})
+    assert algun(datos(h.disco_info("qts", "/Vms/otra/disco2.img"))["avisos"], "corrupta")
+
+
+def test_si_la_comprobacion_falla_la_informacion_sale_igual_y_el_error_va_aparte(tmp_path):
+    h, _ = uno(tmp_path, cambios={P_CHECK: (1, "", "qemu-img: se ha ido\n")})
+    d = datos(h.disco_info("hero", "/Vms/carpeta/disco1.img"))
+    assert d["comprobacion"] is None and "comprobacion" in d["errores"]
+    assert len(d["capas"]) == 2 and algun(d["avisos"], "dirty")
+
+
+def test_una_comprobacion_que_el_formato_no_admite_no_es_un_aviso(tmp_path):
+    sin = ("==fichero /share/ruta1/vm1/disco1.1790544225\n==check\n"
+           "qemu-img: This image format does not support checks\n==rc 63\n")
+    h, _ = uno(tmp_path, cambios={P_CHECK: sin})
+    d = datos(h.disco_info("hero", "/Vms/carpeta/disco1.img"))
+    assert d["comprobacion"]["soportado"] is False and "errores" not in d
+    assert not algun(d["avisos"], "comprobacion")
+
+
+@pytest.mark.parametrize("ruta", ["", "   ", None, 5, True, ["/Vms/x"], "/Vms/../etc/passwd", "/Vms/./x",
+                                  "/Vms/x\ny", "/Vms/x\x00", "/" + "a" * 600])
+def test_disco_info_y_la_definicion_rechazan_una_ruta_que_no_vale_sin_conectar(tmp_path, ruta):
+    h, mundo = uno(tmp_path)
+    assert "ruta" in fallo(h.disco_info("hero", ruta))
+    assert "ruta" in fallo(h.vm_definicion_fichero("hero", ruta))
+    assert mundo.conexiones == 0
+
+
+def test_una_ruta_con_espacios_o_caracteres_raros_va_citada_y_no_se_interpreta():
+    ruta = "/share/Vms/mi carpeta/a'b; reboot $(id).img"
+    for orden in (vc.DISCO_INFO, vc.DISCO_CHECK, vc.VM_DEFINICION_FICHERO):
+        assert shlex.quote(ruta) in orden.render({"ruta": ruta}), orden.id
+
+
+@pytest.mark.parametrize("herramienta", ["disco_info", "vm_definicion_fichero"])
+def test_una_ruta_que_el_nas_rechaza_es_un_error_y_no_un_dato_vacio(tmp_path, herramienta):
+    rechazada = "==rechazada /share/Vms/x\n"
+    h, _ = uno(tmp_path, cambios={P_INFO: rechazada, P_CHECK: rechazada, P_DEFINICION: rechazada})
+    assert "share" in fallo(getattr(h, herramienta)("hero", "/Vms/x")).lower()
+
+
+def test_disco_info_sigue_leyendo_con_el_servicio_parado(tmp_path):
+    h, mundo = uno(tmp_path, cambios={vc.ANFITRION.plantilla: SIN_SOCKETS})
+    d = datos(h.disco_info("hero", "/Vms/carpeta/disco1.img"))
+    assert d["activo"] is True and len(d["capas"]) == 2
+    assert lanzadas(mundo, "virsh") == []
+
+
+def test_la_definicion_de_una_vm_registrada_dice_cual(tmp_path):
+    h, mundo = uno(tmp_path)
+    d = datos(h.vm_definicion_fichero("hero", "/Vms/carpeta"))
+    assert d["registrada"] is True and d["registrada_como"] == "vm1" and "errores" not in d
+    assert d["uuid"] == VM1_HERO and d["nombre"] == "vm1" and d["pedida"] == "/share/Vms/carpeta"
+    assert d["graficos"] == {"tipo": "vnc", "puerto": None, "autopuerto": True, "escucha": "127.0.0.1",
+                             "teclado": "es"}
+    assert d["discos"][0]["fichero"].endswith("disco1.1790544225") and d["discos"][0]["bases"] == [
+        "/share/ruta1/vm1/disco1.img"]
+    assert d["nics"][0]["conmutador"] == "qvs2"
+    assert lanzadas(mundo, "qemu-img") == []
+
+
+def test_la_definicion_de_una_vm_que_no_esta_registrada_lo_dice(tmp_path):
+    h, _ = uno(tmp_path, "qts")
+    d = datos(h.vm_definicion_fichero("qts", "/Vms/otra/vm2"))
+    assert d["registrada"] is False and d["registrada_como"] is None and "errores" not in d
+    assert d["uuid"] == "00000000-0000-0000-0000-000000000099" and d["nombre"] == "maquina-ejemplo2"
+
+
+def test_si_no_se_pueden_leer_las_registradas_la_definicion_sale_sin_saber_si_lo_esta(tmp_path):
+    h, _ = uno(tmp_path, cambios={vc.VM_XML.plantilla: (1, "", "error\n")})
+    d = datos(h.vm_definicion_fichero("hero", "/Vms/carpeta"))
+    assert d["registrada"] is None and d["registrada_como"] is None and "registrada" in d["errores"]
+    assert d["nombre"] == "vm1"
+
+
+def test_con_el_servicio_parado_la_definicion_sale_y_la_registrada_queda_sin_saber(tmp_path):
+    h, _ = uno(tmp_path, cambios={vc.ANFITRION.plantilla: SIN_SOCKETS})
+    d = datos(h.vm_definicion_fichero("hero", "/Vms/carpeta"))
+    assert d["registrada"] is None and "registrada" in d["errores"] and d["nombre"] == "vm1"
+
+
+def test_la_contrasena_de_la_consola_no_sale_aunque_el_nas_la_devuelva(tmp_path):
+    con = dato("vm_definicion_fichero_hero").replace(
+        "==graficos\n", "==graficos\npasswd='clave-vnc-123'\ntype='vnc' passwd='clave-vnc-123'\n")
+    assert con.count("clave-vnc-123") == 2
+    h, _ = uno(tmp_path, cambios={P_DEFINICION: con})
+    texto = json.dumps(h.vm_definicion_fichero("hero", "/Vms/carpeta"))
+    assert '"ok": true' in texto and "clave-vnc-123" not in texto and "passwd" not in texto
+
+
+def test_la_orden_de_la_definicion_no_trae_el_xml_entero():
+    # solo se piden elementos concretos y de la consola, atributo a atributo: nunca la linea entera
+    plantilla = vc.VM_DEFINICION_FICHERO.plantilla
+    assert "passwd" not in plantilla and "cat " not in plantilla
+    assert "grep -o" in plantilla
+
+
+def test_las_instrucciones_hablan_de_las_dos_herramientas_de_fichero():
+    for trozo in ("disco_info", "vm_definicion_fichero", "sin reparar"):
+        assert trozo in virt_srv.INSTRUCCIONES, trozo
+    for nombre in ("disco_info", "vm_definicion_fichero"):
+        doc = getattr(virt_srv.Herramientas, nombre).__doc__
+        assert "/Vms/" in doc and "File Station" in doc, nombre
+
+
+@pytest.mark.parametrize("entrada, esperada", [
+    ("/Vms/x", "/share/Vms/x"), ("Vms/x", "/share/Vms/x"), ("/share/Vms/x", "/share/Vms/x"),
+    ("/sharex/y", "/share/sharex/y"), ("/share", "/share")])
+def test_la_ruta_de_file_station_se_pasa_a_la_de_share(entrada, esperada):
+    assert virt_srv.ruta_de_share(entrada) == esperada
 
 
 # --- lo que no puede salir ----------------------------------------------------------------------

@@ -78,8 +78,14 @@ def _valores_virtualizacion(leer, sistema):
     contenedor = re.search(r"(?m)^([A-Za-z0-9][A-Za-z0-9_.-]*)\t", leer("CT_LISTA"))
     uuid = {"uuid": vm.group(1)} if vm else None
     nombre = {"contenedor": contenedor.group(1)} if contenedor else None
+    # el primer disco de una VM que cuelga de /share (el .img o su capa superior) y la carpeta de esa
+    # VM, que es donde VS guarda tambien su carpeta de metadatos (.<uuid>.meta)
+    disco = re.search(r"(?m)^-- (/share/.+)$", leer("VM_IMAGENES"))
+    ruta = {"ruta": disco.group(1)} if disco else None
+    carpeta = {"ruta": disco.group(1).rsplit("/", 1)[0]} if disco else None
     return {"VM_IP": uuid, "CT_DETALLE": nombre,
-            "CT_LOGS": dict(nombre, lineas="5") if nombre else None}
+            "CT_LOGS": dict(nombre, lineas="5") if nombre else None,
+            "DISCO_INFO": ruta, "DISCO_CHECK": ruta, "VM_DEFINICION_FICHERO": carpeta}
 
 
 def _valores_logs(leer, sistema):

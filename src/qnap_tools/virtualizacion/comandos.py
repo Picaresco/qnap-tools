@@ -113,6 +113,62 @@ VM_GUARDADAS = Comando(
     % (TODAS, DUMPXML_META),
     timeout=40, valida=rc_cero)
 
+# --- una imagen de disco o una definicion de VM, por su ruta -------------------------------------
+
+# La ruta se resuelve (readlink -f: una carpeta compartida es un enlace en /share) y solo se lee si
+# lo real es un fichero que cuelga de /share/. Sin sudo: lo que lee Virtualization Station lo lee
+# el usuario del plugin. "==rechazada" dice que no hay fichero, o que no es de /share/.
+EN_SHARE = '[ -f "$f" ] && [ "${f#/share/}" != "$f" ]'
+
+# Las capas de una imagen: formato y version, tamano virtual y real, cluster, base, marca de
+# "sucia" (dirty-flag, con lazy-refcounts), corrupta, contadores de referencias e instantaneas
+# internas. -U la abre sin bloquearla aunque la VM este en marcha. Se recorre capa a capa, como
+# VM_IMAGENES y por lo mismo (una base que no cuelgue de /share/ no se abre), en vez de con
+# --backing-chain; si la cadena sigue despues de MAX_CAPAS_IMAGEN capas, "!! cadena cortada".
+DISCO_INFO = Comando(
+    "disco_info",
+    ("f=$(readlink -f {ruta}); if " + EN_SHARE + "; then echo \"==fichero $f\"; "
+     "for i in %s; do if [ -n \"$f\" ]; then "
+     "j=$(%s info -U --output=json \"$f\"); printf '%%s\\n' \"$j\"; "
+     "f=$(printf '%%s\\n' \"$j\" | grep -o -E '\"full-backing-filename\": \"/share/[^\"]*\"' | cut -d'\"' -f4); "
+     "fi; done; [ -z \"$f\" ] || echo '!! cadena cortada'; else echo ==rechazada; fi")
+    % (" ".join(str(i) for i in range(1, MAX_CAPAS_IMAGEN + 1)), QEMU_IMG),
+    {"ruta": "ruta"}, timeout=60, valida=rc_cero)
+
+# La comprobacion de la capa superior (qemu-img check, SOLO LECTURA: -U y sin -r, que repara y
+# ESCRIBE; la guardia lo veta). Lee las tablas de la imagen entera: en una grande tarda. El codigo
+# de salida de qemu-img dice mucho (0 bien, 2 corrupciones, 3 fugas, 63 formato sin comprobacion).
+DISCO_CHECK = Comando(
+    "disco_check",
+    ("f=$(readlink -f {ruta}); if " + EN_SHARE + "; then echo \"==fichero $f\"; echo ==check; "
+     "%s check -U --output=json \"$f\" 2>&1; echo ==rc $?; else echo ==rechazada; fi") % QEMU_IMG,
+    {"ruta": "ruta"}, timeout=120, valida=rc_cero)
+
+# La definicion de una VM que NO esta registrada, de su <uuid>.xml: el fichero mismo, su carpeta de
+# metadatos (.<uuid>.meta) o la carpeta de la VM. El XML no se trae entero: solo las lineas de
+# estos elementos (como VM_XML, mas CPU, reloj, controladores y los metadatos de VS) y, de la
+# consola, los atributos que se piden por su nombre (nunca passwd). Si el XML viniera en una sola
+# linea, el ultimo grep -v quita la linea entera si lleva un atributo pass...=: mejor un error que
+# una contrasena. "==no_es_vm": un .xml que no es una definicion de libvirt.
+ELEMENTOS_DEFINICION = (
+    "domain", "name", "uuid", "description", "memory", "currentMemory", "vcpu", "type arch", "loader",
+    "boot dev", "bootmenu", "acpi", "apic", "pae", "cpu", "model (type|fallback)", "topology", "cell", "clock",
+    "on_poweroff", "on_reboot", "on_crash", "/?disk", "driver name", "/?backingStore",
+    "source (file|dev|bridge|network)", "target (dev|type)", "controller", "/?interface", "mac address",
+    "/?channel", "/?video", "/?hostdev", "tpm",
+    "qvs:name", "qvs:os", "qvs:nas_model", "qvs:host_cpu", "qvs:meta_path", "qvs:cpuset_policy",
+    "qvs:auto_start_delay", "qvs:mom", "qvs:qvm", "qvs:test", "qvs:hdd", "qvs:cdrom", "qvs:nic", "qvs:usb",
+    "qvs:serialport", "qvs:snapshot")
+VM_DEFINICION_FICHERO = Comando(
+    "vm_definicion_fichero",
+    ("r=$(readlink -f {ruta}); if [ -d \"$r\" ]; then "
+     "f=$(ls \"$r\"/*.xml \"$r\"/.*.meta/*.xml 2>/dev/null | head -n 1); else f=\"$r\"; fi; "
+     "if " + EN_SHARE + " && [ \"${f%%.xml}\" != \"$f\" ]; then "
+     "if grep -q '^<domain ' \"$f\"; then echo \"==fichero $f\"; grep -E '<(%s)[^A-Za-z:]' \"$f\" | grep -v -i -E 'pass[a-z]*='; "
+     "echo ==graficos; grep -E '<graphics ' \"$f\" | grep -o -E \"(type|port|autoport|listen|keymap)='[^']*'\"; "
+     "echo ==fin; else echo ==no_es_vm; fi; else echo ==rechazada; fi") % "|".join(ELEMENTOS_DEFINICION),
+    {"ruta": "ruta"}, timeout=30, valida=rc_cero)
+
 # --- contenedores (Container Station) -----------------------------------------------------------
 
 # La carpeta de Container Station cambia de un NAS a otro: sale de la configuracion del paquete.

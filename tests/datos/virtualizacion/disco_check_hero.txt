@@ -1,0 +1,13 @@
+==fichero /share/ruta1/vm1/disco1.1790544225
+==check
+{
+    "image-end-offset": 4390912,
+    "total-clusters": 2097152,
+    "check-errors": 0,
+    "allocated-clusters": 66,
+    "filename": "/share/ruta1/vm1/disco1.1790544225",
+    "format": "qcow2",
+    "fragmented-clusters": 3,
+    "compressed-clusters": 0
+}
+==rc 0

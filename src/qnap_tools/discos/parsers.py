@@ -1273,22 +1273,38 @@ def _sin_escapes(ruta):
 
 
 def externos_montajes(texto):
-    """Los montajes bajo /share/external/ (de /proc/mounts) con el df de cada uno. Lista vacia si
-    no hay ninguno montado; un montaje sin su linea de df sale con las cifras sin valor."""
+    """Los montajes bajo /share/external/ (de /proc/mounts) con el df de cada uno y, de los que usa
+    ufsd, el tipo real (volinfo), la etiqueta y si estan sucios (dirty). Lista vacia si no hay ninguno
+    montado; un montaje sin su linea de df sale con las cifras sin valor. 'solo_lectura' sale de ro
+    en las opciones de montaje."""
     que = "los montajes externos"
     lineas = texto.splitlines()
     if not lineas or not re.fullmatch(r"==montajes [0-9]+", lineas[0].strip()):
         raise _no_reconocida(que, lineas[0] if lineas else "")
     resto = [x.strip() for x in lineas]
-    if "==df" not in resto:
-        raise _no_reconocida(que, "falta el df")
-    corte = resto.index("==df")
+    if "==df" not in resto or "==ufsd" not in resto or resto.index("==ufsd") < resto.index("==df"):
+        raise _no_reconocida(que, "faltan el df o la parte de ufsd")
+    corte, fin = resto.index("==df"), resto.index("==ufsd")
+    ufsd, bloque = {}, None
+    for linea in lineas[fin + 1:]:
+        m = re.fullmatch(r"== ([A-Za-z0-9_.-]+)", linea.strip())
+        if m:
+            bloque = ufsd[m.group(1)] = {}
+        elif bloque is not None and re.match(r"(volinfo|label|dirty)=", linea):
+            clave, _, valor = linea.partition("=")
+            if clave in bloque:
+                raise _no_reconocida(que, linea)
+            bloque[clave] = valor.strip()
+        else:
+            raise _no_reconocida(que, linea)
+    if any(set(b) != {"volinfo", "label", "dirty"} for b in ufsd.values()):
+        raise _no_reconocida(que, "una particion de ufsd incompleta")
     ocupacion = {}
-    cabecera = lineas[corte + 1:corte + 2]
+    cabecera = lineas[corte + 1:corte + 2] if corte + 1 < fin else []
     if cabecera:
         if not cabecera[0].startswith("Filesystem"):
             raise _no_reconocida(que, cabecera[0])
-        for linea in lineas[corte + 2:]:
+        for linea in lineas[corte + 2:fin]:
             c = linea.split(None, 5)
             if len(c) != 6 or not re.fullmatch(r"[0-9]+%", c[4]):
                 raise _no_reconocida(que, linea)
@@ -1301,8 +1317,13 @@ def externos_montajes(texto):
             raise _no_reconocida(que, linea)
         montaje = _sin_escapes(c[1])
         cifras = ocupacion.get(montaje, {"bytes": None, "usado": None, "libre": None, "ocupacion_pct": None})
-        montajes.append(dict(cifras, dispositivo=c[0], montaje=_acotado(montaje, MAX_RUTA_REAL),
-                             sistema_ficheros=_acotado(c[2], MAX_NOMBRE)))
+        info = ufsd.get(c[0].rsplit("/", 1)[-1]) if c[2] == "ufsd" else None
+        montajes.append(dict(
+            cifras, dispositivo=c[0], montaje=_acotado(montaje, MAX_RUTA_REAL), sistema_ficheros=_acotado(c[2], MAX_NOMBRE),
+            tipo=_acotado(info and info["volinfo"], MAX_NOMBRE) or _acotado(c[2], MAX_NOMBRE),
+            etiqueta=(_acotado(info and info["label"], MAX_NOMBRE) or None),
+            sucio={"0": False, "1": True}.get(info["dirty"]) if info else None,
+            solo_lectura="ro" in c[3].split(",")))
     return montajes
 
 

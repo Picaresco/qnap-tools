@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Parsers de la pata de virtualizacion sobre salidas reales anonimizadas: *_hero.txt de un
 QuTS hero de laboratorio y *_qts.txt de un QTS de pruebas. Lo escrito a mano se indica."""
+import json
 from pathlib import Path
 
 import pytest
@@ -426,6 +427,239 @@ def test_una_cadena_mas_larga_de_lo_que_se_recorre_se_marca_cortada():
 def test_la_cadena_de_imagenes_no_se_inventa(texto):
     with pytest.raises(ValueError):
         p.vm_imagenes(texto)
+
+
+# ==== una imagen de disco (qemu-img info y check) ===============================================
+
+GIB = 1024 ** 3
+
+
+def info_json(*capas):
+    """Lo que escribe la orden: la ruta real y un JSON por capa (a mano, con el formato de qemu-img)."""
+    return "==fichero /share/ruta1/x.img\n" + "".join(json.dumps(c, indent=4) + "\n" for c in capas)
+
+
+def capa_json(**cambios):
+    c = {"virtual-size": GIB, "filename": "/share/ruta1/x.img", "cluster-size": 65536, "format": "qcow2",
+         "actual-size": 4096, "format-specific": {"type": "qcow2", "data": {
+             "compat": "1.1", "compression-type": "zlib", "lazy-refcounts": False, "refcount-bits": 16,
+             "corrupt": False, "extended-l2": False}}, "dirty-flag": False}
+    c.update(cambios)
+    return c
+
+
+def test_las_capas_de_una_imagen_con_su_salud():
+    d = p.disco_info(dato("disco_info_hero"))
+    assert d["fichero"] == "/share/ruta1/vm1/disco1.1790544225" and d["cortada"] is False
+    superior, base = d["capas"]
+    assert superior == {
+        "fichero": "/share/ruta1/vm1/disco1.1790544225", "formato": "qcow2", "version": "1.1",
+        "virtual": 128 * GIB, "ocupa": 4325376, "cluster": 65536, "base": "/share/ruta1/vm1/disco1.img",
+        "dirty": False, "lazy_refcounts": False, "corrupt": False, "refcount_bits": 16, "compresion": "zlib",
+        "instantaneas": [], "instantaneas_total": 0}
+    # la base de la copia exportada: sin cerrar limpia y con los contadores perezosos (el caso que lo pidio)
+    assert (base["dirty"], base["lazy_refcounts"], base["corrupt"]) == (True, True, False)
+    assert base["ocupa"] == 24937611776 and base["base"] is None and d["base_sin_leer"] is None
+
+
+def test_las_instantaneas_internas_de_una_imagen():
+    (capa,) = p.disco_info(dato("disco_info_qts"))["capas"]
+    assert capa["instantaneas_total"] == 2
+    assert capa["instantaneas"][0] == {"id": "1", "nombre": "instantanea1", "estado_de_vm": 0,
+                                       "creada": "2026-09-27T21:23:45Z"}
+    assert capa["instantaneas"][1]["estado_de_vm"] == 2 * GIB and capa["instantaneas"][1]["nombre"] == "instantanea2"
+    assert (capa["dirty"], capa["ocupa"]) == (False, 10 * GIB)
+
+
+def test_una_imagen_raw_no_tiene_version_ni_marcas():
+    # a mano: sin format-specific ni dirty-flag
+    (capa,) = p.disco_info(info_json({"virtual-size": GIB, "filename": "/share/ruta1/x.img", "format": "raw",
+                                      "actual-size": 4096}))["capas"]
+    assert (capa["formato"], capa["version"], capa["dirty"], capa["lazy_refcounts"], capa["corrupt"]) == (
+        "raw", None, None, None, None)
+
+
+def test_qemu_img_con_backing_chain_da_una_lista_y_tambien_se_lee():
+    # el formato de qemu-img info --backing-chain: una lista con una entrada por capa
+    capas = [capa_json(), capa_json(filename="/share/ruta1/base.img")]
+    d = p.disco_info("==fichero /share/ruta1/x.img\n" + json.dumps(capas, indent=4) + "\n")
+    assert [c["fichero"] for c in d["capas"]] == ["/share/ruta1/x.img", "/share/ruta1/base.img"]
+
+
+def test_una_cadena_cortada_o_con_una_base_que_no_se_leyo_lo_dice():
+    d = p.disco_info(info_json(capa_json(**{"full-backing-filename": "/share/ruta1/b.img"})) + "!! cadena cortada\n")
+    assert d["cortada"] is True and d["base_sin_leer"] == "/share/ruta1/b.img"
+    d = p.disco_info(info_json(capa_json(**{"full-backing-filename": "nbd://192.0.2.9/x"})))
+    assert d["cortada"] is False and d["base_sin_leer"] == "nbd://192.0.2.9/x"
+
+
+def test_una_imagen_corrupta_y_una_fecha_imposible():
+    datos = capa_json()
+    datos["format-specific"]["data"]["corrupt"] = True
+    datos["snapshots"] = [{"id": "1", "name": "x", "vm-state-size": 0, "date-sec": 10 ** 18}]
+    (capa,) = p.disco_info(info_json(datos))["capas"]
+    assert capa["corrupt"] is True and capa["instantaneas"][0]["creada"] is None
+
+
+@pytest.mark.parametrize("texto", [
+    "",
+    "==rechazada\n",
+    "==fichero /share/ruta1/x.img\n",                                   # qemu-img no dio nada
+    "==fichero /share/ruta1/x.img\nqemu-img: Could not open 'x': no es una imagen\n",
+    "==fichero /share/ruta1/x.img\n{\"filename\": 5}\n",                  # una capa sin nombre de fichero
+    "==fichero /share/ruta1/x.img\n[1, 2]\n",
+    "==fichero /share/ruta1/x.img\n{\"filename\": \"/share/x\", \"snapshots\": 3}\n",
+    "/share/ruta1/x.img\n{}\n",
+])
+def test_la_informacion_de_una_imagen_rechaza_lo_que_no_reconoce(texto):
+    with pytest.raises(ValueError):
+        p.disco_info(texto)
+
+
+def test_una_ruta_rechazada_dice_por_que():
+    with pytest.raises(ValueError, match="no existe, no es un fichero o no cuelga de /share/"):
+        p.disco_info("==rechazada\n")
+    with pytest.raises(ValueError, match="no existe, no es un fichero o no cuelga de /share/"):
+        p.disco_check("==rechazada\n")
+
+
+CHECK_CABECERA = "==fichero /share/ruta1/x.img\n==check\n"
+
+
+def test_la_comprobacion_de_una_imagen_limpia():
+    c = p.disco_check(dato("disco_check_hero"))
+    assert c == {"fichero": "/share/ruta1/vm1/disco1.1790544225", "formato": "qcow2", "soportado": True,
+                 "errores_de_comprobacion": 0, "corrupciones": 0, "fugas": 0, "fin_de_imagen": 4390912,
+                 "clusters": {"total": 2097152, "asignados": 66, "fragmentados": 3, "comprimidos": 0},
+                 "codigo_de_salida": 0, "avisos_de_qemu": []}
+    assert p.disco_check(dato("disco_check_qts"))["fin_de_imagen"] == 10 * GIB
+
+
+def test_la_comprobacion_con_fugas_o_corrupciones():
+    texto = CHECK_CABECERA + json.dumps({"image-end-offset": 4096, "check-errors": 1, "corruptions": 2, "leaks": 7,
+                                         "format": "qcow2", "total-clusters": 10}) + "\n==rc 2\n"
+    c = p.disco_check(texto)
+    assert (c["errores_de_comprobacion"], c["corrupciones"], c["fugas"], c["codigo_de_salida"]) == (1, 2, 7, 2)
+    assert c["clusters"]["asignados"] is None
+
+
+def test_un_formato_sin_comprobacion_sale_como_no_soportado():
+    c = p.disco_check(CHECK_CABECERA + "This image format does not support checks\n==rc 63\n")
+    assert c["soportado"] is False and c["codigo_de_salida"] == 63 and "does not support" in c["mensaje"]
+
+
+def test_los_avisos_de_qemu_antes_del_json_no_lo_rompen():
+    texto = CHECK_CABECERA + "qemu-img: aviso de ejemplo\n" + json.dumps({"check-errors": 0, "format": "qcow2"}) + "\n==rc 0\n"
+    assert p.disco_check(texto)["avisos_de_qemu"] == ["qemu-img: aviso de ejemplo"]
+
+
+@pytest.mark.parametrize("texto", [
+    "",
+    CHECK_CABECERA,                                                    # se corto antes de ==rc
+    CHECK_CABECERA + "==rc 1\n",                                       # sin resultado y no es "sin soporte"
+    CHECK_CABECERA + "qemu-img: Could not open 'x': Permission denied\n==rc 1\n",
+    CHECK_CABECERA + "{\"check-errors\": \n==rc 0\n",                  # JSON a medias
+    CHECK_CABECERA + json.dumps({"leaks": "muchas"}) + "\n==rc 3\n",   # un contador que no es un numero
+    "==check\n{}\n==rc 0\n",                                           # sin la ruta
+])
+def test_la_comprobacion_rechaza_lo_que_no_reconoce(texto):
+    with pytest.raises(ValueError):
+        p.disco_check(texto)
+
+
+# ==== la definicion de una VM sin registrar (su <uuid>.xml) =====================================
+
+def test_la_definicion_de_una_vm_sin_registrar():
+    d = p.vm_definicion_fichero(dato("vm_definicion_fichero_hero"))
+    assert d["fichero"].endswith("/.00000000-0000-0000-0000-000000000006.meta/ruta3.xml")
+    assert (d["uuid"], d["nombre"], d["nombre_libvirt"], d["descripcion"]) == (
+        VM1, "vm1", VM1, "descripcion de ejemplo 1")
+    assert (d["sistema"], d["arquitectura"], d["maquina"], d["firmware"], d["cargador"], d["tpm"]) == (
+        "win2012r2", "x86", "pc-i440fx-7.0", "bios", None, None)
+    assert (d["vcpus"], d["memoria"], d["memoria_actual"]) == (2, 4 * GIB, 4 * GIB)
+    assert d["topologia"] == {"sockets": 1, "dies": 1, "cores": 2, "threads": 1}
+    assert d["cpu"] == {"modo": "custom", "modelo": "Westmere", "nodos_numa": 1}
+    assert d["arranque"] == ["cdrom", "hd"] and d["menu_de_arranque"] == "no"
+    assert (d["reloj"], d["al_apagar"], d["al_reiniciar"], d["al_fallar"]) == ("localtime", "destroy", "restart", "restart")
+    assert d["caracteristicas"] == ["acpi", "apic", "pae"]
+    assert d["arranque_automatico"] == {"modo": "off", "retraso_s": 60} and d["instantaneas"] == "external"
+
+
+def test_los_discos_con_su_cache_su_base_y_su_tamano_de_origen():
+    d = p.vm_definicion_fichero(dato("vm_definicion_fichero_hero"))
+    disco, cd = d["discos"]
+    assert disco == {"dispositivo": "hda", "bus": "ide", "clase": "disk", "formato": "qcow2",
+                     "fichero": "/share/ruta1/vm1/disco1.1790544225", "cache": "writeback",
+                     "bases": ["/share/ruta1/vm1/disco1.img"], "tamano": 268435456000}
+    assert (cd["clase"], cd["cache"], cd["tamano"], cd["bases"]) == ("cdrom", None, None, [])
+    q = p.vm_definicion_fichero(dato("vm_definicion_fichero_qts"))
+    # un tamano de VS que no es un numero no se inventa
+    assert [(x["dispositivo"], x["bus"], x["cache"], x["tamano"]) for x in q["discos"]] == [
+        ("vda", "virtio", "none", 100 * GIB), ("vdb", "virtio", None, None)]
+
+
+def test_las_tarjetas_de_red_la_consola_el_usb_y_los_canales_virtio():
+    d = p.vm_definicion_fichero(dato("vm_definicion_fichero_hero"))
+    assert d["nics"] == [{"mac": "00:11:22:33:44:00", "modelo": "e1000", "conmutador": "qvs2", "tipo": "bridge"}]
+    assert d["graficos"] == {"tipo": "vnc", "puerto": None, "autopuerto": True, "escucha": "127.0.0.1", "teclado": "es"}
+    assert d["usb"] == {"controlador": "nec-xhci", "puertos": 6, "dispositivos": 0}
+    assert d["virtio_serie"] == {"controladores": 1, "canales": ["org.qemu.guest_agent.0"]} and d["puertos_serie"] == 0
+    assert d["video"] == {"modelo": "vga", "memoria": 16384 * 1024, "pantallas": 1}
+    assert d["origen"] == {"nas": "TS-X85", "cpu": "Intel(R) Xeon(R) CPU D-1602",
+                           "meta_path": "/share/ruta1/vm1/.00000000-0000-0000-0000-000000000006.meta",
+                           "politica_cpuset": "shared", "memoria_reservada": 268435456}
+
+
+def test_una_vm_uefi_con_dos_nics_usb_y_canales():
+    q = p.vm_definicion_fichero(dato("vm_definicion_fichero_qts"))
+    assert q["uuid"] == "00000000-0000-0000-0000-000000000099" and q["nombre"] == "maquina-ejemplo2"
+    assert q["descripcion"] is None and (q["firmware"], q["cargador"], q["maquina"]) == (
+        "uefi", "/QVS/usr/share/qemu/OVMF_CODE.fd", "pc-q35-7.0")
+    assert (q["vcpus"], q["memoria"], q["memoria_actual"]) == (4, 8 * GIB, 4 * GIB) and q["tpm"] == "tpm-crb"
+    assert q["cpu"] == {"modo": "host-passthrough", "modelo": None, "nodos_numa": 0}
+    assert [(n["mac"], n["modelo"], n["conmutador"]) for n in q["nics"]] == [
+        ("00:11:22:33:44:01", "virtio", "qvs0"), ("00:11:22:33:44:02", "rtl8139", "qvs1")]
+    assert q["usb"] == {"controlador": "qemu-xhci", "puertos": 15, "dispositivos": 2} and q["puertos_serie"] == 1
+    assert q["virtio_serie"] == {"controladores": 2, "canales": ["org.qemu.guest_agent.0", "com.example.canal1"]}
+    assert q["graficos"] == {"tipo": "vnc", "puerto": 5901, "autopuerto": None, "escucha": "0.0.0.0", "teclado": None}
+    assert q["video"] == {"modelo": "qxl", "memoria": 65536 * 1024, "pantallas": 2}
+    assert q["menu_de_arranque"] == "yes" and q["caracteristicas"] == ["acpi", "apic"] and q["reloj"] == "utc"
+    assert q["origen"]["nas"] == "TS-X83XU" and q["origen"]["politica_cpuset"] == "dedicated"
+
+
+def test_la_contrasena_de_la_consola_nunca_sale_aunque_la_orden_la_trajera():
+    # a mano: solo los atributos pedidos por su nombre se leen, pase lo que pase en esa parte
+    texto = dato("vm_definicion_fichero_hero").replace(
+        "keymap='es'\n", "keymap='es'\npasswd='clave-inventada'\npassword='otra-clave'\nport='5999'\n")
+    d = p.vm_definicion_fichero(texto)
+    assert "clave-inventada" not in json.dumps(d) and "otra-clave" not in json.dumps(d)
+    assert d["graficos"]["teclado"] == "es"
+    # y una linea de graphics con passwd entre las elegidas tampoco se lee (no se pide, pero si llegara)
+    texto = dato("vm_definicion_fichero_hero").replace(
+        "<memory unit='KiB'>4194304</memory>",
+        "<graphics type='vnc' port='5900' passwd='clave-inventada'>\n  <memory unit='KiB'>4194304</memory>")
+    assert "clave-inventada" not in json.dumps(p.vm_definicion_fichero(texto))
+
+
+def test_sin_consola_no_hay_graficos():
+    texto = dato("vm_definicion_fichero_hero")
+    sin = texto[:texto.index("==graficos")] + "==graficos\n==fin\n"
+    assert p.vm_definicion_fichero(sin)["graficos"] is None
+
+
+def test_la_definicion_rechaza_lo_que_no_reconoce():
+    bueno = dato("vm_definicion_fichero_hero")
+    for texto in ("", "==rechazada\n", "==no_es_vm\n", bueno.replace("==fin\n", ""), bueno.replace("==graficos\n", ""),
+                  bueno.replace("<uuid>00000000-0000-0000-0000-000000000006</uuid>\n", ""),
+                  bueno.replace("<uuid>00000000-0000-0000-0000-000000000006</uuid>", "<uuid>no-es-un-uuid</uuid>"),
+                  bueno.replace("  <vcpu placement='static' cpuset='0-3'>2</vcpu>\n", ""),
+                  bueno + "algo despues del final\n", "otra cosa\n" + bueno):
+        with pytest.raises(ValueError):
+            p.vm_definicion_fichero(texto)
+    with pytest.raises(ValueError, match="no es un fichero .xml"):
+        p.vm_definicion_fichero("==rechazada\n")
+    with pytest.raises(ValueError, match="no es la definicion de una maquina virtual"):
+        p.vm_definicion_fichero("==no_es_vm\n")
 
 
 # ==== instantaneas ==============================================================================

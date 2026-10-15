@@ -12,7 +12,9 @@
    "nota": "virsh --help: '-r | --readonly connect readonly' (libvirt rechaza toda escritura en esa conexion) y solo subcomandos de las secciones Monitoring/Host y list/info/dumpxml. Fuera los 'get or set' (schedinfo, memtune, autostart...). --security-info vetado: saca contrasenas de VNC. '-c qemu:///system' OBLIGATORIO: sin el, un usuario que no es root cae en qemu:///session, que arranca un virtqemud propio y crea ~/.cache/libvirt y ~/.config/libvirt (escribe en el NAS y ademas devuelve lista vacia)"},
 
   {"cmd": "qemu-img", "sub": ["info"], "requiere": ["-U"], "solo_flags": ["-U", "--backing-chain", "--output=json", "--output=human"],
-   "nota": "qemu-img --help: 'info [...] [--output=ofmt] [--backing-chain] [-U] filename' solo describe la imagen; -U (force-share) la abre sin bloqueo aunque la VM este en marcha. Fuera check/commit/rebase/resize/snapshot/convert"},
+   "nota": "qemu-img --help: 'info [...] [--output=ofmt] [--backing-chain] [-U] filename' solo describe la imagen; -U (force-share) la abre sin bloqueo aunque la VM este en marcha. Fuera commit/rebase/resize/snapshot/convert (check tiene su regla aparte, mas abajo)"},
+  {"cmd": "qemu-img", "sub": ["check"], "requiere": ["-U"], "solo_flags": ["-U", "--output=json"], "max_posicionales": 2,
+   "nota": "qemu-img --help: 'check [-q] [-f fmt] [--output=ofmt] [-r [leaks | all]] [-T src_cache] [-U] filename'. Sin -r solo LEE las tablas de la imagen y cuenta errores y fugas; -r y --repair REPARAN la imagen y ESCRIBEN en ella: quedan fuera (solo_flags admite unicamente -U y --output=json, y -U es obligatorio: abre sin bloqueo y sin modificar). Con la VM en marcha, -U puede dar fugas o errores falsos. Una prueba exige que 'check -r' se rechace"},
 
   {"cmd": "docker", "flags_con_valor": ["-H", "--format", "-f", "--filter", "-n", "--last"],
    "sub": ["ps", "images", "version", "info", "inspect", "top", "port", "history", "diff"],

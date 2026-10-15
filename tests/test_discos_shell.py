@@ -135,13 +135,15 @@ def test_externos_montajes_da_los_montajes_externos_y_su_df(tmp_path):
     lineas = salida.splitlines()
     assert lineas[0] == "==montajes 4"
     assert lineas[1:3] == [x for x in MOUNTS.splitlines() if "/share/external/" in x]
-    assert lineas[3] == "==df" and lineas[4:] == DF.splitlines()
+    i = lineas.index("==ufsd")
+    assert lineas[3] == "==df" and lineas[4:i] == DF.splitlines()
+    assert lineas[i + 1:] == ["== sda1", "volinfo=", "label=", "dirty="]      # solo la particion ufsd
     assert llamada.split() == ["-P", "-k", "/share/external/DEV0001_1", "/share/external/DEV0002_1"]
 
 
 def test_externos_montajes_sin_externos_no_lanza_df(tmp_path):
     rc, salida, llamada = con_proc_y_df(tmp_path, "rootfs / rootfs rw 0 0\n", DF)
-    assert rc == 0 and salida.splitlines() == ["==montajes 1", "==df"] and llamada == ""
+    assert rc == 0 and salida.splitlines() == ["==montajes 1", "==df", "==ufsd"] and llamada == ""
 
 
 def test_externos_montajes_sin_poder_leer_los_montajes_no_dice_que_no_hay_ninguno(tmp_path):

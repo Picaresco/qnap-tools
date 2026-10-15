@@ -269,9 +269,17 @@ RUTA_LISTAR = Comando(
 # Los montajes de /share/external/ y el df de cada uno. La primera linea cuenta las del fichero:
 # si no se pudo leer, no sale un numero y el parser lo rechaza (un grep sin coincidencias, en
 # cambio, no es un error: no hay externos montados). Sin montajes no se lanza df, que sin
-# argumentos consultaria todos los montajes.
+# argumentos consultaria todos los montajes. "ufsd" es el controlador de QNAP (Paragon) para NTFS,
+# exFAT y HFS+: el tipo real esta en /proc/fs/ufsd/<particion>/volinfo (primera linea), junto a label
+# y dirty. Se lee de cada particion montada con ufsd (sin blkid, que la guardia no admite y puede
+# escribir su cache). Un fichero que no se lee sale vacio (echo x=$(...) sin comillas: la guardia no
+# admite $( ) entre comillas dobles).
 EXTERNOS_MONTAJES = Comando(
     "externos_montajes",
     "echo ==montajes $(grep -c . /proc/mounts); m=$(grep ' /share/external/' /proc/mounts | cut -d' ' -f2);"
-    " grep ' /share/external/' /proc/mounts; echo ==df; [ -z \"$m\" ] || df -P -k $m",
+    " grep ' /share/external/' /proc/mounts; echo ==df; [ -z \"$m\" ] || df -P -k $m; echo ==ufsd;"
+    " for d in $(grep ' /share/external/' /proc/mounts | grep ' ufsd ' | cut -d' ' -f1); do b=${d##*/};"
+    " echo \"== $b\"; echo volinfo=$(head -n 1 /proc/fs/ufsd/$b/volinfo 2>/dev/null);"
+    " echo label=$(cat /proc/fs/ufsd/$b/label 2>/dev/null); echo dirty=$(cat /proc/fs/ufsd/$b/dirty 2>/dev/null);"
+    " done",
     timeout=25, valida=no_vacia)

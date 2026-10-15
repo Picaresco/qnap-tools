@@ -143,6 +143,9 @@ def test_las_herramientas_de_rutas_tareas_y_externos_responden(tmp_path):
             assert "montaje" in e and "sistema_ficheros" in e
             if e["montaje"]:
                 assert e["montaje"].startswith("/share/external/") and e["bytes_montaje"] > 0
+                # el tipo real (NTFS, exFAT...) y no solo "ufsd"; sucio y solo lectura se saben
+                assert e["tipo"] and (e["sistema_ficheros"] != "ufsd" or e["tipo"] != "ufsd")
+                assert e["sucio"] in (True, False, None) and e["solo_lectura"] in (True, False)
         carpetas = datos(h.carpetas_compartidas("lab"))
         assert all(c["externo"] in (True, False) for c in carpetas["carpetas"]["filas"])
     finally:

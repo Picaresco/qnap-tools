@@ -125,22 +125,23 @@ def test_comparar_listados_separa_faltan_sobran_tamano_y_fecha():
 def test_externos_montajes_de_un_disco_ufsd():
     assert p.externos_montajes(dato("externos_montajes_hero")) == [{
         "dispositivo": "/dev/sdh1", "montaje": "/share/external/DEV3301_1", "sistema_ficheros": "ufsd",
-        "bytes": 4883637168 * 1024, "usado": 1953454868 * 1024, "libre": 2930182300 * 1024, "ocupacion_pct": 40}]
+        "bytes": 4883637168 * 1024, "usado": 1953454868 * 1024, "libre": 2930182300 * 1024, "ocupacion_pct": 40,
+        "tipo": "NTFS", "etiqueta": "USB-DISCO", "sucio": False, "solo_lectura": False}]
 
 
 def test_externos_montajes_sin_ningun_externo_es_una_lista_vacia():
-    assert p.externos_montajes("==montajes 12\n==df\n") == []
+    assert p.externos_montajes("==montajes 12\n==df\n==ufsd\n") == []
 
 
 def test_externos_montajes_con_un_montaje_sin_linea_de_df_deja_las_cifras_sin_valor():
-    texto = "==montajes 3\n/dev/sdb1 /share/external/DEV1 vfat rw 0 0\n==df\n"
+    texto = "==montajes 3\n/dev/sdb1 /share/external/DEV1 vfat rw 0 0\n==df\n==ufsd\n"
     (m,) = p.externos_montajes(texto)
     assert (m["montaje"], m["bytes"], m["usado"], m["libre"], m["ocupacion_pct"]) == ("/share/external/DEV1", None, None, None, None)
 
 
 def test_externos_montajes_con_espacios_escapados_en_el_montaje():
     texto = ("==montajes 3\n/dev/sdb1 /share/external/Mi\\040disco ext4 rw 0 0\n==df\n"
-             "Filesystem 1024-blocks Used Available Capacity Mounted on\n/dev/sdb1 100 40 60 40% /share/external/Mi disco\n")
+             "Filesystem 1024-blocks Used Available Capacity Mounted on\n/dev/sdb1 100 40 60 40% /share/external/Mi disco\n==ufsd\n")
     (m,) = p.externos_montajes(texto)
     assert m["montaje"] == "/share/external/Mi disco" and m["ocupacion_pct"] == 40
 

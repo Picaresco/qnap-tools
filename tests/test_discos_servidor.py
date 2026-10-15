@@ -283,7 +283,8 @@ def test_discos_fisicos_separa_los_discos_externos(tmp_path):
         "cabina": 33, "bahia": 1, "dispositivo": "/dev/sdh", "bus": "usb", "fabricante": "Seagate",
         "modelo": "Portable", "bytes": 9767541167 * 512, "montaje": "/share/external/DEV3301_1",
         "sistema_ficheros": "ufsd", "bytes_montaje": 4883637168 * 1024, "usado": 1953454868 * 1024,
-        "libre": 2930182300 * 1024, "ocupacion_pct": 40, "particiones_montadas": 1, "carpetas": ["carpeta12"]}]
+        "libre": 2930182300 * 1024, "ocupacion_pct": 40, "particiones_montadas": 1, "carpetas": ["carpeta12"],
+        "tipo": "NTFS", "etiqueta": "USB-DISCO", "sucio": False, "solo_lectura": False}]
 
 
 def test_discos_fisicos_en_qts_con_repuesto_y_cache_interna(tmp_path):

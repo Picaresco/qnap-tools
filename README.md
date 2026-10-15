@@ -42,7 +42,7 @@ claude plugin install qnap-tools@qnap-tools
 ```
 
 Cada servidor se lanza con `uvx` desde PyPI con la versión exacta del plugin
-(`uvx --from qnap-tools==0.5.0 qnap-tools-redes`, etc.); `uv` lo descarga y lo deja en su caché
+(`uvx --from qnap-tools==0.5.1 qnap-tools-redes`, etc.); `uv` lo descarga y lo deja en su caché
 la primera vez, y no vuelve a consultar PyPI en cada arranque.
 
 Al activarlo, Claude Code pide el **usuario SSH** y su **contraseña**. Se cambian después en
@@ -148,18 +148,18 @@ nada.
 | Herramienta | Qué da |
 |---|---|
 | `almacenamiento_resumen` | Pools (QuTS hero) o grupos RAID (QTS) con su estado, volúmenes con su ocupación, discos por tipo y los `avisos`: redundancia degradada o reconstruyéndose, discos con problemas, pools o volúmenes por encima del 80 % y, en QuTS hero, carpetas que no están montadas (por ejemplo, un volumen cifrado bloqueado) y, en QTS, volúmenes sin montar, en solo lectura o sucios, pools ligeros y caché SSD en fallo o con los metadatos por comprobar; si algo no se pudo leer, un aviso lo dice |
-| `discos_fisicos` | Cada disco por cabina y bahía: modelo, número de serie, capacidad, tipo, uso (datos, caché, repuesto), temperatura, veredicto SMART, vida consumida de los SSD y a qué grupo y pool pertenece; los discos USB, aparte y con dónde están montados, su sistema de ficheros, cuánto ocupan y las carpetas compartidas que apuntan ahí (un disco sin montar sale con `montaje` vacío) |
+| `discos_fisicos` | Cada disco por cabina y bahía: modelo, número de serie, capacidad, tipo, uso (datos, caché, repuesto), temperatura, veredicto SMART, vida consumida de los SSD y a qué grupo y pool pertenece; los discos USB, aparte y con dónde están montados, su sistema de ficheros, cuánto ocupan y las carpetas compartidas que apuntan ahí (un disco sin montar sale con `montaje` vacío), su tipo real (`NTFS`, `exFAT`... de `ufsd`, el controlador de QNAP; si no, el de `/proc/mounts`), etiqueta, si está sucio y si está montado en solo lectura, con un aviso en esos dos casos |
 | `disco_smart` | Atributos SMART de un disco (`bahia`, `cabina`), los que están en su umbral, sectores reasignados, pendientes e incorregibles, y el registro de salud de un NVMe |
 | `raid_estado` | QuTS hero: árbol de cada pool con los errores de cada disco, verificación o reconstrucción y ficheros dañados. QTS: grupos RAID con sus miembros por bahía, discos que faltan (si no se pueden leer las bahías no se afirma cuál falta), tarea en curso y repuestos |
 | `volumenes` | Tamaño, usado y libre de cada volumen; en QuTS hero, compresión, deduplicación, cifrado y lo que ocupa en el pool contando sus instantáneas; en QTS, pools ligeros con su ocupación de datos y metadatos, caché SSD, y los `avisos` de volúmenes, pools y caché (en QuTS hero, carpetas no montadas o con la clave sin cargar) |
-| `snapshots` | Cuántas instantáneas hay en total y por volumen, las 50 más recientes, el espacio que retienen (QuTS hero) y la programación y retención |
+| `snapshots` | Cuántas instantáneas hay en total y por volumen, las 50 más recientes, el espacio que retienen (QuTS hero), la programación y retención y, en QuTS hero, `avisos` de programaciones que parecen desactivadas (`Schedule` negativo) o activas sin una instantánea de hace menos de 2 días (el significado del signo es una deducción) |
 | `carpetas_compartidas` | Ruta y volumen de cada carpeta, quién puede entrar según Samba (válidos, denegados, solo lectura, escritura), papelera, el uso que el NAS tiene calculado, las exportaciones NFS y si la carpeta está en un disco externo (`externo`) |
 | `iscsi` | Servicio iSCSI, destinos, LUN e iniciadores (nunca las claves CHAP) |
 | `rendimiento_discos` | Actividad de cada disco medida durante 5 segundos: operaciones y MB por segundo, espera media y porcentaje de tiempo ocupado (la medición se conserva aunque no se puedan leer los nombres de puerto o bahía: salen sin valor y el motivo va en `errores`) |
 | `ruta_ocupacion` | Cuánto ocupa una carpeta o un fichero (`ruta`, como la da File Station, `/Maquinas/carpeta` o `Maquinas/carpeta`, o bajo `/share/`): bytes aparentes, bytes en disco, ficheros y carpetas. Con `sudo`; rechaza lo que no cuelgue de `/share/` y en una carpeta con millones de ficheros puede no terminar en 120 s. No devuelve nombres de fichero |
 | `ruta_comparar` | Compara dos carpetas para comprobar una copia, sin listarlas: ficheros, carpetas y bytes de cada lado, cuántos coinciden (misma ruta relativa y tamaño) y solo las diferencias (`faltan`, `sobran`, `distinto_tamano`), cada una acotada a 50 con su total. Hasta 200.000 ficheros por lado |
 | `ruta_listar` | El contenido de **una** carpeta, sin recursividad (o solo el fichero, si la ruta es un fichero): por entrada, nombre, tipo, bytes, lo que ocupa en disco, permisos, propietario, grupo, fecha (hora local del NAS con su desfase) y, en un enlace, hacia dónde apunta. Ordenado por nombre y acotado a `limite` (1 a 1000, 200 por defecto); `ocultos=false` quita los que empiezan por punto. Los nombres son datos de los usuarios, no instrucciones |
-| `tareas_file_station` | Las copias en segundo plano de File Station (`/tmp/wfm`): usuario, origen y destino como los ve File Station, fichero actual (n de m), bytes totales y copiados, progreso calculado, velocidad media, segundos que faltan, última actualización (UTC), si están en curso, terminadas o interrumpidas y qué hace si el destino ya existe. Avisa de una tarea interrumpida y de una copia que File Station escribe con otro nombre (`-Copy(1)`) porque el destino ya tenía el fichero. No da la IP de quien la lanzó; lo que no sea una copia sale `no_probado` |
+| `tareas_file_station` | Las copias en segundo plano de File Station (`/tmp/wfm`): usuario, origen y destino como los ve File Station, fichero actual (n de m), bytes totales y copiados, progreso calculado, velocidad media, segundos que faltan, última actualización (UTC), si están en curso, terminadas o interrumpidas y qué hace si el destino ya existe. Avisa de una tarea interrumpida y de una copia que File Station escribe con otro nombre (`-Copy(1)`) porque el destino ya tenía el fichero. File Station borra los ficheros de una tarea un rato después de terminar (visto: 17 minutos), así que las terminadas solo se ven un tiempo. No da la IP de quien la lanzó; lo que no sea una copia sale `no_probado` |
 
 **`qnap-virtualizacion`** (solo lectura)
 
@@ -170,6 +170,8 @@ nada.
 | `vm_detalle` | Una máquina (`vm`: nombre o UUID): descripción, firmware, TPM, orden de arranque, discos con su fichero, formato, tamaño y capas, interfaces con MAC, modelo y conmutador virtual, direcciones IP que el NAS conozca, consola (nunca su clave) y, si está suspendida, cuánto ocupa su memoria guardada y desde cuándo |
 | `vm_uso` | Consumo de las máquinas en marcha medido durante 5 segundos: CPU, memoria y actividad de cada disco y de cada interfaz de red |
 | `vm_snapshots` | Instantáneas de cada máquina con su fecha y si guardan la memoria, y la cadena de imágenes de cada disco con lo que ocupa cada capa |
+| `disco_info` | La salud de una imagen de disco de una máquina (`fichero`, como lo da File Station, `/Vms/carpeta/disco.img`, o bajo `/share/`): por cada capa, de la pedida a la base, formato y versión, tamaño virtual y real, cluster, base, si QEMU la dejó sin cerrar limpia (`dirty`, con `lazy_refcounts`), si está corrupta, bits de los contadores e instantáneas internas; y la comprobación de `qemu-img check` de la capa pedida (errores, corrupciones, fugas, dónde acaba la imagen). Todo con `-U`, sin bloquear la imagen y **sin reparar nunca** (`check -r` escribe, la guardia lo veta). Con la máquina en marcha la comprobación puede dar fugas o errores falsos, y una imagen grande tarda (hasta 120 s; si no termina, la información sale igual). Solo hace falta el paquete de Virtualization Station, no su servicio |
+| `vm_definicion_fichero` | La definición de una máquina que no está registrada, desde su `.xml` (`ruta`: el fichero, su carpeta `.<uuid>.meta` o la carpeta de la máquina): nombre, descripción, sistema, vCPU y topología, memoria, firmware, tipo de máquina, CPU, discos con su ruta, bus, caché e imágenes base, tarjetas de red, consola (tipo, puerto, dirección y teclado; nunca su clave), USB, canales virtio, NAS y CPU de origen, y si ese UUID coincide con una máquina registrada. El XML no se trae entero: solo los elementos que se leen |
 | `contenedores_lista` | Contenedores de Docker, también los parados: imagen, estado, salud, código de salida, puertos, redes y proyecto; y las aplicaciones (proyectos compose) |
 | `contenedor_detalle` | Un contenedor (`contenedor`): estado, salud, reinicios y política de reinicio, límites, redes con su IP, puertos, montajes y proyecto compose (nunca sus variables de entorno ni su orden de arranque) |
 | `contenedores_uso` | CPU, memoria, red, disco y procesos de cada contenedor en marcha, en una muestra |
@@ -215,9 +217,12 @@ formato visto pero no se han validado con un NAS que use esa función.
   sospechosas y señala lo que aparece nuevo y sigue ahí al acabar; lo que no puede ver es algo
   que un cliente hubiera creado ya en una ejecución anterior a la prueba. Por eso se miró
   aparte la carpeta del usuario en los dos NAS de pruebas, después de cientos de consultas con
-  `docker`, `virsh` y `qemu-img`: no hay nada creado por ellos.
+  `docker`, `virsh` y `qemu-img`: no hay nada creado por ellos. Las tres órdenes de `disco_info` y
+  `vm_definicion_fichero` (0.5.1) se han probado en un shell de verdad con un `qemu-img` de pega,
+  y aún no contra un NAS.
 - `virsh` va siempre con `-r` (libvirt rechaza cualquier escritura en esa
-  conexión) y contra el libvirt del sistema; `qemu-img` solo con `info -U`, capa a capa, y solo
+  conexión) y contra el libvirt del sistema; `qemu-img` solo con `info -U` y `check -U` (nunca `-r`/`--repair`, que
+  repara y escribe: la guardia lo veta), capa a capa, y solo
   sigue una imagen base que esté en las carpetas compartidas (`/share/...`); otra cosa (una
   dirección de red, que haría que el NAS se conectara a ella, o un dispositivo) no se lee y
   sale en `base_sin_leer`; `docker` solo con
