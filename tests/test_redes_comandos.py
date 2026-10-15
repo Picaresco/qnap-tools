@@ -133,3 +133,96 @@ def test_los_diagnosticos_tienen_su_propio_tiempo_maximo():
 
 def test_todo_vale_para_los_dos_sistemas():
     assert {c.sistema for c in todos().values()} == {"ambos"}
+
+
+# --- listas de IP y DDNS: un fichero ilegible no es una lista vacia -------------------------------
+
+def _en_sh(plantilla, raiz, hero=False):
+    """La orden en un sh real con /etc/... redirigido a una carpeta de pruebas y getcfg de pega."""
+    r = str(raiz).replace("\\", "/")
+    orden = (plantilla.replace("/etc/config.local", r + "/config.local")
+             .replace("/etc/QTS_ZFS_HA", r + "/QTS_ZFS_HA").replace("/etc/config", r + "/config"))
+    if hero:
+        (raiz / "QTS_ZFS_HA").write_text("", encoding="utf-8")
+    p = subprocess.run([SH, "-c", "getcfg() { echo x; }; " + orden], capture_output=True,
+                       encoding="utf-8", timeout=30)
+    return p.returncode, p.stdout
+
+
+def _carpetas(tmp_path):
+    (tmp_path / "config").mkdir()
+    (tmp_path / "config.local").mkdir()
+    return tmp_path / "config"
+
+
+def _ilegible(ruta):
+    """Un fichero que existe y no se puede leer (en Windows no se quita el permiso de lectura:
+    un directorio con ese nombre hace fallar a cat y a grep igual)."""
+    if ruta.exists():
+        ruta.unlink()
+    ruta.mkdir()
+
+
+@pytest.mark.skipif(SH is None, reason="hace falta un sh para ejecutar la orden")
+def test_bloqueo_ip_con_los_ficheros_ausentes_o_vacios_da_listas_vacias(tmp_path):
+    config = _carpetas(tmp_path)
+    rc_, salida = _en_sh(rc.BLOQUEO_IP.plantilla, tmp_path)
+    assert rc.BLOQUEO_IP.valida(rc_, salida) is None
+    assert salida.endswith("==permitidas\n==denegadas\n")
+    (config / "ipsec_allow.conf").write_text("", encoding="utf-8")
+    (config / "ipsec_deny.conf").write_text("", encoding="utf-8")
+    rc_, salida = _en_sh(rc.BLOQUEO_IP.plantilla, tmp_path)
+    assert rc.BLOQUEO_IP.valida(rc_, salida) is None
+    assert salida.endswith("==permitidas\n==denegadas\n")
+
+
+@pytest.mark.skipif(SH is None, reason="hace falta un sh para ejecutar la orden")
+def test_bloqueo_ip_lee_las_dos_listas(tmp_path):
+    config = _carpetas(tmp_path)
+    (config / "ipsec_allow.conf").write_text("192.0.2.1\n", encoding="utf-8")
+    (config / "ipsec_deny.conf").write_text("198.51.100.7\n", encoding="utf-8")
+    rc_, salida = _en_sh(rc.BLOQUEO_IP.plantilla, tmp_path)
+    assert rc.BLOQUEO_IP.valida(rc_, salida) is None
+    assert "==permitidas\n192.0.2.1\n==denegadas\n198.51.100.7\n" in salida
+
+
+@pytest.mark.skipif(SH is None, reason="hace falta un sh para ejecutar la orden")
+@pytest.mark.parametrize("ilegible", ["ipsec_allow.conf", "ipsec_deny.conf"])
+def test_bloqueo_ip_con_una_lista_ilegible_es_un_error_sea_cual_sea(tmp_path, ilegible):
+    config = _carpetas(tmp_path)
+    (config / "ipsec_allow.conf").write_text("192.0.2.1\n", encoding="utf-8")
+    (config / "ipsec_deny.conf").write_text("198.51.100.7\n", encoding="utf-8")
+    _ilegible(config / ilegible)
+    rc_, salida = _en_sh(rc.BLOQUEO_IP.plantilla, tmp_path)
+    assert rc.BLOQUEO_IP.valida(rc_, salida) is not None
+
+
+@pytest.mark.skipif(SH is None, reason="hace falta un sh para ejecutar la orden")
+def test_ddns_con_el_fichero_ausente_vacio_o_sin_coincidencias_no_es_un_error(tmp_path):
+    config = _carpetas(tmp_path)
+    for contenido in (None, "", "# nada\n"):
+        if contenido is not None:
+            (config / "ddns.conf").write_text(contenido, encoding="utf-8")
+        rc_, salida = _en_sh(rc.DDNS.plantilla, tmp_path)
+        assert rc.DDNS.valida(rc_, salida) is None, contenido
+        assert salida.endswith("==ddns\n")
+
+
+@pytest.mark.skipif(SH is None, reason="hace falta un sh para ejecutar la orden")
+def test_ddns_ilegible_es_un_error_y_no_una_lista_de_proveedores_vacia(tmp_path):
+    config = _carpetas(tmp_path)
+    _ilegible(config / "ddns.conf")
+    rc_, salida = _en_sh(rc.DDNS.plantilla, tmp_path)
+    assert rc.DDNS.valida(rc_, salida) is not None
+
+
+@pytest.mark.skipif(SH is None, reason="hace falta un sh para ejecutar la orden")
+def test_ddns_lee_los_proveedores_de_donde_los_guarda_el_nas(tmp_path):
+    config = _carpetas(tmp_path)
+    (config / "ddns.conf").write_text("[Vieja]\nenable = 1\n", encoding="utf-8")
+    (tmp_path / "config.local" / "ddns.conf").write_text(
+        "[Viva]\nenable = 0\nhostname = x\nusername = u\n", encoding="utf-8")
+    rc_, salida = _en_sh(rc.DDNS.plantilla, tmp_path, hero=True)
+    assert rc.DDNS.valida(rc_, salida) is None
+    assert "[Viva]\nenable = 0\nhostname = x\n" in salida
+    assert "[Vieja]" not in salida and "username" not in salida

@@ -1,0 +1,27 @@
+==status
+Name:	servicio2
+State:	S (sleeping)
+PPid:	1
+Uid:	0	0	0	0
+VmRSS:	   96300 kB
+Threads:	14
+==cmdline
+/usr/local/sbin/servicio2 --api-key=valor-inventado --config /etc/config/servicio2.conf
+==cwd
+/
+==io
+rchar: 5000
+wchar: 4000
+syscr: 50
+syscw: 40
+read_bytes: 0
+write_bytes: 8192
+cancelled_write_bytes: 0
+==fd
+total 0
+lrwx------ 1 admin administrators 64 Oct 15 10:00 0 -> /dev/null
+lrwx------ 1 admin administrators 64 Oct  1  2025 1 -> /dev/null
+l-wx------ 1 admin administrators 64 Oct 15 10:00 3 -> /var/log/servicio2.log
+lrwx------ 1 admin administrators 64 Oct 15 10:00 4 -> socket:[3001]
+lrwx------ 1 admin administrators 64 Oct 15 10:00 5 -> socket:[3002]
+==fin

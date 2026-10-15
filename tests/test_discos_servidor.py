@@ -5,6 +5,7 @@ opciones del producto, instantaneas, contadores de disco) se suple aqui y asi se
 import asyncio
 import dataclasses
 import re
+import shlex
 from pathlib import Path
 
 import pytest
@@ -23,6 +24,30 @@ from qnap_tools.transporte import Conexion
 DATOS = Path(__file__).parent / "datos"
 ENTORNO = {"QNAP_TOOLS_USER": "usuario", "QNAP_TOOLS_PASSWORD": "secreto"}
 SMART_UNO = re.compile(r"^cat /tmp/smart/smart_([0-9]+)_([0-9]+)\.info$")
+# ruta_ocupacion y ruta_comparar: la ruta va entrecomillada en la orden y el NAS de pega la busca
+RUTA_OCUPACION_UNO = re.compile(r"^r=\$\(readlink -f (.+?)\); if \[ -e .*du -s -b ")
+RUTA_LISTAR_UNO = re.compile(r"^r=\$\(readlink -f (.+?)\); if \[ -e .*ls -lAs ")
+RUTA_LISTADO_UNO = re.compile(r"^r=\$\(readlink -f (.+?)\); if \[ -d ")
+# la orden con parametros de cada Comando (por su id), para reconocerla entre las que lanza el servidor
+CON_PARAMETROS = {"smart_atributos": SMART_UNO, "ruta_ocupacion": RUTA_OCUPACION_UNO, "ruta_listado": RUTA_LISTADO_UNO,
+                  "ruta_listar": RUTA_LISTAR_UNO}
+# escrito a mano con el formato de du y de ls -lnRA --time-style=+%s
+SALIDA_OCUPACION = (
+    "==real /share/VOL1_DATA/Vms/copia\n83400000000\t/share/VOL1_DATA/Vms/copia\n"
+    "==kib\n40000000\t/share/VOL1_DATA/Vms/copia\n==ficheros 3\n==carpetas 2\n")
+LISTADO_COPIA = (
+    "==real /share/VOL1_DATA/Vms/copia\n/share/VOL1_DATA/Vms/copia/.:\ntotal 8\n"
+    "-rw-r--r--  1 0 0 1000 1760000000 uno.img\ndrwxr-xr-x  2 0 0    2 1760000000 sub\n\n"
+    "/share/VOL1_DATA/Vms/copia/./sub:\ntotal 4\n-rw-r--r--  1 0 0  500 1760000100 dos.img\n")
+SALIDA_LISTAR = (
+    "==real /share/VOL1_DATA/Vms/copia\ntotal 12288\n"
+    "           0 -rw-r--r--  1 admin administrators         0 2026-10-15T22:36:31+0200 .oculto\n"
+    "           0 lrwxrwxrwx  1 admin administrators         7 2026-10-15T22:36:31+0200 enlace -> uno.img\n"
+    "        4096 drwxr-xr-x  2 admin administrators         2 2026-10-15T22:36:31+0200 sub\n"
+    "        4096 -rw-r--r--  1 admin administrators      1000 2026-10-15T22:36:31+0200 uno.img\n")
+RUTAS_DE_PEGA = {"listar": {"/share/Vms/copia": SALIDA_LISTAR},
+                 "ocupacion": {"/share/Vms/copia": SALIDA_OCUPACION},
+                 "listado": {"/share/Vms/copia": LISTADO_COPIA, "/share/Vms/copia2": LISTADO_COPIA}}
 # escrito a mano con el formato visto en el QTS de pruebas: sus volumenes y, por cada carpeta
 # de /share que no es un montaje, el tmpfs de /share
 OCUPACION_QTS = (
@@ -34,7 +59,8 @@ OCUPACION_QTS = (
     "tmpfs                    16384         0     16384   0% /share\n")
 LLAMADAS = {"almacenamiento_resumen": (), "discos_fisicos": (), "disco_smart": (3,), "raid_estado": (),
             "volumenes": (), "snapshots": (), "carpetas_compartidas": (), "iscsi": (),
-            "rendimiento_discos": ()}
+            "rendimiento_discos": (), "ruta_ocupacion": ("/Vms/copia",),
+            "ruta_comparar": ("/Vms/copia", "/Vms/copia2"), "tareas_file_station": (), "ruta_listar": ("/Vms/copia",)}
 
 
 def dato(nombre):
@@ -65,6 +91,15 @@ def smart_de(sistema):
     return responde
 
 
+def ruta_de_pega(tipo, rutas):
+    """Responde a la orden de ocupacion o de listado de una ruta con la salida que haya para ella."""
+    regex = {"ocupacion": RUTA_OCUPACION_UNO, "listado": RUTA_LISTADO_UNO, "listar": RUTA_LISTAR_UNO}[tipo]
+
+    def responde(orden, sudo):
+        return rutas[tipo].get(shlex.split(regex.match(orden).group(1))[0], "==rechazada\n")
+    return responde
+
+
 def nas_simulado(sistema, **extra):
     """Un NAS simulado: a cada orden de su sistema responde con su salida real."""
     respuestas = {DETECCION.render(): (DATOS / ("deteccion_%s.txt" % sistema)).read_text(encoding="utf-8")}
@@ -76,6 +111,9 @@ def nas_simulado(sistema, **extra):
         respuestas[comando.render()] = (
             fichero.read_text(encoding="utf-8") if fichero.exists() else suplidas[comando.id])
     respuestas[SMART_UNO] = smart_de(sistema)
+    respuestas[RUTA_OCUPACION_UNO] = ruta_de_pega("ocupacion", RUTAS_DE_PEGA)
+    respuestas[RUTA_LISTADO_UNO] = ruta_de_pega("listado", RUTAS_DE_PEGA)
+    respuestas[RUTA_LISTAR_UNO] = ruta_de_pega("listar", RUTAS_DE_PEGA)
     return falsos.Mundo(respuestas, **extra)
 
 
@@ -144,7 +182,7 @@ def test_cada_herramienta_responde_en_los_dos_sistemas_y_solo_lanza_ordenes_del_
                  if isinstance(c, Comando) and not c.params and c.sistema in ("ambos", sistema)}
         suyas.add(DETECCION.render())
         for orden, _ in mundo.ordenes:
-            assert orden in suyas or SMART_UNO.match(orden), (sistema, orden)
+            assert orden in suyas or any(r.match(orden) for r in CON_PARAMETROS.values()), (sistema, orden)
         assert mundo.conexiones == 1          # todas por la misma conexion
 
 
@@ -157,8 +195,10 @@ def test_el_servidor_solo_lanza_ordenes_definidas_y_con_sudo_solo_las_marcadas(t
     definidas[DETECCION.render()] = False
     for mundo in mundos.values():
         for orden, sudo in mundo.ordenes:
-            if SMART_UNO.match(orden):
-                assert sudo is dc.SMART_ATRIBUTOS.sudo is True
+            propio = [i for i, r in CON_PARAMETROS.items() if r.match(orden)]
+            if propio:
+                assert sudo is True and all(c.sudo for c in vars(dc).values()
+                                            if isinstance(c, Comando) and c.id in propio)
             else:
                 assert orden in definidas and definidas[orden] is sudo, orden
 
@@ -176,19 +216,19 @@ def test_no_hay_ninguna_orden_de_discos_que_no_use_alguna_herramienta(tmp_path):
         for sistema in ("hero", "qts"):
             if c.sistema not in ("ambos", sistema):
                 continue
-            usada = (any(SMART_UNO.match(o) for o in lanzadas[sistema]) if c.params
+            usada = (any(CON_PARAMETROS[c.id].match(o) for o in lanzadas[sistema]) if c.params
                      else c.render() in lanzadas[sistema])
             if not usada:
                 sin_uso.append((nombre, sistema))
     assert sin_uso == []
 
 
-def test_el_servidor_registra_las_nueve_herramientas_con_descripcion(tmp_path):
+def test_el_servidor_registra_las_herramientas_con_descripcion(tmp_path):
     mcp = discos_srv.construir(dict(ENTORNO, QNAP_TOOLS_DATA=str(tmp_path)))
     herramientas = asyncio.run(mcp.list_tools())
     assert sorted(t.name for t in herramientas) == [
         "almacenamiento_resumen", "carpetas_compartidas", "disco_smart", "discos_fisicos", "iscsi",
-        "raid_estado", "rendimiento_discos", "snapshots", "volumenes"]
+        "raid_estado", "rendimiento_discos", "ruta_comparar", "ruta_listar", "ruta_ocupacion", "snapshots", "tareas_file_station", "volumenes"]
     assert all(t.description and len(t.description) > 40 for t in herramientas)
     assert all("nas" in t.inputSchema["required"] for t in herramientas)
     (smart,) = [t for t in herramientas if t.name == "disco_smart"]
@@ -197,7 +237,7 @@ def test_el_servidor_registra_las_nueve_herramientas_con_descripcion(tmp_path):
 
 
 def test_el_servidor_arranca_aunque_falte_la_credencial():
-    assert len(asyncio.run(discos_srv.construir({}).list_tools())) == 9
+    assert len(asyncio.run(discos_srv.construir({}).list_tools())) == 13
 
 
 def test_un_nas_desconocido_y_la_falta_de_credencial_se_dicen_en_el_error(tmp_path):
@@ -239,8 +279,11 @@ def test_discos_fisicos_reune_todo_lo_que_se_sabe_de_cada_disco(tmp_path):
 def test_discos_fisicos_separa_los_discos_externos(tmp_path):
     h, _ = uno(tmp_path)
     d = datos(h.discos_fisicos("hero"))
-    assert d["externos"] == [{"cabina": 33, "bahia": 1, "dispositivo": "/dev/sdh", "bus": "usb",
-                              "fabricante": "Seagate", "modelo": "Portable", "bytes": 9767541167 * 512}]
+    assert d["externos"] == [{
+        "cabina": 33, "bahia": 1, "dispositivo": "/dev/sdh", "bus": "usb", "fabricante": "Seagate",
+        "modelo": "Portable", "bytes": 9767541167 * 512, "montaje": "/share/external/DEV3301_1",
+        "sistema_ficheros": "ufsd", "bytes_montaje": 4883637168 * 1024, "usado": 1953454868 * 1024,
+        "libre": 2930182300 * 1024, "ocupacion_pct": 40, "particiones_montadas": 1, "carpetas": ["carpeta12"]}]
 
 
 def test_discos_fisicos_en_qts_con_repuesto_y_cache_interna(tmp_path):
@@ -557,6 +600,46 @@ def test_el_resumen_con_un_grupo_degradado_y_sin_lista_de_discos_avisa_del_grupo
                                         dc.DISCOS_DETALLE.plantilla: (1, "", "")})
     d = datos(h.almacenamiento_resumen("qts"))
     assert algun(d["avisos"], "md1", "degradado") and "discos" in d["errores"]
+    # sin saber que bahia es cual no se dice cual falta (y menos que faltan todas)
+    assert algun(d["avisos"], "md1", "no se ha podido determinar que disco falta")
+    assert not algun(d["avisos"], "md1", "bahia 1")
+
+
+def test_el_resumen_sin_qcli_storage_sigue_diciendo_que_bahia_falta(tmp_path):
+    # la lista de discos solo aporta etiquetas: las bahias salen de /etc/enclosure_*.conf
+    h, _ = uno(tmp_path, "qts", cambios={dc.MDSTAT.plantilla: mdstat_degradado(),
+                                        dc.DISCOS_LISTA.plantilla: (1, "", "")})
+    d = datos(h.almacenamiento_resumen("qts"))
+    assert algun(d["avisos"], "md1", "falta el disco de la cabina 0, bahia 4")
+    assert not algun(d["avisos"], "md1", "bahia 1") and "discos" in d["errores"]
+
+
+def test_un_miembro_vivo_sin_bahia_conocida_impide_decir_que_disco_falta(tmp_path):
+    detalle = dato("discos_detalle_qts")
+    assert detalle.count("pd_sys_name = /dev/sdc\n") == 1
+    h, _ = uno(tmp_path, "qts", cambios={dc.MDSTAT.plantilla: mdstat_degradado(),
+                                        dc.DISCOS_DETALLE.plantilla: detalle.replace(
+                                            "pd_sys_name = /dev/sdc\n", "pd_sys_name = /dev/sdz\n")})
+    d = datos(h.almacenamiento_resumen("qts"))
+    assert algun(d["avisos"], "md1", "no se ha podido determinar que disco falta")
+    assert not algun(d["avisos"], "md1", "bahia 1")
+    grupo = por(datos(h.raid_estado("qts"))["grupos"], "grupo", "md1")
+    assert grupo["faltan"] is None
+
+
+def test_raid_estado_sin_las_bahias_degrada_en_vez_de_caer(tmp_path):
+    h, _ = uno(tmp_path, "qts", cambios={dc.MDSTAT.plantilla: mdstat_degradado(),
+                                        dc.DISCOS_DETALLE.plantilla: (1, "", "")})
+    d = datos(h.raid_estado("qts"))
+    assert "bahias" in d["errores"]
+    assert algun(d["avisos"], "md1", "no se ha podido determinar que disco falta")
+    assert por(d["grupos"], "grupo", "md1")["faltan"] is None
+
+
+def test_raid_estado_con_las_bahias_leidas_no_trae_errores(tmp_path):
+    h, _ = uno(tmp_path, "qts", cambios={dc.MDSTAT.plantilla: mdstat_degradado()})
+    d = datos(h.raid_estado("qts"))
+    assert "errores" not in d and por(d["grupos"], "grupo", "md1")["faltan"] == [{"cabina": 0, "bahia": 4}]
 
 
 def test_un_pool_casi_lleno_sale_en_los_avisos(tmp_path):
@@ -719,8 +802,9 @@ def test_carpetas_da_ruta_acceso_uso_y_papelera_de_cada_una(tmp_path):
         "solo_lectura": {"usuarios": ["carpeta5", "usuario14"], "grupos": ["everyone"], "total": 3},
         "escritura": {"usuarios": ["admin", "usuario15"], "grupos": ["administrators"], "total": 3},
         "uso": {"usado": 74091401216, "directorios": 87, "ficheros": 152, "actualizado": "2026-09-28T01:00:05Z"},
-        "nfs": []}
+        "nfs": [], "externo": False}
     assert d["nfs_exportadas"] == 0
+    assert por(d["carpetas"]["filas"], "nombre", "carpeta12")["externo"] is True      # esta en el disco USB
 
 
 def test_carpetas_en_qts_con_una_exportada_por_nfs(tmp_path):

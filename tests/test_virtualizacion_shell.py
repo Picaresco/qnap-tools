@@ -113,6 +113,21 @@ def test_sin_memoria_guardada_o_sin_carpeta_la_vm_no_tiene_memoria_guardada(tmp_
     assert ("!! sin carpeta" in salida) is not con_carpeta
 
 
+def test_un_dumpxml_que_falla_deja_su_marca_y_no_pasa_por_cero_instantaneas_ni_por_no_suspendida(
+        tmp_path, monkeypatch):
+    # virsh de pega cuyo dumpxml falla: la orden acaba bien, pero la VM no puede salir como si
+    # no tuviera instantaneas ni memoria guardada
+    roto = VIRSH_DE_PEGA.replace('dumpxml) cat "$PEGA/$2.xml" ;;', 'dumpxml) echo "error: fallo" 1>&2; exit 1 ;;')
+    assert roto != VIRSH_DE_PEGA
+    monkeypatch.setitem(globals(), "VIRSH_DE_PEGA", roto)
+    for comando in (vc.VM_SNAP_VS, vc.VM_GUARDADAS):
+        rc, salida = lanzar(comando, tmp_path)
+        assert rc == 0 and "!! dumpxml fallo" in salida, comando.id
+    assert p.vm_snap_vs(lanzar(vc.VM_SNAP_VS, tmp_path)[1]) == [{"uuid": UUID, "instantaneas": None}]
+    with pytest.raises(ValueError):
+        p.vm_guardadas(lanzar(vc.VM_GUARDADAS, tmp_path)[1])
+
+
 def test_la_cadena_se_recorre_capa_a_capa_y_no_sigue_una_base_remota(tmp_path):
     discos = (" Type   Device   Target   Source\n" + "-" * 48 + "\n"
               " file   disk     vda      /share/Mis VMs/vm/disco 1.img.1790544225\n")

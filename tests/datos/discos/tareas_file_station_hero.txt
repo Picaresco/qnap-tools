@@ -1,0 +1,49 @@
+==wfm
+== 11790
+copy_file = MaquinaB
+percent = 100.0
+copying = 2
+end_time = 1792090000
+speed = 146440192
+full_dest = /share/ZFS3_DATA/Maquinas/MaquinaB/MaquinaB_01.img
+copy_number = 3
+files_count = 3
+copy_size = 40000000000
+copied_size = 80000000000
+average_speed = 146440192
+total_size = 80000000000
+total_number = 3
+from = /USB-DISCO
+to = /Maquinas
+name = MaquinaB
+==remote
+==lista
+11790|admin|/USB-DISCO|/Maquinas|80000000000|3|q_name|11|2|100.0|1792089000|1792090000|-1|-1|--
+vivo=0
+== 11895
+copy_file = VM01_01.img
+percent = 39.3
+copying = 1
+end_time = 1792097149
+speed = 115343360
+full_dest = /share/ZFS3_DATA/Maquinas/VM01/VM01_01-Copy(1).img
+copy_number = 2
+files_count = 3
+copy_size = 53539569664
+copied_size = 62657991692
+average_speed = 58885919
+total_size = 83398104076
+total_number = 3
+from = /USB-DISCO
+to = /Maquinas
+name = VM01
+==remote
+source_path = /USB-DISCO
+dest_path = /Maquinas
+mode = 2
+dup = Copy
+username = admin
+func = copy
+==lista
+11895|admin|q_from|q_to|0|0|q_name|11|0|0.0|1792096591|1792096591|-1|-1|--
+vivo=1

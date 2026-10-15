@@ -67,6 +67,8 @@ def cargar(ruta) -> dict[str, Nas]:
         texto = ruta.read_text(encoding="utf-8-sig")
     except FileNotFoundError:
         return {}
+    except (OSError, UnicodeDecodeError) as e:
+        raise InventarioInvalido("no se pudo leer el inventario %s: %s" % (ruta, e)) from None
     try:
         datos = tomllib.loads(texto)
     except tomllib.TOMLDecodeError as e:

@@ -9,6 +9,7 @@ import os
 import re
 import socket
 
+from cryptography.exceptions import UnsupportedAlgorithm
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
@@ -22,8 +23,18 @@ def asegurar(cfg) -> str:
     """Crea el par si no existe y devuelve la linea publica (tipo, clave y comentario)."""
     ruta_privada = cfg.clave
     ruta_publica = ruta_privada.with_name(ruta_privada.name + ".pub")
+    if ruta_privada.exists() and ruta_privada.stat().st_size == 0:
+        # un cierre entre crear el fichero y escribirlo lo deja a 0 bytes: no es una clave
+        # (nada se ha podido instalar con ella) y se vuelve a generar
+        ruta_privada.unlink()
     if ruta_privada.exists():
-        privada = serialization.load_ssh_private_key(ruta_privada.read_bytes(), password=None)
+        try:
+            privada = serialization.load_ssh_private_key(ruta_privada.read_bytes(), password=None)
+        except (ValueError, UnsupportedAlgorithm) as e:
+            raise ValueError(
+                "la clave privada %s no se puede leer (%s); borra ese fichero para generar otra "
+                "y ejecuta nas_enrolar para instalarla en los NAS"
+                % (ruta_privada, e.__class__.__name__)) from None
     else:
         ruta_privada.parent.mkdir(parents=True, exist_ok=True)
         privada = Ed25519PrivateKey.generate()

@@ -14,7 +14,7 @@ import guardia  # noqa: E402  (la guardia de solo lectura del laboratorio)
 from qnap_tools.comandos import Comando, ParametroInvalido  # noqa: E402
 from qnap_tools.discos import comandos as dc  # noqa: E402
 
-EJEMPLOS = {"bahia": "3", "md": "md1", "nvme": "nvme0", "entero": "5", "nombre": "x"}
+EJEMPLOS = {"bahia": "3", "md": "md1", "nvme": "nvme0", "entero": "5", "nombre": "x", "ruta": "/share/x"}
 SECRETOS = re.compile(
     r"shadow|smbpasswd|ssh_host|\.pem|id_rsa|id_ed25519|authorized_keys|qvpn/|openvpn|"
     r"ipsec\.(conf|secrets)|wg[0-9]*\.conf|privatekey|nm\.conf|chap|InitiatorKey", re.I)
@@ -24,14 +24,18 @@ VETADO = re.compile(
     r"get_hd_smartinfo|md_checker|hdparm|qcli_(?!storage\b)")
 COMUNES = {"DISCOS_LISTA", "DISCOS_REPARTO", "DISCOS_DETALLE", "DISCOS_SALUD", "SMART_TODOS",
            "SMART_ATRIBUTOS", "SMART_UMBRALES", "SSD_VIDA", "DISKSTATS", "OCUPACION", "CARPETAS_SMB",
-           "CARPETAS_USO", "CARPETAS_NFS", "CARPETAS_ENLACES"}
+           "CARPETAS_USO", "CARPETAS_NFS", "CARPETAS_ENLACES", "RUTA_OCUPACION", "RUTA_LISTADO",
+           "EXTERNOS_MONTAJES", "TAREAS_FILE_STATION", "RUTA_LISTAR"}
+# du, find y ls -R solo para medir y comparar una ruta pedida, resuelta y dentro de /share/
+RECORREN_RUTAS = {"RUTA_OCUPACION", "RUTA_LISTADO"}
 SOLO_HERO = {"POOLS", "POOLS_ESTADO", "DATASETS", "SNAPSHOTS_HERO", "SNAPSHOTS_PROG_HERO", "LUNS_HERO",
              "SNAPSHOTS_RETENIDO_HERO"}
 SOLO_QTS = {"MDSTAT", "MD_SYS", "RAID_CONF", "VOLUMENES_CONF", "LVM_CONF", "DM_ESTADO", "SNAPSHOTS_QTS",
             "SNAPSHOTS_PROG_QTS", "ISCSI_QTS"}
-CON_SUDO = {"DISCOS_SALUD", "SMART_TODOS", "SMART_ATRIBUTOS", "DM_ESTADO"}
+CON_SUDO = {"DISCOS_SALUD", "SMART_TODOS", "SMART_ATRIBUTOS", "DM_ESTADO", "RUTA_OCUPACION", "RUTA_LISTADO",
+            "RUTA_LISTAR"}
 # se leen con el formato visto, pero ningun NAS de pruebas tenia con que validarlas
-NO_PROBADO = {"ISCSI_QTS"}
+NO_PROBADO = {"ISCSI_QTS", "SMART_UMBRALES"}
 SH = shutil.which("sh")
 
 
@@ -55,6 +59,19 @@ def test_cada_orden_vale_para_el_sistema_previsto():
     assert {n for n, c in todos().items() if c.sistema == "hero"} == SOLO_HERO
     assert {n for n, c in todos().items() if c.sistema == "qts"} == SOLO_QTS
     assert {n for n, c in todos().items() if c.sistema == "ambos"} == COMUNES
+
+
+def test_la_captura_da_valores_validos_a_todas_las_ordenes_con_parametros():
+    # pruebas/efectos.py --producto discos aborta si falta el valor de los parametros de una orden
+    import captura
+    detalle = (Path(__file__).parent / "datos" / "discos" / "discos_detalle_hero.txt").read_text(encoding="utf-8")
+    valores = captura.valores_reales("discos", {"DISCOS_DETALLE": detalle}.__getitem__, "hero")
+    con_parametros = {n: c for n, c in todos().items() if c.params}
+    assert set(con_parametros) == {"SMART_ATRIBUTOS", "RUTA_OCUPACION", "RUTA_LISTADO", "RUTA_LISTAR"}
+    for nombre, comando in con_parametros.items():
+        assert valores.get(nombre), nombre
+        guardia.comprobar(comando.render(valores[nombre]))
+    assert valores["RUTA_OCUPACION"] == {"ruta": "/share/Public"} == valores["RUTA_LISTAR"] == valores["RUTA_LISTADO"]
 
 
 def test_los_identificadores_son_unicos():
@@ -84,6 +101,8 @@ def test_ninguna_orden_toca_rutas_con_secretos(nombre):
 
 @pytest.mark.parametrize("nombre", sorted(todos()))
 def test_ninguna_orden_usa_lo_que_el_diseno_deja_fuera(nombre):
+    if nombre in RECORREN_RUTAS:
+        return
     assert not VETADO.search(todos()[nombre].plantilla)
 
 

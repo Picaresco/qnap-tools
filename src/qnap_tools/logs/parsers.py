@@ -15,7 +15,7 @@ que no empieza por un numero sigue a la anterior), como el agente del navegador,
 import re
 from datetime import datetime, timezone
 
-from .comandos import MOTORES_DE_REGISTRO
+from .comandos import MOTORES_DE_REGISTRO, PS_COLUMNAS
 
 MAX_TEXTO = 500                       # descripcion o recurso: texto que escribe un tercero
 MAX_NOMBRE = 255                      # usuario, equipo, aplicacion
@@ -652,3 +652,197 @@ def syslog(texto):
             "fichero": {"carpeta": _texto(v.get("log file share", "")), "nombre": _texto(v.get("log file path", "")),
                         "tamano_mb": _entero_o_nada(v.get("log file size"), que)},
             "aviso_por_correo": _si_no(v.get("alert mail"))}
+
+
+# ==== procesos ==================================================================================
+
+KIB = 1024
+MAX_ORDEN = 300                       # caracteres de la orden de un proceso que se devuelven
+MAX_RUTAS = 100                       # ficheros abiertos de un proceso que se nombran
+# Lo que va tras una de estas palabras (con "=", ":" o espacio) es una credencial: entre comillas o
+# hasta el siguiente espacio. La palabra tiene que acabar ahi: "password-file" y "keyboard" no casan.
+CREDENCIAL = re.compile(r"(pass(?:word|wd)?|pwd|token|secret|key)(\s*[=:]\s*|\s+)(\"[^\"]*\"|'[^']*'|\S+)", re.I)
+USUARIO_EN_URL = re.compile(r"(://[^\s:/@]+:)[^\s@/]+@")
+# Una fila de ps no se parte por espacios sin mas: el estado lleva un espacio en medio ("S N", "D <"),
+# el VSZ y la memoria residente pueden llevar un sufijo ("907m"), un hilo del kernel deja en blanco
+# la memoria residente y una columna mas ancha que la suya (un usuario largo) desplaza el resto de la
+# fila, asi que tampoco se puede cortar por posiciones. Se lee por la forma de cada campo: el estado
+# es una letra y hasta dos indicadores, y lo que sigue empieza siempre por una cifra. Una linea que
+# no cuadra es un error: nunca se pega a la anterior (ps cambia por '?' lo que no se imprime).
+PS_ESTADO = r"[A-Za-z](?: ?[A-Za-z])?(?: ?[<N])?"
+PS_TIEMPO = r"(?:[0-9]+-)?(?:[0-9]+:)?[0-9]+:[0-9]{2}"
+# un tamano de ps: KiB, o con sufijo y a veces un decimal cuando no cabe ("907m", "2.2g")
+PS_NUMERO = r"[0-9]+(?:\.[0-9]+)?[kmgt]?"
+PS_FILA = re.compile(r"\s*([0-9]+)\s+([0-9]+)\s+(\S+)\s+(%s)\s+(%s)(?:\s+(%s))?"
+                     r"\s+(%s)\s+(%s)\s+(\S.*)" % (PS_ESTADO, PS_NUMERO, PS_NUMERO, PS_TIEMPO, PS_TIEMPO))
+PS_TAMANO = re.compile(r"([0-9]+(?:\.[0-9]+)?)([kmgt]?)")
+SUFIJOS_DE_TAMANO = {"": 1, "k": 1, "m": 1024, "g": 1024 ** 2, "t": 1024 ** 3}     # la base es el KiB
+MARCAS_DETALLE = ("status", "cmdline", "cwd", "io", "fd", "fin")
+ESTADO_DE_PROCESO = re.compile(r"([A-Za-z]+):[ \t]*(.*)")
+MEMORIA_RESIDENTE = re.compile(r"([0-9]+) kB")
+CONTADOR_IO = re.compile(r"([a-z_]+): ([0-9]+)")
+# una linea de ls -l /proc/<pid>/fd: lo que importa es el numero de descriptor y su destino
+DESCRIPTOR = re.compile(r"[-lbcdps][-rwxsStT]{9}[.+@]?\s.*? ([0-9]+) -> (.*)")
+
+
+def tapar_credenciales(texto):
+    """La orden de un proceso sin las credenciales que lleve (valores tras password, passwd, pass,
+    pwd, token, secret y key, y la contrasena de una direccion con usuario) y recortada."""
+    texto = SIN_CONTROL.sub(" ", texto)
+    texto = CREDENCIAL.sub(r"\1\2***", USUARIO_EN_URL.sub(r"\1***@", texto))
+    return texto.strip()[:MAX_ORDEN]
+
+
+def _cabecera_de_ps(cabecera, que):
+    """Comprueba la cabecera de ps: nueve titulos, con PID, PPID, estado, VSZ y TIME en su sitio."""
+    titulos = [t.upper() for t in cabecera.split()]
+    if len(titulos) != 9 or [titulos[i] for i in (0, 1, 3, 4, 6)] != ["PID", "PPID", "STAT", "VSZ", "TIME"]:
+        raise _no_reconocida(que, cabecera)
+
+
+def _tamano_de_ps(valor, que):
+    """Un tamano de ps en bytes: KiB, o con k, m, g o t (base KiB) cuando no cabe en su columna;
+    por encima de 999m lleva un decimal ("2.2g"), asi que la cifra es aproximada."""
+    m = PS_TAMANO.fullmatch(valor)
+    if not m:
+        raise _no_reconocida(que, valor)
+    numero = float(m.group(1)) if "." in m.group(1) else int(m.group(1))
+    return int(numero * SUFIJOS_DE_TAMANO[m.group(2)] * KIB)
+
+
+def _fila_de_ps(linea, que):
+    m = PS_FILA.fullmatch(linea)
+    if not m:
+        raise _no_reconocida(que, linea)
+    pid, ppid, usuario, estado, vsz, rss, cpu, marcha, orden = m.groups()
+    return {"pid": int(pid), "ppid": int(ppid), "usuario": _texto(usuario), "estado": estado.replace(" ", ""),
+            "memoria_virtual": _tamano_de_ps(vsz, que), "memoria": _tamano_de_ps(rss, que) if rss else None,
+            "tiempo_cpu": cpu, "en_marcha": marcha, "orden": orden}
+
+
+def procesos_lista(texto):
+    """ps de BusyBox: los procesos del NAS, sin los hilos del kernel (la orden va entre corchetes)
+    ni la propia consulta (el sh y el ps que la lanzan). Memoria en bytes. Toda linea es una fila
+    (ps cambia por '?' lo que no se imprime): una que no cuadra es un error, no una continuacion."""
+    que = "la lista de procesos"
+    lineas = [linea.rstrip() for linea in texto.splitlines() if linea.strip()]
+    if not lineas:
+        raise _no_reconocida(que)
+    _cabecera_de_ps(lineas[0], que)
+    procesos = []
+    for linea in lineas[1:]:
+        proceso = _fila_de_ps(linea, que)
+        if proceso["orden"].startswith("[") or PS_COLUMNAS in proceso["orden"]:
+            continue
+        procesos.append(dict(proceso, orden=tapar_credenciales(proceso["orden"])))
+    return procesos
+
+
+def _partes_de_proceso(texto, que):
+    """{marca: [lineas]} de una salida partida por lineas '==marca'."""
+    partes, actual = {}, None
+    for linea in texto.splitlines():
+        if linea.startswith("=="):
+            actual = linea[2:].strip()
+            if actual in partes or actual not in MARCAS_DETALLE + ("noexiste",):
+                raise _no_reconocida(que, linea)
+            partes[actual] = []
+        elif actual is None:
+            if linea.strip():
+                raise _no_reconocida(que, linea)
+        else:
+            partes[actual].append(linea)
+    return partes
+
+
+def _estado_de_proceso(lineas, que):
+    campos = {}
+    for linea in lineas:
+        m = ESTADO_DE_PROCESO.fullmatch(linea.strip())
+        if not m:
+            raise _no_reconocida(que, linea)
+        campos[m.group(1)] = m.group(2).strip()
+    # sin nombre ni estado el proceso acabo mientras se leia
+    for clave in ("Name", "State", "PPid", "Uid", "Threads"):
+        if clave not in campos:
+            raise ValueError("%s: falta %s (el proceso puede haber acabado mientras se leia)" % (que, clave))
+    residente = MEMORIA_RESIDENTE.fullmatch(campos["VmRSS"]) if "VmRSS" in campos else None
+    if "VmRSS" in campos and not residente:
+        raise _no_reconocida(que, "VmRSS: " + campos["VmRSS"])
+    uid = campos["Uid"].split()
+    return {"nombre": _texto(campos["Name"]), "estado": _texto(campos["State"]),
+            "ppid": _entero(campos["PPid"], "el proceso padre"), "uid": _entero(uid[0] if uid else "", "el uid"),
+            "memoria": int(residente.group(1)) * KIB if residente else None,
+            "hilos": _entero(campos["Threads"], "el numero de hilos")}
+
+
+def _contadores_de_io(lineas):
+    """Bytes leidos y escritos, o None si no se pudo leer /proc/<pid>/io (un kernel sin contabilidad)."""
+    datos = {}
+    for linea in lineas:
+        m = CONTADOR_IO.fullmatch(linea.strip())
+        if not m:
+            return None
+        datos[m.group(1)] = int(m.group(2))
+    claves = {"leidos": "rchar", "escritos": "wchar", "leidos_de_disco": "read_bytes",
+              "escritos_a_disco": "write_bytes"}
+    if not all(origen in datos for origen in claves.values()):
+        return None
+    return {destino: datos[origen] for destino, origen in claves.items()}
+
+
+def _ficheros_abiertos(lineas):
+    """Los destinos de /proc/<pid>/fd: rutas (sin repetir, acotadas), y tuberias, sockets y otros
+    contados. None si ls no pudo leer la carpeta."""
+    if not lineas or any(linea.startswith("ls:") for linea in lineas):
+        return None
+    total = tuberias = sockets = otros = 0
+    rutas = []
+    for linea in lineas:
+        if linea.startswith("total "):
+            continue
+        m = DESCRIPTOR.fullmatch(linea.rstrip())
+        if not m:
+            raise _no_reconocida("los ficheros abiertos", linea)
+        destino = m.group(2)
+        total += 1
+        if destino.startswith("/"):
+            ruta = _texto(destino, MAX_TEXTO)
+            if ruta not in rutas:
+                rutas.append(ruta)
+        elif destino.startswith("pipe:"):
+            tuberias += 1
+        elif destino.startswith("socket:"):
+            sockets += 1
+        else:
+            otros += 1
+    return {"total": total, "tuberias": tuberias, "sockets": sockets, "otros": otros,
+            "rutas": {"filas": rutas[:MAX_RUTAS], "total": len(rutas), "truncado": len(rutas) > MAX_RUTAS}}
+
+
+def procesos_detalle(texto):
+    """Un proceso a partir de /proc/<pid>; None si no existe. Memoria en bytes. io y ficheros
+    abiertos salen sin valor (y se dice en 'errores') si no se pudieron leer."""
+    que = "el detalle de un proceso"
+    partes = _partes_de_proceso(texto, que)
+    if "noexiste" in partes:
+        if list(partes) != ["noexiste"]:
+            raise _no_reconocida(que)
+        return None
+    if tuple(partes) != MARCAS_DETALLE:
+        raise ValueError("%s: la lectura esta incompleta (partes: %s)" % (que, ", ".join(partes) or "ninguna"))
+    datos = _estado_de_proceso(partes["status"], que)
+    orden = tapar_credenciales(" ".join(linea.strip() for linea in partes["cmdline"] if linea.strip()))
+    carpeta = next((linea.strip() for linea in partes["cwd"] if linea.startswith("/")), None)
+    errores = {}
+    io = _contadores_de_io(partes["io"])
+    if io is None:
+        errores["io"] = "no se pudo leer /proc/<pid>/io"
+    abiertos = _ficheros_abiertos(partes["fd"])
+    if abiertos is None:
+        errores["ficheros"] = "no se pudo leer /proc/<pid>/fd"
+    datos.update(orden=orden or None, directorio=_texto(carpeta, MAX_TEXTO) if carpeta else None,
+                 io=io, ficheros_abiertos=abiertos)
+    if errores:
+        datos["errores"] = errores
+    return datos

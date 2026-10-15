@@ -55,7 +55,10 @@ def _valores_discos(leer, sistema):
     detalle = leer("DISCOS_DETALLE")
     m = re.search(r"^== /etc/enclosure_([0-9]+)[.]conf\s+\[PhysicalDisk_[0-9]+\]\s+port_id = ([0-9]+)",
                   detalle, re.M)
-    return {"SMART_ATRIBUTOS": {"cabina": m.group(1), "bahia": m.group(2)} if m else None}
+    # Public es una carpeta compartida que QTS y QuTS hero crean siempre
+    publica = {"ruta": "/share/Public"}
+    return {"SMART_ATRIBUTOS": {"cabina": m.group(1), "bahia": m.group(2)} if m else None,
+            "RUTA_OCUPACION": publica, "RUTA_LISTADO": publica, "RUTA_LISTAR": publica}
 
 
 def _si_existe(leer):
@@ -88,7 +91,9 @@ def _valores_logs(leer, sistema):
     return {"EVT_LISTA": dict(todo, gravedad="0"),
             "EVT_PALABRA": dict(todo, gravedad="0", texto=palabra.group(1)) if palabra else None,
             "CONN_LISTA": {"tipo": "0", "limite": "20"}, "NOTICE_LISTA": {"limite": "20"},
-            "KMSG_LINEAS": {"nivel": "3", "lineas": "20"}, "DMESG": {"lineas": "20"}}
+            "KMSG_LINEAS": {"nivel": "3", "lineas": "20"}, "DMESG": {"lineas": "20"},
+            # el pid 1 (init) existe siempre
+            "PROCESOS_DETALLE": {"pid": "1"}}
 
 
 VALORES = {"redes": _valores_redes, "discos": _valores_discos, "virtualizacion": _valores_virtualizacion,

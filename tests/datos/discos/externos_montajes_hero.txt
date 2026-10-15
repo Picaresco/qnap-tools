@@ -1,0 +1,5 @@
+==montajes 5
+/dev/sdh1 /share/external/DEV3301_1 ufsd rw,nosuid,nodev,noatime,uid=0,gid=0,fmask=0000,dmask=0000,iocharset=utf8 0 0
+==df
+Filesystem 1024-blocks Used Available Capacity Mounted on
+/dev/sdh1 4883637168 1953454868 2930182300 40% /share/external/DEV3301_1

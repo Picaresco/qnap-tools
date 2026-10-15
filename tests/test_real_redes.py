@@ -42,7 +42,7 @@ def test_las_nueve_herramientas_responden_con_datos(tmp_path):
 
         una = datos(h.red_interfaces("lab", interfaz=fisicas[0]["interfaz"]))
         assert una["enlace"]["enlace"] is True and una["controlador"]["driver"]
-        assert una["errores"]["contadores"] > 0
+        assert una["contadores_error"]["contadores"] > 0
 
         puentes = datos(h.red_conmutadores("lab"))["puentes"]
         assert puentes["total"] >= 1

@@ -21,13 +21,20 @@ TIPOS = {
     "uuid": re.compile(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"),
     "nombre": re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}"),
     "fecha": re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}"),
-    "md": re.compile(r"md[0-9]{1,3}"),          # grupo RAID del kernel: /dev/md1
-    "nvme": re.compile(r"nvme[0-9]{1,2}"),      # controladora NVMe: /dev/nvme0
     # texto que se busca en un registro: letras (tambien con acento), cifras, espacio y
     # _ . : @ / -; nada que cierre una comilla, encadene una orden o haga de comodin
     "palabra": re.compile(r"\w[\w .:@/-]{0,38}[\w.:@/-]"),
     "nivel": re.compile(r"[0-7]"),               # nivel de un mensaje del kernel
+    # identificador de proceso: de 1 a 4194304 (pid_max), sin ceros a la izquierda
+    "pid": re.compile(r"[1-9][0-9]{0,5}|[1-3][0-9]{6}|40[0-9]{5}|41[0-8][0-9]{4}|419[0-3][0-9]{3}"
+                      r"|4194[0-2][0-9]{2}|419430[0-4]"),
+    # ruta absoluta de un fichero o carpeta: hasta 512 caracteres, sin segmentos "." ni ".." y sin
+    # caracteres de control; el resto (espacios, comillas, $) lo entrecomilla render
+    "ruta": re.compile(r"(?=.{1,512}\Z)(?!.*/\.{1,2}(?:/|\Z))/[^\x00-\x1f\x7f]*"),
 }
+# Como se nombra un tipo en el mensaje de un valor no valido, cuando el nombre solo no basta
+DESCRIPCION = {"palabra": "palabra o frase de 2 a 40 caracteres",
+               "ruta": "ruta absoluta de hasta 512 caracteres, sin segmentos . ni .."}
 SISTEMAS = ("ambos", "hero", "qts")
 
 MARCADOR = re.compile(r"\{([a-z_][a-z0-9_]*)\}")
@@ -59,21 +66,6 @@ def todas(*validadores):
             error = v(rc, salida)
             if error:
                 return error
-        return None
-    return valida
-
-
-def sin_centinela(*centinelas):
-    """Error si la salida esta vacia o solo trae valores centinela (p. ej. '0 C', '--').
-
-    Varias utilidades de QNAP devuelven eso con codigo 0 cuando les falta sudo.
-    """
-    def valida(rc, salida):
-        lineas = [linea.strip() for linea in salida.splitlines() if linea.strip()]
-        if not lineas:
-            return "el comando no devolvio nada"
-        if all(linea in centinelas for linea in lineas):
-            return "el comando devolvio un valor vacio (%s)" % lineas[0]
         return None
     return valida
 
@@ -134,6 +126,7 @@ class Comando:
                 valor = str(valor)
             if not isinstance(valor, str) or not TIPOS[tipo].fullmatch(valor):
                 raise ParametroInvalido(
-                    "parametro %s no valido (se esperaba %s): %s" % (nombre, tipo, repr(valor)[:60]))
+                    "parametro %s no valido (se esperaba %s): %s"
+                    % (nombre, DESCRIPCION.get(tipo, tipo), repr(valor)[:60]))
             listos[nombre] = shlex.quote(valor)
         return MARCADOR.sub(lambda m: listos[m.group(1)], self.plantilla)

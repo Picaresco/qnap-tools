@@ -222,3 +222,25 @@ ALERTAS = Comando(
 # El servidor syslog del NAS (recibe registros de otros equipos), si esta configurado.
 SYSLOG = Comando("syslog", "[ ! -e /etc/config/syslog_server.conf ] || cat /etc/config/syslog_server.conf",
                  timeout=20, valida=rc_cero)
+
+# --- procesos --------------------------------------------------------------------------------------
+
+# La lista de procesos (ps de BusyBox): la cabecera que imprime no coincide con los nombres pedidos
+# (Uid, VmSize, ELAPSED), y un hilo del kernel deja vacia la columna de memoria residente. La
+# cabecera dice que ps respondio. Cada linea se corta a 400 caracteres: la orden de un proceso
+# puede ser larguisima y puede llevar credenciales (el parser las tapa).
+PS_COLUMNAS = "ps -o pid,ppid,user,stat,vsz,rss,time,etime,args"
+PROCESOS_LISTA = Comando("procesos_lista", PS_COLUMNAS + " | cut -c1-400", timeout=30, valida=estricta)
+
+# Un proceso: estado, orden, carpeta de trabajo, bytes leidos y escritos y ficheros abiertos, de
+# /proc/<pid>. Lo de otros usuarios no se puede leer sin sudo. Nunca se lee environ (variables de
+# entorno: claves) y la orden se lee con tr (sin redirigir) y acotada. Los destinos de fd de una
+# tuberia o un socket no son rutas: el parser los cuenta. "==fin" dice que la lectura llego al
+# final; "==noexiste", que el proceso no esta.
+PROCESOS_DETALLE = Comando(
+    "procesos_detalle",
+    "if [ -d /proc/{pid} ]; then echo ==status; grep -E '^(Name|State|PPid|Uid|VmRSS|Threads):' /proc/{pid}/status; "
+    "echo ==cmdline; cat /proc/{pid}/cmdline | tr '\\0' ' ' | head -c 2000; echo; "
+    "echo ==cwd; readlink /proc/{pid}/cwd; echo ==io; cat /proc/{pid}/io 2>&1; "
+    "echo ==fd; ls -l /proc/{pid}/fd 2>&1; echo ==fin; else echo ==noexiste; fi",
+    {"pid": "pid"}, sudo=True, timeout=30, valida=rc_cero)

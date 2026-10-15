@@ -1,0 +1,32 @@
+==status
+Name:	rsync
+State:	D (disk sleep)
+PPid:	1
+Uid:	1000	1000	1000	1000
+VmRSS:	    9004 kB
+Threads:	1
+==cmdline
+rsync -a /share/carpeta1/origen /share/carpeta2/destino --password-file=/root/clave-inventada --token abc123def
+==cwd
+/share/carpeta1
+==io
+rchar: 90000000
+wchar: 80000000
+syscr: 1200
+syscw: 900
+read_bytes: 70000000
+write_bytes: 60000000
+cancelled_write_bytes: 0
+==fd
+total 0
+lrwx------ 1 admin administrators 64 Oct 15 10:00 0 -> /dev/null
+l-wx------ 1 admin administrators 64 Oct 15 10:00 1 -> /dev/null
+l-wx------ 1 admin administrators 64 Oct 15 10:00 2 -> /dev/null
+lr-x------ 1 admin administrators 64 Oct 15 10:00 3 -> /share/carpeta1/origen/fichero1.bin
+l-wx------ 1 admin administrators 64 Oct 15 10:00 4 -> /share/carpeta2/destino/.fichero1.bin.AbC123 (deleted)
+lr-x------ 1 admin administrators 64 Oct 15 10:00 5 -> pipe:[1001]
+l-wx------ 1 admin administrators 64 Oct 15 10:00 6 -> pipe:[1002]
+lrwx------ 1 admin administrators 64 Oct 15 10:00 7 -> socket:[2001]
+lrwx------ 1 admin administrators 64 Oct 15 10:00 8 -> anon_inode:[eventpoll]
+lr-x------ 1 admin administrators 64 Oct 15 10:00 9 -> /share/carpeta1/origen/fichero2 con espacios -> y flecha.bin
+==fin

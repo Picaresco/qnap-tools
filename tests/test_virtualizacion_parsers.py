@@ -97,6 +97,17 @@ def test_una_vm_suspendida_por_virtualization_station_no_sale_como_apagada():
     assert vm["estado"] == "apagada"
 
 
+def test_el_motivo_de_una_vm_apagada_se_da_aparte_y_el_estado_no_cambia():
+    # libvirt: 3 = caida (el proceso qemu murio o el invitado hizo panic), 6 = fallo al arrancar
+    for motivo in (0, 1, 2, 3, 6):
+        (vm,) = p.vm_estadisticas(URI + "Domain: '%s'\n  state.state=5\n  state.reason=%d\n" % (VM1, motivo))
+        assert (vm["estado"], vm["estado_codigo"], vm["motivo_apagado"]) == ("apagada", 5, motivo)
+    (vm,) = p.vm_estadisticas(URI + "Domain: '%s'\n  state.state=1\n  state.reason=1\n" % VM1)
+    assert vm["motivo_apagado"] is None
+    (vm,) = p.vm_estadisticas(URI + "Domain: '%s'\n  state.state=5\n" % VM1)
+    assert vm["motivo_apagado"] is None
+
+
 def test_la_memoria_guardada_de_cada_vm():
     # formato visto en el NAS de laboratorio tras reiniciarlo con dos VMs suspendidas por VS
     # (2026-10-14); en el dato versionado ninguna tiene memoria guardada
@@ -117,6 +128,7 @@ def test_la_memoria_guardada_de_cada_vm():
     URI + "== %s\nguardada mucho 1792011004\n" % VM1,
     URI + "== %s\nguardada 1 2\nguardada 1 2\n" % VM1,               # dos ficheros para una VM
     URI + "== %s\notra cosa\n" % VM1,
+    URI + "== %s\n!! dumpxml fallo\n" % VM1,                         # no se sabe si hay memoria guardada
 ])
 def test_la_memoria_guardada_rechaza_lo_que_no_reconoce(texto):
     with pytest.raises(ValueError):
@@ -264,7 +276,18 @@ def test_las_direcciones_de_una_vm_salen_de_la_tabla_arp():
     assert p.vm_ip(dato("vm_ip_hero")) == [] and p.vm_ip(dato("vm_ip_qts")) == []
 
 
-@pytest.mark.parametrize("texto", ["", "error: Domain is not running\n", IP_VISTA + " vnet1 sin-mac\n"])
+def test_la_segunda_direccion_de_una_interfaz_hereda_su_nombre_y_su_mac():
+    # virsh (sin --full) escribe "-" en el nombre y la MAC de las filas siguientes de una interfaz;
+    # con la tabla ARP no ocurre (una interfaz por entrada), pero no debe tirar la lectura
+    texto = IP_VISTA + " -          -                    ipv4         192.0.2.14/0\n"
+    assert [(a["interfaz"], a["mac"], a["direccion"]) for a in p.vm_ip(texto)] == [
+        ("vnet1", "52:54:00:00:00:02", "192.0.2.13"), ("vnet1", "52:54:00:00:00:02", "192.0.2.14")]
+
+
+@pytest.mark.parametrize("texto", [
+    "", "error: Domain is not running\n", IP_VISTA + " vnet1 sin-mac\n",
+    # una fila con guiones sin interfaz anterior de la que heredar
+    IP_VISTA.rsplit("\n", 2)[0] + "\n -          -                    ipv4         192.0.2.14/0\n"])
 def test_las_direcciones_no_se_inventan(texto):
     with pytest.raises(ValueError):
         p.vm_ip(texto)

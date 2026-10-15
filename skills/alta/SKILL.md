@@ -55,6 +55,11 @@ Cuenta el error tal cual lo devuelve la herramienta y qué hacer:
 - **El usuario no pertenece a administrators**: añadirlo al grupo en el NAS y repetir.
 - **No es un QNAP / no se pudo detectar el sistema**: el plugin solo admite QTS y QuTS hero.
 - **Ya existe un NAS con ese nombre**: elegir otro nombre o darlo antes de baja con `nas_baja`.
+- **Ese equipo ya está en el inventario con otro nombre**: usa ese nombre; un mismo
+  host y puerto no se da de alta dos veces.
+- **Aviso "no se pudo comprobar la clave"**: la clave se instaló pero la prueba falló por la
+  red; el NAS queda en `auto` y la clave se probará en la siguiente conexión. Confirma con
+  `nas_comprobar`.
 - **`sudo_root` es `false`**: el alta se completa, pero las consultas que necesitan privilegios
   (puertos en escucha, cortafuegos, ping) fallarán en ese NAS.
 

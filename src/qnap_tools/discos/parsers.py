@@ -178,11 +178,11 @@ def discos_salud(texto):
     for b in bahias:
         if any(campo not in b for campo in CAMPOS_SALUD):
             raise _no_reconocida(que, "bahia %d" % b["bahia"])
+        if _texto(b["modelo"]) is None:
+            continue                                   # bahia vacia
         m = TEMPERATURA.match(b["temperatura"])
         if not m:
             raise _no_reconocida(que, b["temperatura"])
-        if _texto(b["modelo"]) is None:
-            continue                                   # bahia vacia
         sin_dato = (b["temperatura"], b["smart"]) == SIN_PRIVILEGIOS
         grados = int(m.group(1)) if m.group(1) != SIN_DATO else 0
         ocupadas.append({
@@ -249,8 +249,14 @@ def smart_todos(texto):
             bloques[-1][2].append(linea)
     if not bloques:
         raise _no_reconocida(que)
-    return [dict(_smart(lineas, "%s (cabina %d, bahia %d)" % (que, cabina, bahia)),
-                 cabina=cabina, bahia=bahia) for cabina, bahia, lineas in bloques]
+    resultado = []
+    for cabina, bahia, lineas in bloques:
+        try:
+            datos = _smart(lineas, "%s (cabina %d, bahia %d)" % (que, cabina, bahia))
+        except ValueError as e:          # un fichero a medio escribir no tumba el de los demas discos
+            datos = {"clase": None, "temperatura": None, "atributos": [], "error": str(e)}
+        resultado.append(dict(datos, cabina=cabina, bahia=bahia))
+    return resultado
 
 
 def smart_umbrales(texto):
@@ -408,9 +414,11 @@ def pools(texto):
     filas = _tabulado(texto, 7, que)
     if not filas:
         raise _no_reconocida(que)
-    return [{"pool": f[0], "bytes": _entero(f[1], "el tamano"), "usado": _entero(f[2], "lo ocupado"),
-             "libre": _entero(f[3], "lo libre"), "ocupacion_pct": _entero(f[4].rstrip("%"), "la ocupacion"),
-             "dedup": _veces(f[5], "la deduplicacion"), "salud": f[6].strip()} for f in filas]
+    # un pool que no se puede abrir sale con "-" en todo menos en el nombre y la salud (FAULTED)
+    return [{"pool": f[0], "bytes": _tamano(f[1], "el tamano"), "usado": _tamano(f[2], "lo ocupado"),
+             "libre": _tamano(f[3], "lo libre"), "ocupacion_pct": _tamano(f[4].rstrip("%"), "la ocupacion"),
+             "dedup": None if f[5].strip() == "-" else _veces(f[5], "la deduplicacion"),
+             "salud": f[6].strip()} for f in filas]
 
 
 def _cuenta(valor):
@@ -952,16 +960,20 @@ def dm_estado(texto):
         d = {"nombre": nombre, "tipo": tipo, "pool": int(pool.group(1)) if pool else None,
              "bytes": int(m.group(3)) * SECTOR}
         if tipo == "thin-pool":
-            fallo = resto[:1] == ["Fail"]
+            fallo = resto[:1] in (["Fail"], ["Error"])      # el kernel imprime solo esa palabra
             if not fallo and len(resto) < 5:
                 raise _no_reconocida(que, linea)
             d.update({"datos_pct": None if fallo else _pct(resto[2], que),
                       "metadatos_pct": None if fallo else _pct(resto[1], que),
-                      "modo": None if fallo else resto[4], "fallo": fallo})
+                      "modo": None if fallo else resto[4], "fallo": fallo,
+                      "necesita_comprobar": not fallo and "needs_check" in resto})
         elif tipo == "cache":
-            if len(resto) < 4:
+            fallo = resto[:1] in (["Fail"], ["Error"])
+            if not fallo and len(resto) < 4:
                 raise _no_reconocida(que, linea)
-            d.update({"usado_pct": _pct(resto[3], que), "metadatos_pct": _pct(resto[1], que)})
+            d.update({"usado_pct": None if fallo else _pct(resto[3], que),
+                      "metadatos_pct": None if fallo else _pct(resto[1], que),
+                      "fallo": fallo, "necesita_comprobar": not fallo and "needs_check" in resto})
         elif tipo == "cache_client":
             m2 = re.fullmatch(r"([0-9]+)/([0-9]+)", resto[0]) if resto else None
             if not m2:
@@ -1171,3 +1183,283 @@ def carpetas_enlaces(texto):
         enlaces.append({"carpeta": _acotado(carpeta, MAX_NOMBRE), "destino": destino,
                         "volumen": _volumen_de(destino)})
     return enlaces
+
+
+# ==== rutas, discos externos y tareas de File Station ==============================================
+
+MAX_FICHEROS_LISTADO = 200000       # ficheros por lado en una comparacion
+MAX_RUTA_REAL = 512
+MAX_DIFERENCIA = 400                # ruta relativa de un fichero que difiere
+# ls -lnRA --time-style=+%s: permisos, enlaces, uid, gid, tamano (o "mayor, menor"), epoch y nombre
+ENTRADA_LS = re.compile(r"^([-dlpscbDMn?])[rwxsStT-]{9}[.+@]? +[0-9]+ +\S+ +\S+ +([0-9]+(?:, *[0-9]+)?) +(-?[0-9]+) (.*)$")
+RECHAZADA = ("la ruta no existe, no es una carpeta (si se pide una comparacion) o no cuelga de /share/ "
+             "(se sigue el enlace de la carpeta compartida)")
+
+
+def ruta_ocupacion(texto):
+    """Ocupacion de una ruta: du -s -b (tamano aparente), du -s -k (en disco) y cuentas de ficheros
+    y carpetas. No devuelve ningun nombre de fichero. Una carpeta cuenta sin ella misma."""
+    que = "la ocupacion de la ruta"
+    lineas = texto.splitlines()
+    if lineas and lineas[0].strip() == "==rechazada":
+        raise ValueError(RECHAZADA)
+    if len(lineas) != 6 or not lineas[0].startswith("==real ") or lineas[2].strip() != "==kib":
+        raise _no_reconocida(que, lineas[0] if lineas else "")
+    aparente, en_disco = (re.match(r"^([0-9]+)\s", lineas[i]) for i in (1, 3))
+    ficheros, carpetas = (re.fullmatch(r"==%s ([0-9]+)" % nombre, lineas[i].strip())
+                          for i, nombre in ((4, "ficheros"), (5, "carpetas")))
+    if not (aparente and en_disco and ficheros and carpetas):
+        raise _no_reconocida(que, texto.strip())
+    total_carpetas = int(carpetas.group(1))
+    return {"ruta_real": _acotado(lineas[0][len("==real "):], MAX_RUTA_REAL),
+            "bytes": int(aparente.group(1)), "bytes_en_disco": int(en_disco.group(1)) * KIB,
+            "ficheros": int(ficheros.group(1)), "carpetas": max(total_carpetas - 1, 0),
+            "es_fichero": total_carpetas == 0}
+
+
+def ruta_listado(texto, maximo=MAX_FICHEROS_LISTADO):
+    """ls -lnRA de una carpeta: sus ficheros con ruta relativa, tamano y fecha. Los nombres no
+    salen de aqui: los usa la comparacion y solo se devuelven los que difieren."""
+    que = "el listado de la carpeta"
+    lineas = texto.splitlines()
+    if lineas and lineas[0].strip() == "==rechazada":
+        raise ValueError(RECHAZADA)
+    if not lineas or not lineas[0].startswith("==real "):
+        raise _no_reconocida(que, lineas[0] if lineas else "")
+    real = lineas[0][len("==real "):]
+    raiz = real + "/."
+    carpeta, ficheros, carpetas = None, {}, 0
+    for linea in lineas[1:]:
+        if not linea or linea.startswith("total "):
+            continue
+        if linea.startswith("/"):
+            if not linea.endswith(":") or not (linea[:-1] == raiz or linea.startswith(raiz + "/")):
+                raise _no_reconocida(que, linea)
+            carpeta = linea[len(raiz):-1].lstrip("/")
+            continue
+        m = ENTRADA_LS.match(linea)
+        if carpeta is None or not m:
+            raise _no_reconocida(que, linea)
+        tipo, tamano, epoch, nombre = m.groups()
+        if tipo == "d":
+            carpetas += 1
+        elif tipo == "-":
+            ficheros[(carpeta + "/" if carpeta else "") + nombre] = (int(tamano), int(epoch))
+            if len(ficheros) > maximo:
+                raise ValueError("la carpeta tiene mas de %d ficheros: demasiados para compararlos "
+                                 "(ruta_ocupacion da su tamano y sus cuentas)" % maximo)
+    if carpeta is None:
+        raise _no_reconocida(que, "sin ninguna carpeta")
+    return {"ruta_real": _acotado(real, MAX_RUTA_REAL), "ficheros": ficheros, "carpetas": carpetas}
+
+
+def comparar_listados(origen, destino):
+    """Que falta en el destino, que sobra y que difiere de tamano entre dos listados. Cuenta
+    aparte los que solo difieren en la fecha. Listas completas y ordenadas por ruta: el recorte
+    y el saneado de los nombres los pone quien las devuelve."""
+    a, b = origen["ficheros"], destino["ficheros"]
+    faltan = sorted(r for r in a if r not in b)
+    sobran = sorted(r for r in b if r not in a)
+    distinto = sorted(r for r in a if r in b and a[r][0] != b[r][0])
+    solo_fecha = sum(1 for r in a if r in b and a[r][0] == b[r][0] and a[r][1] != b[r][1])
+    return {"coinciden": sum(1 for r in a if r in b and a[r][0] == b[r][0]), "solo_fecha": solo_fecha,
+            "faltan": faltan, "sobran": sobran,
+            "distinto_tamano": [{"ruta": r, "bytes_origen": a[r][0], "bytes_destino": b[r][0]} for r in distinto]}
+
+
+def _sin_escapes(ruta):
+    """/proc/mounts escribe como \\040 los espacios y otros caracteres de la ruta de montaje."""
+    return re.sub(r"\\([0-7]{3})", lambda m: chr(int(m.group(1), 8)), ruta)
+
+
+def externos_montajes(texto):
+    """Los montajes bajo /share/external/ (de /proc/mounts) con el df de cada uno. Lista vacia si
+    no hay ninguno montado; un montaje sin su linea de df sale con las cifras sin valor."""
+    que = "los montajes externos"
+    lineas = texto.splitlines()
+    if not lineas or not re.fullmatch(r"==montajes [0-9]+", lineas[0].strip()):
+        raise _no_reconocida(que, lineas[0] if lineas else "")
+    resto = [x.strip() for x in lineas]
+    if "==df" not in resto:
+        raise _no_reconocida(que, "falta el df")
+    corte = resto.index("==df")
+    ocupacion = {}
+    cabecera = lineas[corte + 1:corte + 2]
+    if cabecera:
+        if not cabecera[0].startswith("Filesystem"):
+            raise _no_reconocida(que, cabecera[0])
+        for linea in lineas[corte + 2:]:
+            c = linea.split(None, 5)
+            if len(c) != 6 or not re.fullmatch(r"[0-9]+%", c[4]):
+                raise _no_reconocida(que, linea)
+            ocupacion[c[5]] = {"bytes": _entero(c[1], "el tamano") * KIB, "usado": _entero(c[2], "lo usado") * KIB,
+                               "libre": _entero(c[3], "lo libre") * KIB, "ocupacion_pct": int(c[4].rstrip("%"))}
+    montajes = []
+    for linea in lineas[1:corte]:
+        c = linea.split(" ")
+        if len(c) < 4 or not c[0].startswith("/dev/"):
+            raise _no_reconocida(que, linea)
+        montaje = _sin_escapes(c[1])
+        cifras = ocupacion.get(montaje, {"bytes": None, "usado": None, "libre": None, "ocupacion_pct": None})
+        montajes.append(dict(cifras, dispositivo=c[0], montaje=_acotado(montaje, MAX_RUTA_REAL),
+                             sistema_ficheros=_acotado(c[2], MAX_NOMBRE)))
+    return montajes
+
+
+TAREAS_MAX = 50
+CLAVE_WFM = re.compile(r"^([a-z_]+) *= ?(.*)$")
+ESTADO_FS = {"1": "en_curso", "2": "terminada"}
+# el 8.o campo de wfm_copy_move.list: el tipo de tarea. Solo la copia (11) esta validada; al terminar,
+# wfm2_remote_parameter (donde va func) queda vacio y el tipo solo sale de aqui
+TIPO_FS = {"11": "copy"}
+COPIA_RENOMBRADA = re.compile(r"-Copy\([0-9]+\)")
+
+
+def _kv(lineas, que):
+    """Lineas clave=valor de un bloque; una que no lo sea no se adivina."""
+    campos = {}
+    for linea in lineas:
+        m = CLAVE_WFM.match(linea)
+        if not m:
+            raise _no_reconocida(que, linea)
+        campos[m.group(1)] = m.group(2).strip()
+    return campos
+
+
+def _cifra_wfm(campos, clave):
+    """Un numero de los ficheros de File Station (puede venir con decimales); vacio o ausente es None."""
+    v = campos.get(clave, "")
+    if not re.fullmatch(r"-?[0-9]+(\.[0-9]+)?", v):
+        return None
+    return int(float(v))
+
+
+def _tarea_fs(pid, bloque, que):
+    campos, remoto, lista, seccion, vivo = [], [], [], None, None
+    for linea in bloque:
+        if linea.strip() == "==remote":
+            seccion = remoto
+        elif linea.strip() == "==lista":
+            seccion = lista
+        elif linea.startswith("vivo="):
+            if linea.strip() not in ("vivo=0", "vivo=1"):
+                raise _no_reconocida(que, linea)
+            vivo = linea.strip() == "vivo=1"
+        elif seccion is lista:
+            lista.append(linea)
+        else:
+            (seccion if seccion is not None else campos).append(linea)
+    if vivo is None or seccion is None:
+        raise _no_reconocida(que, "tarea %d incompleta" % pid)
+    c, r = _kv(campos, que), _kv(remoto, que)
+    fila = lista[0].split("|") if lista else []
+    cola = lambda i: fila[i] if len(fila) > i and not fila[i].startswith("q_") else None
+    copiado, total, velocidad = _cifra_wfm(c, "copied_size"), _cifra_wfm(c, "total_size"), _cifra_wfm(c, "average_speed")
+    estado = ESTADO_FS.get(c.get("copying", ""))
+    if estado == "en_curso" and not vivo:
+        estado = None
+    estado = estado or "interrumpida"
+    ultima, inicio = _cifra_wfm(c, "end_time"), cola(10)
+    codigo = cola(7)
+    tipo = (r.get("func") or TIPO_FS.get(codigo)
+            or ("codigo %s" % codigo if codigo and re.fullmatch(r"[0-9]+", codigo) else None))
+    destino_real = c.get("full_dest", "")
+    tarea = {
+        "pid": pid, "tipo": tipo, "estado": estado, "proceso_vivo": vivo,
+        "usuario": _acotado(cola(1) or r.get("username"), MAX_NOMBRE) or None,
+        "origen": _acotado(c.get("from") or cola(2), MAX_RUTA_REAL) or None,
+        "destino": _acotado(c.get("to") or cola(3), MAX_RUTA_REAL) or None,
+        "elemento": _acotado(c.get("name") or cola(6), MAX_NOMBRE) or None,
+        "fichero_actual": _acotado(c.get("copy_file"), MAX_RUTA_REAL) or None,
+        "fichero_n": _cifra_wfm(c, "copy_number"), "ficheros_total": _cifra_wfm(c, "files_count"),
+        "bytes_total": total, "bytes_copiados": copiado,
+        "progreso_pct": round(min(copiado / total * 100, 100.0), 1) if copiado is not None and total else None,
+        "velocidad_media": velocidad,
+        "restante_s": (int(max(total - copiado, 0) / velocidad)
+                       if estado == "en_curso" and velocidad and copiado is not None and total is not None else None),
+        "ultima_actualizacion": _fecha(ultima) if ultima is not None else None,
+        "inicio": _fecha(int(inicio)) if inicio and re.fullmatch(r"[0-9]+", inicio) else None,
+        "si_existe_destino": _acotado(r.get("dup"), MAX_NOMBRE) or None,
+        "destino_fichero": _acotado(destino_real, MAX_RUTA_REAL) or None,
+        "copia_renombrada": COPIA_RENOMBRADA.search(destino_real) is not None}
+    if tipo not in (None, "copy"):
+        tarea["no_probado"] = True
+    return tarea
+
+
+def tareas_file_station(texto):
+    """Las tareas de File Station de /tmp/wfm: por pid, el estado de la copia, los totales, las
+    rutas que ve File Station y lo que hace si el destino ya existe. El progreso y el tiempo
+    restante se calculan (el percent de QNAP es lo copiado del fichero actual entre el total de la
+    tarea); la IP de quien la lanzo no se lee. De la mas reciente a la mas antigua."""
+    que = "las tareas de File Station"
+    lineas = texto.splitlines()
+    if not lineas or lineas[0].strip() not in ("==wfm", "==sin_wfm"):
+        raise _no_reconocida(que, lineas[0] if lineas else "")
+    bloques, actual = [], None
+    for linea in lineas[1:]:
+        m = re.fullmatch(r"== ([0-9]+)", linea.strip())
+        if m:
+            actual = (int(m.group(1)), [])
+            bloques.append(actual)
+        elif actual is None or (not linea.strip()):
+            if linea.strip():
+                raise _no_reconocida(que, linea)
+        else:
+            actual[1].append(linea)
+    tareas = [_tarea_fs(pid, bloque, que) for pid, bloque in bloques]
+    tareas.sort(key=lambda t: (t["ultima_actualizacion"] or "", t["pid"]), reverse=True)
+    avisos = []
+    for t in tareas:
+        if t["estado"] == "interrumpida":
+            avisos.append("tarea %d: la tarea se interrumpio (su proceso ya no esta o su estado no es el de una "
+                          "copia en curso ni terminada)" % t["pid"])
+        if t["copia_renombrada"]:
+            avisos.append("tarea %d: el destino ya tenia ese fichero; File Station %s una copia con otro nombre y "
+                          "no lo sustituye" % (t["pid"], "escribio" if t["estado"] == "terminada" else "esta escribiendo"))
+    return {"tareas": {"filas": tareas[:TAREAS_MAX], "total": len(tareas), "truncado": len(tareas) > TAREAS_MAX},
+            "en_curso": sum(1 for t in tareas if t["estado"] == "en_curso"), "avisos": avisos}
+
+
+ENTRADA_LISTAR = re.compile(
+    r"^ *[0-9]+ ([-dlpscbDMn?])([rwxsStT-]{9})[.+@]? +[0-9]+ (\S+) +(\S+) +([0-9]+(?:, *[0-9]+)?) "
+    r"([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2})([+-])([0-9]{2})([0-9]{2}) (.*)$")
+ENTRADA_LISTAR_DISCO = re.compile(r"^ *([0-9]+) ")
+TIPO_ENTRADA = {"-": "fichero", "d": "carpeta", "l": "enlace"}
+
+
+def ruta_listar(texto):
+    """ls -lAs de una carpeta (sin recursividad) o de un fichero: por entrada, nombre, tipo, tamano,
+    lo que ocupa en disco, permisos, propietario, grupo, fecha con su desfase y, en un enlace, hacia
+    donde apunta. Los nombres los escriben los usuarios y terceros: se sanean y se acotan. El
+    ' -> ' solo se parte en un enlace."""
+    que = "el listado de la ruta"
+    lineas = texto.splitlines()
+    if lineas and lineas[0].strip() == "==rechazada":
+        raise ValueError(RECHAZADA)
+    if not lineas or not lineas[0].startswith("==real "):
+        raise _no_reconocida(que, lineas[0] if lineas else "")
+    es_carpeta, entradas = False, []
+    for linea in lineas[1:]:
+        if re.fullmatch(r"total [0-9]+", linea):
+            es_carpeta = True
+            continue
+        m = ENTRADA_LISTAR.match(linea)
+        if not m:
+            raise _no_reconocida(que, linea)
+        tipo, bits, propietario, grupo, tamano, fecha, signo, horas, minutos, nombre = m.groups()
+        destino = None
+        if not es_carpeta:
+            nombre = nombre.rsplit("/", 1)[-1]          # ls <fichero> imprime la ruta que se le dio
+        if tipo == "l":
+            nombre, flecha, destino = nombre.partition(" -> ")
+            destino = _acotado(destino, MAX_RUTA_REAL) if flecha else None
+        entradas.append({
+            "nombre": _acotado(nombre, MAX_NOMBRE), "tipo": TIPO_ENTRADA.get(tipo, "otro"),
+            "bytes": int(tamano) if tamano.isdigit() else None,
+            "en_disco": int(ENTRADA_LISTAR_DISCO.match(linea).group(1)),
+            "permisos": tipo + bits, "propietario": _acotado(propietario, MAX_TEXTO),
+            "grupo": _acotado(grupo, MAX_TEXTO), "fecha": "%s%s%s:%s" % (fecha, signo, horas, minutos),
+            "destino": destino})
+    return {"ruta_real": _acotado(lineas[0][len("==real "):], MAX_RUTA_REAL), "es_carpeta": es_carpeta,
+            "entradas": entradas}

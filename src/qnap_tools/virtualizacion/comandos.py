@@ -89,13 +89,16 @@ VM_SNAP_LIBVIRT = Comando(
 
 # Instantaneas de VS: un fichero por instantanea en la carpeta de metadatos de cada VM, con su
 # momento (epoch) por nombre. La carpeta sale de la definicion de la VM, no se fija. Si esa
-# carpeta no esta, se dice ("!!"): no es lo mismo que no tener instantaneas.
+# carpeta no esta, se dice ("!!"): no es lo mismo que no tener instantaneas. Tampoco lo es que
+# virsh no pueda dar la definicion de la VM: se captura antes de recorrerla para dejar su marca.
+DUMPXML_META = ("x=$(%s dumpxml $d) || echo '!! dumpxml fallo'; printf '%%s\\n' \"$x\" "
+                "| grep -o -E '<qvs:meta_path.[^<]+' | cut -c16-" % VIRSH)
 VM_SNAP_VS = Comando(
     "vm_snap_vs",
     URI + "for d in %s; do echo \"== $d\"; "
-    "%s dumpxml $d | grep -o -E '<qvs:meta_path.[^<]+' | cut -c16- | while read -r m; do "
+    "%s | while read -r m; do "
     "[ -d \"$m\" ] || echo '!! sin carpeta de metadatos'; "
-    "[ ! -d \"$m/snapshot\" ] || ls \"$m/snapshot\"; done; done" % (TODAS, VIRSH),
+    "[ ! -d \"$m/snapshot\" ] || ls \"$m/snapshot\"; done; done" % (TODAS, DUMPXML_META),
     timeout=40, valida=rc_cero)
 
 # Memoria guardada de cada VM: la "suspension" de VS la guarda en <carpeta de metadatos>/<uuid>.state.
@@ -104,10 +107,10 @@ VM_SNAP_VS = Comando(
 VM_GUARDADAS = Comando(
     "vm_guardadas",
     URI + "for d in %s; do echo \"== $d\"; "
-    "%s dumpxml $d | grep -o -E '<qvs:meta_path.[^<]+' | cut -c16- | while read -r m; do "
+    "%s | while read -r m; do "
     "[ -d \"$m\" ] || echo '!! sin carpeta de metadatos'; "
     "[ ! -f \"$m/$d.state\" ] || stat -c 'guardada %%s %%Y' \"$m/$d.state\"; done; done"
-    % (TODAS, VIRSH),
+    % (TODAS, DUMPXML_META),
     timeout=40, valida=rc_cero)
 
 # --- contenedores (Container Station) -----------------------------------------------------------

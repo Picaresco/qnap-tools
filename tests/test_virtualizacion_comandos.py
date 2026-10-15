@@ -95,7 +95,11 @@ def test_virsh_va_siempre_en_solo_lectura_y_contra_el_libvirt_del_sistema(nombre
 def test_el_xml_de_una_vm_nunca_sale_entero(nombre):
     # de dumpxml solo salen lineas elegidas con grep; los metadatos de VS no se piden
     plantilla = todos()[nombre].plantilla
-    assert plantilla.count("dumpxml $d") == plantilla.count("dumpxml $d | grep ")
+    # o va directo a grep, o se guarda en $x (para dejar una marca si virsh falla) y lo unico que
+    # se hace con $x es pasarlo a grep
+    guardado = plantilla.count("x=$(%s dumpxml $d)" % VIRSH)
+    assert plantilla.count("dumpxml $d") == plantilla.count("dumpxml $d | grep ") + guardado
+    assert plantilla.count("$x") == plantilla.count('"$x" | grep ') == guardado
     assert "qvs:graphics" not in plantilla and "qvs:vm" not in plantilla
 
 

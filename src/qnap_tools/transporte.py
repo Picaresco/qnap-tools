@@ -142,8 +142,8 @@ class Conexion:
 
     def conectar(self, fijar_host=False):
         if fijar_host:
-            # al aceptar un host nuevo, paramiko guarda known_hosts entero desde la copia que
-            # cargo al empezar: dos conexiones que fijan host a la vez perderian una huella
+            # al aceptar un host nuevo, paramiko recarga known_hosts y lo reescribe entero (sin
+            # candado): dos conexiones de este proceso que fijan host a la vez podrian pisarse
             with _FIJANDO:
                 return self._conectar(fijar_host)
         return self._conectar(fijar_host)
@@ -163,7 +163,9 @@ class Conexion:
                 raise HostCambiado(
                     "%s: la clave de host SSH no es la que se fijo en el alta; no se conecta ni se "
                     "envia la credencial. Si el NAS se ha reinstalado, dalo de baja (nas_baja) y "
-                    "de alta de nuevo (nas_alta)" % self.destino) from None
+                    "de alta de nuevo (nas_alta). Si ya no esta en el inventario, borra a mano "
+                    "la linea de %s en %s"
+                    % (self.destino, nombre_host(self.nas), self.cfg.known_hosts)) from None
             except _SinFijar:
                 cli.close()
                 raise HostSinFijar(
@@ -261,6 +263,12 @@ class Conexion:
             if rc != 0 and not agotado and SUDO_RECHAZA.search(texto_error):
                 raise AutenticacionFallida(
                     "%s: sudo no acepto la contrasena del usuario %s" % (self.destino, self.usuario))
+        if rc == -1 and not agotado:
+            # el canal se cerro sin codigo de salida: la conexion murio con la orden en curso
+            # (o el proceso remoto fue matado). La salida esta cortada y no vale como dato.
+            raise ErrorConexion(
+                "%s: la orden termino sin codigo de salida (conexion perdida o proceso "
+                "interrumpido)" % self.destino)
         return Resultado(rc, texto_salida, texto_error, agotado)
 
     def cerrar(self):

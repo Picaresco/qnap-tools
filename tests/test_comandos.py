@@ -78,6 +78,11 @@ def test_el_error_nombra_el_parametro_y_el_tipo_esperado():
     ("palabra", "firmware"), ("palabra", "ab"), ("palabra", "smb_2.1"), ("palabra", "copia:diaria/2"),
     ("palabra", "usuario@equipo"), ("palabra", "a" * 40),
     ("nivel", "0"), ("nivel", "7"),
+    # pid de Linux: de 1 a 4194304 (pid_max de 64 bits)
+    ("pid", "1"), ("pid", "4242"), ("pid", "999999"), ("pid", "1000000"), ("pid", "4194303"),
+    ("pid", "4194304"),
+    ("ruta", "/share/Vms/carpeta-1"), ("ruta", "/Vms"), ("ruta", "/"), ("ruta", "/a/..b/.c/d..e"),
+    ("ruta", "/" + "a" * 511),
 ])
 def test_valores_validos_por_tipo(tipo, valor):
     c = Comando("t", "echo {v}", {"v": tipo})
@@ -99,11 +104,43 @@ def test_valores_validos_por_tipo(tipo, valor):
     ("palabra", "a\nb"), ("palabra", "a(b)"), ("palabra", "a&b"), ("palabra", "' OR 1=1 --"),
     # nivel de un mensaje del kernel: de 0 (emergencia) a 7 (depuracion)
     ("nivel", "8"), ("nivel", "10"), ("nivel", "-1"), ("nivel", ""), ("nivel", "3 "),
+    ("pid", "0"), ("pid", "00"), ("pid", "01"), ("pid", "-1"), ("pid", "4194305"), ("pid", "4194310"),
+    ("pid", "5000000"), ("pid", "41943040"), ("pid", "1e3"), ("pid", ""), ("pid", "12 "), ("pid", "1;id"),
+    # ruta: absoluta, sin segmentos . ni .., sin caracteres de control y de hasta 512 caracteres
+    ("ruta", ""), ("ruta", "Vms/x"), ("ruta", "-rf"), ("ruta", "./x"), ("ruta", "/a/../b"), ("ruta", "/a/./b"),
+    ("ruta", "/.."), ("ruta", "/."), ("ruta", "/a/.."), ("ruta", "/a/."), ("ruta", "/a/../"), ("ruta", "/a/./"),
+    ("ruta", "/a\nb"), ("ruta", "/a\x00b"), ("ruta", "/a\tb"), ("ruta", "/a\x7fb"), ("ruta", "/a\r"),
+    ("ruta", "/a\n"), ("ruta", "/" + "a" * 512), ("ruta", "/a/" + "b" * 600),
 ])
 def test_valores_invalidos_por_tipo(tipo, valor):
     c = Comando("t", "echo {v}", {"v": tipo})
     with pytest.raises(ParametroInvalido):
         c.render({"v": valor})
+
+
+def test_el_tipo_pid_admite_exactamente_de_1_a_4194304():
+    import random
+    tipo = comandos.TIPOS["pid"]
+    ventanas = [range(0, 3000)] + [range(c - 12, c + 12) for c in (
+        10 ** 6, 4 * 10 ** 6, 4100000, 4190000, 4194000, 4194300, 4194304)]
+    azar = random.Random(1)
+    muestra = [azar.randrange(0, 5000000) for _ in range(20000)]
+    for n in [n for v in ventanas for n in v] + muestra:
+        assert bool(tipo.fullmatch(str(n))) is (1 <= n <= 4194304), n
+    assert not tipo.fullmatch("0001") and not tipo.fullmatch("+5")
+
+
+def test_una_ruta_con_espacios_y_signos_viaja_entrecomillada():
+    c = Comando("t", "du -s {ruta}", {"ruta": "ruta"})
+    assert c.render({"ruta": "/share/Mis VMs/it's; $(x)"}) == "du -s '/share/Mis VMs/it'\"'\"'s; $(x)'"
+    assert c.render({"ruta": "/share/mi\xf1a"}) == "du -s '/share/mi\xf1a'"
+
+
+def test_el_mensaje_de_una_ruta_no_valida_la_describe():
+    c = Comando("t", "du -s {ruta}", {"ruta": "ruta"})
+    with pytest.raises(ParametroInvalido) as e:
+        c.render({"ruta": "/a/../b"})
+    assert "ruta" in str(e.value) and "512" in str(e.value) and ".." in str(e.value)
 
 
 def test_un_texto_de_busqueda_con_espacios_viaja_entrecomillado():
@@ -182,16 +219,6 @@ def test_rc_cero():
     assert error is not None and "1" in error
 
 
-def test_sin_centinela():
-    v = comandos.sin_centinela("0 C", "--")
-    assert v(0, "0 C") is not None
-    assert v(0, "--\n") is not None
-    assert v(0, "0 C\n--\n") is not None       # todas las lineas son centinelas
-    assert v(0, "") is not None
-    assert v(0, "34 C/93 F") is None
-    assert v(0, "34 C/93 F\n--\n") is None     # hay al menos un dato real
-
-
 def test_todas_devuelve_el_primer_error():
     v = comandos.todas(comandos.rc_cero, comandos.no_vacia)
     assert "codigo" in v(2, "")
@@ -210,25 +237,11 @@ def test_se_puede_desactivar_la_validacion_de_forma_explicita():
     assert Comando("d", "ip rule", valida=None).valida is None
 
 
-# --- tipos de la pata de discos --------------------------------------------------------
-
-@pytest.mark.parametrize("valor", ["md1", "md13", "md321"])
-def test_tipo_md_admite_un_grupo_raid(valor):
-    assert Comando("d", "mdadm --detail /dev/{md}", {"md": "md"}).render({"md": valor}).endswith(valor)
 
 
-@pytest.mark.parametrize("valor", ["md", "md1;x", "sda", "-md1", "md1 md2", "md1234", "MD1", "md1\n"])
-def test_tipo_md_rechaza_lo_que_no_es_un_grupo_raid(valor):
-    with pytest.raises(ParametroInvalido):
-        Comando("d", "mdadm --detail /dev/{md}", {"md": "md"}).render({"md": valor})
-
-
-@pytest.mark.parametrize("valor", ["nvme0", "nvme12"])
-def test_tipo_nvme_admite_un_dispositivo_nvme(valor):
-    assert Comando("n", "nvme smart-log /dev/{dev}", {"dev": "nvme"}).render({"dev": valor}).endswith(valor)
-
-
-@pytest.mark.parametrize("valor", ["nvme", "nvme0n1p1", "nvme0 x", "nvme123", "sda", "-nvme0", "nvme0;id"])
-def test_tipo_nvme_rechaza_lo_que_no_es_un_dispositivo_nvme(valor):
-    with pytest.raises(ParametroInvalido):
-        Comando("n", "nvme smart-log /dev/{dev}", {"dev": "nvme"}).render({"dev": valor})
+def test_el_mensaje_de_una_palabra_no_valida_dice_cuanto_puede_medir():
+    c = Comando("p", "log_tool -k {texto}", {"texto": "palabra"})
+    assert c.render({"texto": "ab"}).endswith("ab") and c.render({"texto": "x" * 40})
+    for valor in ("a", "x" * 41):
+        with pytest.raises(ParametroInvalido, match="2 a 40 caracteres"):
+            c.render({"texto": valor})

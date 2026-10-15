@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import paramiko
+import pytest
 
 from qnap_tools import claves, config
 
@@ -47,3 +48,20 @@ def test_el_comentario_solo_lleva_caracteres_seguros(tmp_path, monkeypatch):
     monkeypatch.setattr(claves.socket, "gethostname", lambda: "Mi PC; rm -rf $(x)")
     comentario = claves.asegurar(cfg(tmp_path)).split(" ", 2)[2]
     assert comentario == "qnap-tools@Mi-PC--rm--rf---x-"
+
+
+def test_una_clave_privada_vacia_se_trata_como_inexistente(tmp_path):
+    # un cierre entre crear el fichero y escribirlo lo dejaria a 0 bytes para siempre
+    c = cfg(tmp_path)
+    c.clave.write_bytes(b"")
+    publica = claves.asegurar(c)
+    assert publica.startswith("ssh-ed25519 ") and c.clave.stat().st_size > 0
+    assert paramiko.PKey.from_path(str(c.clave)).get_base64() == publica.split(" ")[1]
+
+
+def test_una_clave_privada_ilegible_dice_que_fichero_borrar(tmp_path):
+    c = cfg(tmp_path)
+    c.clave.write_bytes(b"esto no es una clave\n")
+    with pytest.raises(ValueError) as e:
+        claves.asegurar(c)
+    assert str(c.clave) in str(e.value) and "borra" in str(e.value)

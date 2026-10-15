@@ -32,6 +32,11 @@ def _comprobar(nombre, comando, r):
         raise ErrorComando(
             "%s: la consulta %s no termino en %d s (tiempo maximo)"
             % (nombre, comando.id, comando.timeout))
+    if r.rc == -1:
+        # defensa: el transporte ya lo rechaza, y ningun validador (valida=None incluido)
+        # puede dar por buena una salida de una orden que no llego a terminar
+        raise ErrorComando("%s: la consulta %s termino sin codigo de salida (orden interrumpida)"
+                           % (nombre, comando.id))
     if comando.valida is not None:
         error = comando.valida(r.rc, r.salida)
         if error:
@@ -85,11 +90,13 @@ class Flota:
         """Conexion abierta con este NAS. Se llama con su candado tomado."""
         con = self._conexiones.get(nas.nombre)
         if con is not None and con.nas != nas:
-            # la entrada del inventario ha cambiado: ni la conexion ni el perfil valen
+            # la entrada del inventario ha cambiado: la conexion no vale (ni el perfil)
             self._soltar(nas.nombre)
-            self._perfiles.pop(nas.nombre, None)
             con = None
         if con is None:
+            # una deteccion por conexion: tras reconectar, el firmware o los paquetes pueden
+            # haber cambiado
+            self._perfiles.pop(nas.nombre, None)
             con = self._fabrica(nas, self.cfg)
             con.conectar()
             self._conexiones[nas.nombre] = con

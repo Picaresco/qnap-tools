@@ -1,0 +1,12 @@
+  PID  PPID  Uid     Stat VSZ  VmSize TIME   ELAPSED Command
+    1     0 admin    S   4408   1900   0:11 9500:03  init
+    2     0 admin    SW     0          0:00 9500:03  [kthreadd]
+  420     1 admin    S    13m   4120   0:30 9499:50  /sbin/hal_daemon -f
+  800     1 admin    S   205m  96300  80:41 9499:40  /usr/local/sbin/servicio2 --api-key=valor-inventado --config /etc/config/servicio2.conf
+  801   800 admin    D <  61m  30440  12:02 9499:39  /usr/local/sbin/servicio2 --worker 1
+ 1500     1 admin    S N  44m  20780   3:33 9498:00  /usr/sbin/nginx -g daemon off;
+ 1501  1500 admin    S    44m  21200   0:12 9498:00  nginx: worker process
+ 2500     1 admin    S    10m   3012   0:00 8000:00  /bin/sh /etc/init.d/tarea1.sh start
+ 2600     1 admin    S   7860   2400   0:01  40:10  db_client user=ejemplo pwd:secreto9 host=192.0.2.9
+ 4100  2500 admin    S   3260    900   0:00   0:01  sh -c ps -o pid,ppid,user,stat,vsz,rss,time,etime,args | cut -c1-400
+ 4101  4100 admin    R   3256   1004   0:00   0:00  ps -o pid,ppid,user,stat,vsz,rss,time,etime,args

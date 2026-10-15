@@ -166,11 +166,11 @@ def test_ethtool_driver_da_controlador_version_y_firmware():
 
 def test_ethtool_errores_solo_destaca_los_contadores_de_error_que_no_estan_a_cero():
     assert p.ethtool_errores(dato("ethtool_stats_hero")) == {
-        "disponible": True, "contadores": 39, "errores": {"rx_mac_missed": 817}}
+        "disponible": True, "contadores": 39, "distintos_de_cero": {"rx_mac_missed": 817}}
 
 
 def test_ethtool_errores_sin_estadisticas_no_es_lo_mismo_que_sin_errores():
-    assert p.ethtool_errores("") == {"disponible": False, "contadores": 0, "errores": {}}
+    assert p.ethtool_errores("") == {"disponible": False, "contadores": 0, "distintos_de_cero": {}}
 
 
 def test_bonding_lista_las_agregaciones_definidas():
@@ -671,3 +671,9 @@ def test_escucha_se_queda_con_el_nombre_del_programa_sin_su_titulo():
              "tcp        0      0 0.0.0.0:21              0.0.0.0:*               LISTEN      4242/proftpd: (acce\n")
     assert p.escucha(texto) == [
         {"protocolo": "tcp", "direccion": "0.0.0.0", "puerto": 21, "pid": 4242, "proceso": "proftpd"}]
+
+
+@pytest.mark.parametrize("cuenta", ["==lineas", "==lineas abc", "==lineas 1 2"])
+def test_concesiones_con_una_cuenta_de_lineas_ilegible_no_es_que_no_haya_concesiones(cuenta):
+    with pytest.raises(ValueError):
+        p.dhcp_concesiones("== dhcpd_qvs2.leases\n%s\n" % cuenta)

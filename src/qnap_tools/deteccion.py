@@ -49,6 +49,9 @@ def detectar(con) -> Perfil:
     if r.agotado:
         raise DeteccionFallida(
             "%s: no respondio a tiempo (%d s) al identificar el sistema" % (con.destino, DETECCION.timeout))
+    if r.rc != 0:
+        raise DeteccionFallida(
+            "%s: la orden que identifica el sistema termino con codigo %d" % (con.destino, r.rc))
     campos = {}
     for linea in r.salida.splitlines():
         if "=" in linea:

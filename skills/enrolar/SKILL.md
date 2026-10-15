@@ -13,6 +13,9 @@ Esta skill deja un ordenador nuevo listo para toda la flota.
 
 - Se ha instalado el plugin en otro ordenador y se quiere usar con los mismos NAS.
 - Se ha reinstalado el plugin (desinstalarlo borra su carpeta de datos: inventario y clave).
+- Un NAS ha perdido la clave de este ordenador (por ejemplo, se rehízo su usuario) y
+  `nas_comprobar` avisa de que entra por contraseña: se repone solo en ese NAS con
+  `nas_enrolar(nas="nombre")`, sin tocar los demás.
 
 ## Pasos
 
@@ -26,13 +29,18 @@ Esta skill deja un ordenador nuevo listo para toda la flota.
 3. Enseña al usuario la lista de NAS (`nas_lista`) y que confirme que las direcciones son las
    suyas: el enrolado envía la contraseña común a cada una de ellas. Un inventario importado
    de un fichero que no sea de confianza no se enrola.
-4. Avisa de lo que va a pasar y lanza `nas_enrolar()`. En cada NAS del inventario:
+4. Avisa de lo que va a pasar y lanza `nas_enrolar()` (todos los NAS) o `nas_enrolar(nas="nombre")`
+   (uno solo). En cada NAS elegido:
    - entra por contraseña y **fija su clave de host** en este ordenador;
    - en los que no están marcados como "solo contraseña", **escribe en el NAS** la clave
      pública de este ordenador (`~/.ssh/authorized_keys` del usuario). Es la única escritura
      que hace el plugin.
 5. Enseña el resultado NAS por NAS: la **huella de host**, con qué se entra desde ahora
-   (`clave` o `contrasena`) y, si lo hay, el `aviso` o el `error` tal cual.
+   (`clave` o `contrasena`) y, si lo hay, el `aviso` o el `error` tal cual. Si el aviso dice
+   que la clave está instalada pero no entra (o que no se pudo comprobar), el inventario no
+   cambia y cada conexión probará la clave antes de la contraseña: un intento fallido por
+   conexión, que cuenta para el bloqueo por IP del NAS. Arréglalo (permisos de la carpeta
+   del usuario en el NAS) y repite `nas_enrolar(nas="nombre")`.
 6. Termina con `nas_comprobar("todos")` para confirmar acceso, sudo y sistema de cada uno.
 
 ## Notas

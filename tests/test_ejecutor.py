@@ -324,3 +324,65 @@ def test_tras_un_tiempo_agotado_la_siguiente_consulta_abre_una_conexion_nueva(tm
         flota.lanzar(nas["alfa"], Comando("lenta", "lenta", timeout=1))
     assert flota.lanzar(nas["alfa"], ENLACES) == "x\n"
     assert mundo.conexiones == 2
+
+
+# --- canal cerrado sin codigo de salida ----------------------------------------------------------
+
+@pytest.mark.parametrize("valida", [None, comandos.no_vacia, comandos.estricta])
+def test_salida_truncada_por_una_caida_no_se_da_por_buena(tmp_path, valida):
+    mundo = falsos.Mundo({"ip -br link": (-1, "eth0 UP\n", "")})
+    flota, nas = montar(tmp_path, {"alfa": mundo})
+    with pytest.raises(transporte.ErrorConexion):
+        flota.lanzar(nas["alfa"], Comando("enlaces", "ip -br link", valida=valida))
+    assert mundo.conexiones == 2         # se reabrio una vez
+
+
+def test_si_la_segunda_vez_va_bien_se_devuelve_esa(tmp_path):
+    llamadas = []
+
+    def primera_corta(orden, sudo):
+        llamadas.append(orden)
+        return (-1, "eth0", "") if len(llamadas) == 1 else "eth0 UP\n"
+    mundo = falsos.Mundo({"ip -br link": primera_corta})
+    flota, nas = montar(tmp_path, {"alfa": mundo})
+    assert flota.lanzar(nas["alfa"], Comando("enlaces", "ip -br link", valida=None)) == "eth0 UP\n"
+
+
+def test_comprobar_trata_rc_menos_uno_como_error_con_cualquier_validador():
+    r = transporte.Resultado(-1, "eth0\n", "")
+    with pytest.raises(ejecutor.ErrorComando) as e:
+        ejecutor._comprobar("alfa", Comando("x", "x", valida=None), r)
+    assert "alfa" in str(e.value) and "sin codigo de salida" in str(e.value)
+
+
+def test_deteccion_cortada_no_cachea_un_perfil_a_medias(tmp_path):
+    cortada = "sistema=hero\nmodelo=TS-X85\nfirmware=6.0.2\n"
+    mundo = falsos.Mundo({DET: (-1, cortada, "")})
+    flota, nas = montar(tmp_path, {"alfa": mundo})
+    with pytest.raises(transporte.ErrorConexion):
+        flota.perfil(nas["alfa"])
+    assert "alfa" not in flota._perfiles
+
+
+# --- el perfil se detecta una vez por conexion -----------------------------------------------------
+
+def test_tras_reconectar_el_perfil_se_detecta_de_nuevo(tmp_path):
+    firmware = [linea for linea in HERO.splitlines() if linea.startswith("firmware=")][0]
+    mundo = falsos.Mundo({DET: HERO, "ip -br link": "x\n"})
+    flota, nas = montar(tmp_path, {"alfa": mundo})
+    antes = flota.perfil(nas["alfa"]).firmware
+    mundo.respuestas[DET] = HERO.replace(firmware, "firmware=9.9.9")      # el NAS se actualizo
+    mundo.cortar()
+    flota.lanzar(nas["alfa"], ENLACES)                                    # reabre la conexion
+    assert mundo.conexiones == 2
+    assert flota.perfil(nas["alfa"]).firmware == "9.9.9" != antes
+    flota.perfil(nas["alfa"])
+    assert [o for o, _ in mundo.ordenes].count(DET) == 2                  # y no mas veces
+
+
+def test_inventario_ilegible_da_error_y_no_excepcion(tmp_path):
+    flota, _ = montar(tmp_path, {"alfa": falsos.Mundo()})
+    flota.cfg.inventario.unlink()
+    flota.cfg.inventario.mkdir()
+    r = flota.por_nas("todos", lambda nas: 1)
+    assert r[0]["ok"] is False and "no se pudo leer" in r[0]["error"]

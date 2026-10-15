@@ -335,3 +335,29 @@ def test_host_fijado_dice_si_la_clave_de_un_nas_esta_guardada(tmp_path):
     Conexion(NAS, c, fabrica=mundo.cliente).conectar(fijar_host=True)
     assert transporte.host_fijado(c, NAS) is True
     assert transporte.host_fijado(c, Nas("otro", "192.0.2.10")) is False     # mismo equipo, otro puerto
+
+
+# --- canal cerrado sin codigo de salida -------------------------------------------------------
+
+def test_un_canal_cerrado_sin_codigo_de_salida_es_error_de_conexion(tmp_path):
+    # la conexion murio (o el proceso remoto fue matado) con la orden en curso: paramiko da -1
+    mundo = falsos.Mundo({"cortada": (-1, "parcial\n", "")})
+    con = conectada(tmp_path, mundo)
+    with pytest.raises(transporte.ErrorConexion) as e:
+        con.ejecutar("cortada")
+    assert "casa" in str(e.value) and "codigo de salida" in str(e.value)
+
+
+def test_el_tiempo_agotado_sigue_devolviendo_resultado_y_no_error(tmp_path):
+    mundo = falsos.Mundo({"lenta": falsos.CUELGA})
+    r = conectada(tmp_path, mundo).ejecutar("lenta", timeout=0.2)
+    assert r.agotado is True and r.rc == -1
+
+
+def test_el_mensaje_de_host_cambiado_da_la_ruta_de_known_hosts(tmp_path):
+    mundo = falsos.Mundo(host_cambiado=True)
+    c = cfg(tmp_path)
+    con = Conexion(NAS, c, fabrica=mundo.cliente)
+    with pytest.raises(transporte.HostCambiado) as e:
+        con.conectar()
+    assert str(c.known_hosts) in str(e.value) and "nas_baja" in str(e.value)

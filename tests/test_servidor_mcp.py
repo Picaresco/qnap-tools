@@ -126,3 +126,21 @@ def test_el_paquete_declara_todo_lo_que_importa():
                 importadas.add(nodo.module.split(".")[0])
     terceros = importadas - set(sys.stdlib_module_names) - {"qnap_tools"}
     assert terceros <= declaradas, terceros - declaradas
+
+
+def test_al_salir_el_proceso_se_cierra_la_flota(monkeypatch):
+    registrados = []
+    monkeypatch.setattr(servidor.atexit, "register", lambda f, *a: registrados.append(f))
+    _, ctx = servidor.crear("prueba", "instrucciones", {"QNAP_TOOLS_USER": "u",
+                                                       "QNAP_TOOLS_PASSWORD": "p", "QNAP_TOOLS_DATA": "."})
+    assert registrados == [ctx.cerrar]
+
+
+def test_cerrar_el_contexto_cierra_las_conexiones_y_sin_flota_no_hace_nada():
+    ctx = servidor.Contexto({"QNAP_TOOLS_USER": "u", "QNAP_TOOLS_PASSWORD": "p", "QNAP_TOOLS_DATA": "."})
+    ctx.cerrar()                                   # aun no hay flota: no la crea ni falla
+    assert ctx._flota is None
+    cerrada = []
+    ctx.flota.cerrar = lambda: cerrada.append(True)
+    ctx.cerrar()
+    assert cerrada == [True]

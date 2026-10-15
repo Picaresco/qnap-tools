@@ -1,0 +1,18 @@
+  PID  PPID  Uid     Stat VSZ  VmSize TIME   ELAPSED Command
+    1     0 admin    S   4896   2176   0:04 250:44  init
+    2     0 admin    SW     0          0:00 273:14  [kthreadd]
+    3     2 admin    SW     0          0:00 273:14  [pool_workqueue_]
+    4     2 admin    IW<    0          0:00 273:14  [kworker/R-rcu_g]
+   11     2 admin    IW     0          0:01 273:14  [kworker/u8:0-fl]
+  364     1 admin    S N 907m  12760   0:00 268:44  /usr/local/medialibrary/bin/myidbserver -n -d
+ 2156  2154 admin    S    52m   1664   0:00 268:34  /mnt/ext/opt/FileStation6/file-station-6/usr/sbin/recent-f
+ 4035 30937 admin    S    30m  14464   0:00  31:27  sshd: usuario [priv]
+ 4043  4035 usuario  S    30m   9184   0:00  31:27  sshd: usuario@notty
+ 5939     1 admin    S < 136m  16512   0:00  34:07  /usr/sbin/fs-service -s 0123456789abcdefghijklmnopqrstuv
+ 5966  5939 admin    S < 280m  12264   0:00  34:07  /usr/sbin/fs-service -s 0123456789abcdefghijklmnopqrstuv
+ 6883     1 admin    S    42m   8928   0:05 267:29  /usr/local/bin/snmpd -c /etc/config/snmpd.conf -p 161
+ 7156     1 admin    S   321m   7392   0:00 272:26  /sbin/hal-qservice
+ 8167     1 admin    S   9668   6648   0:00 271:03  /sbin/cs_daemon
+ 8207     1 admin    S   297m   8192   0:02 271:03  /sbin/cs_qdaemon
+11895  9001 admin    D <  13m  14220   1:12  12:20  /mnt/ext/opt/FileStation6/file-station-6/opt/www/utilRequest.cgi
+32763     1 guest    S    4116   3328   0:00 268:24  avahi-daemon: running [EQUIPO.local]

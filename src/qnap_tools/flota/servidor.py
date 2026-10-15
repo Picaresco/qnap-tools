@@ -22,7 +22,7 @@ from ..config import ConfigError
 from ..deteccion import DeteccionFallida, detectar
 from ..ejecutor import ErrorComando, lanzar_en
 from ..inventario import InventarioInvalido, Nas, NasDesconocido
-from ..transporte import AutenticacionFallida, ErrorConexion
+from ..transporte import AutenticacionFallida, ErrorConexion, HostCambiado, HostSinFijar
 
 INSTRUCCIONES = (
     "Administra el inventario de NAS QNAP de este ordenador para el plugin qnap-tools. "
@@ -30,7 +30,8 @@ INSTRUCCIONES = (
     "pida lo contrario, instala la clave publica de este ordenador en el NAS (es la unica "
     "escritura que hace el plugin). Requisito previo en cada NAS: el usuario comun debe "
     "pertenecer a 'administrators' y tener permiso de SSH. nas_enrolar prepara un ordenador "
-    "nuevo para toda la flota tras importar el inventario. nas_comprobar dice como se entra a "
+    "nuevo para toda la flota tras importar el inventario (o repone la clave de un solo NAS "
+    "con nas). nas_comprobar dice como se entra a "
     "cada NAS y si sudo da root. Las consultas de datos estan en los otros servidores "
     "(qnap-redes, etc.). Muestra siempre al usuario la huella de host que devuelve el alta. "
     "OJO: en esa primera conexion nas_alta y nas_enrolar envian la contrasena comun al equipo "
@@ -100,12 +101,19 @@ class Herramientas:
         return None
 
     def _acepta_clave(self, nas):
+        """Prueba la clave de este ordenador en el NAS: (True, None) si entra, (False, None) si
+        el NAS la rechaza y (None, motivo) si no se pudo probar (red, banner...). Un host
+        cambiado o sin fijar no es ni una cosa ni otra: sale como error."""
         con = self.ctx.conexion(dataclasses.replace(nas, auth="clave"))
         try:
             con.conectar()
-            return True
-        except ErrorConexion:
-            return False
+            return True, None
+        except AutenticacionFallida:
+            return False, None
+        except (HostCambiado, HostSinFijar):
+            raise
+        except ErrorConexion as e:
+            return None, str(e)
         finally:
             con.cerrar()
 
@@ -135,13 +143,21 @@ class Herramientas:
         Sirve para verificar la flota y diagnosticar problemas de acceso. Solo lectura."""
         def uno(n):
             flota = self.ctx.flota
-            datos = {"acceso": flota.metodo(n), "sudo_root": False}
             perfil = flota.perfil(n)
             avisos = list(perfil.avisos)
+            sudo_root = False
             try:
-                datos["sudo_root"] = flota.lanzar(n, SUDO_UID).strip() == "0"
+                sudo_root = flota.lanzar(n, SUDO_UID).strip() == "0"
             except (ErrorComando, AutenticacionFallida) as e:
                 avisos.append("sudo no da privilegios de root: %s" % e)
+            # el metodo se lee despues de trabajar: si la conexion habia muerto, la reapertura
+            # puede haber entrado de otra forma
+            acceso = flota.metodo(n)
+            if n.auth != "contrasena" and acceso == "contrasena":
+                avisos.append("este NAS esta configurado para entrar por clave y ha entrado por "
+                              "contrasena: la clave de este ordenador no vale alli; nas_enrolar "
+                              "la reinstala")
+            datos = {"acceso": acceso, "sudo_root": sudo_root}
             datos.update(self._perfil(perfil))
             datos["avisos"] = avisos
             return datos
@@ -156,19 +172,45 @@ class Herramientas:
         NAS para entrar despues sin contrasena. Con instalar_clave=false no escribe nada en el
         NAS y se entrara siempre por contrasena. nombre: minusculas, digitos, - y _.
         Devuelve la huella de la clave de host para que el usuario la coteje."""
-        con = None
-        huerfana = None      # (cfg, nas) si este intento fija una clave de host que no estaba
+        # con y huerfana (cfg, nas: la clave de host que este intento fija y no estaba) se
+        # limpian aqui pase lo que pase, y sin perder el resultado si la limpieza falla
+        estado = {"con": None, "huerfana": None}
+        resultado = self._alta(estado, nombre, host, port, instalar_clave)
+        if estado["con"] is not None:
+            estado["con"].cerrar()
+        if estado["huerfana"] is not None:
+            # el alta no se ha completado: la clave de host fijada al conectar no tiene
+            # entrada en el inventario y nas_baja no podria quitarla
+            try:
+                transporte.olvidar_host(*estado["huerfana"])
+            except OSError as e:
+                cfg, nuevo = estado["huerfana"]
+                resultado["error"] = self.ctx.sanear(
+                    "%s; ademas no se pudo olvidar la clave de host fijada en este intento (%s): "
+                    "borra a mano la linea de %s en %s"
+                    % (resultado.get("error", "alta fallida"), e.__class__.__name__,
+                       transporte.nombre_host(nuevo), cfg.known_hosts))
+        return resultado
+
+    def _alta(self, estado, nombre, host, port, instalar_clave):
         try:
             cfg = self.ctx.cfg
             nuevo = Nas(nombre, host, port, auth="contrasena")
-            if nombre in inventario.cargar(cfg.inventario):
+            actuales = inventario.cargar(cfg.inventario)
+            if nombre in actuales:
                 return self._error(InventarioInvalido(
                     "ya existe un NAS llamado %s en el inventario; usa otro nombre o dalo de "
                     "baja antes con nas_baja" % nombre))
+            repetido = next((n.nombre for n in actuales.values()
+                             if (n.host.lower(), n.port) == (host.lower(), port)), None)
+            if repetido:
+                return self._error(InventarioInvalido(
+                    "ese equipo (%s:%d) ya esta en el inventario como %s; consultalo con ese "
+                    "nombre o dalo de baja antes con nas_baja" % (host, port, repetido)))
             avisos = []
-            con = self.ctx.conexion(nuevo)
+            con = estado["con"] = self.ctx.conexion(nuevo)
             if not transporte.host_fijado(cfg, nuevo):
-                huerfana = (cfg, nuevo)
+                estado["huerfana"] = (cfg, nuevo)
             con.conectar(fijar_host=True)
             huella = con.huella_host()
             if "(administrators)" not in lanzar_en(con, IDENTIDAD):
@@ -184,39 +226,43 @@ class Herramientas:
                 avisos.append("sudo no da privilegios de root en este NAS (%s); las consultas "
                               "que lo necesitan fallaran" % e)
             acceso = "contrasena"
+            auth = "contrasena"
             if instalar_clave:
                 fallo = self._instalar_clave(con)
                 if fallo:
                     avisos.append("no se pudo instalar la clave SSH (%s); se entrara por "
                                   "contrasena" % fallo)
-                elif self._acepta_clave(nuevo):
-                    acceso = "clave"
                 else:
-                    avisos.append("el NAS no acepta la clave SSH de este ordenador; se entrara "
-                                  "por contrasena")
-            definitivo = Nas(nombre, host, port, auth="auto" if acceso == "clave" else "contrasena")
+                    acepta, motivo = self._acepta_clave(nuevo)
+                    if acepta:
+                        acceso, auth = "clave", "auto"
+                    elif acepta is None:
+                        # no se pudo probar: no se acusa al NAS ni se le quita la clave para siempre
+                        auth = "auto"
+                        avisos.append("la clave SSH esta instalada pero no se pudo comprobar que el "
+                                      "NAS la acepte (%s); se entrara por contrasena y se probara "
+                                      "la clave en la siguiente conexion" % motivo)
+                    else:
+                        avisos.append("el NAS no acepta la clave SSH de este ordenador; se entrara "
+                                      "por contrasena")
+            definitivo = Nas(nombre, host, port, auth=auth)
             actuales = inventario.cargar(cfg.inventario)
             actuales[nombre] = definitivo
             inventario.guardar(cfg.inventario, actuales)
-            huerfana = None
-            return {"ok": True, "nas": nombre, "host": host, "port": port, "acceso": acceso,
-                    "sudo_root": sudo_root, "huella_host": huella, "perfil": self._perfil(perfil),
-                    "avisos": [self.ctx.sanear(a) for a in avisos]}
+            estado["huerfana"] = None
+            return self.ctx.sin_contrasena({
+                "ok": True, "nas": nombre, "host": host, "port": port, "acceso": acceso,
+                "sudo_root": sudo_root, "huella_host": huella, "perfil": self._perfil(perfil),
+                "avisos": avisos})
         except Exception as e:
             return self._error(e)
-        finally:
-            if con is not None:
-                con.cerrar()
-            if huerfana is not None:
-                # el alta no se ha completado: la clave de host fijada al conectar no tiene
-                # entrada en el inventario y nas_baja no podria quitarla
-                transporte.olvidar_host(*huerfana)
 
-    def nas_enrolar(self) -> list[dict[str, Any]]:
-        """Prepara ESTE ordenador para todos los NAS del inventario (por ejemplo, tras
-        importarlo en un equipo nuevo): entra en cada uno por contrasena, fija su clave de
-        host y, en los que no estan marcados como solo contrasena, ESCRIBE la clave publica de
-        este ordenador en ~/.ssh/authorized_keys del usuario. Un resultado por NAS."""
+    def nas_enrolar(self, nas: str = "todos") -> list[dict[str, Any]]:
+        """Prepara ESTE ordenador para los NAS del inventario (por ejemplo, tras importarlo en
+        un equipo nuevo) o para uno solo (nas: su nombre; util para reponer la clave de un NAS
+        sin tocar los demas): entra en cada uno por contrasena, fija su clave de host y, en los
+        que no estan marcados como solo contrasena, ESCRIBE la clave publica de este ordenador
+        en ~/.ssh/authorized_keys del usuario. Un resultado por NAS."""
         def uno(n):
             con = self.ctx.conexion(dataclasses.replace(n, auth="contrasena"))
             try:
@@ -229,15 +275,22 @@ class Herramientas:
                 if fallo:
                     raise ErrorComando("%s: no se pudo instalar la clave SSH (%s)" % (n.nombre, fallo))
                 datos["clave_instalada"] = True
-                if self._acepta_clave(n):
+                acepta, motivo = self._acepta_clave(n)
+                if acepta:
                     datos["acceso"] = "clave"
+                elif acepta is None:
+                    datos["aviso"] = ("la clave esta instalada pero no se pudo comprobar que el NAS "
+                                      "la acepte (%s); el inventario no cambia: se entrara por "
+                                      "contrasena y se probara la clave en cada conexion" % motivo)
                 else:
-                    datos["aviso"] = ("la clave esta instalada pero el NAS no la acepta; se "
-                                      "seguira entrando por contrasena")
+                    datos["aviso"] = ("la clave esta instalada pero el NAS no la acepta; el "
+                                      "inventario no cambia: se seguira entrando por contrasena y "
+                                      "cada conexion probara antes la clave (un intento fallido "
+                                      "por conexion)")
                 return datos
             finally:
                 con.cerrar()
-        return self.ctx.por_nas(inventario.TODOS, uno)
+        return self.ctx.por_nas(nas, uno)
 
     def nas_baja(self, nombre: str) -> dict[str, Any]:
         """Quita un NAS del inventario de este ordenador y olvida su clave de host. No conecta
@@ -250,9 +303,10 @@ class Herramientas:
                     "no hay ningun NAS llamado %r en el inventario; validos: %s"
                     % (nombre, ", ".join(sorted(actuales)) or "(ninguno)")))
             quitado = actuales.pop(nombre)
-            inventario.guardar(cfg.inventario, actuales)
+            # primero la huella: si falla, el NAS sigue dado de alta y la baja se puede repetir
             if not any((n.host, n.port) == (quitado.host, quitado.port) for n in actuales.values()):
                 transporte.olvidar_host(cfg, quitado)
+            inventario.guardar(cfg.inventario, actuales)
             self.ctx.flota.olvidar(nombre)
             return {"ok": True, "nas": nombre,
                     "nota": "quitado del inventario de este ordenador; la clave publica "
@@ -291,6 +345,7 @@ class Herramientas:
             nuevos = inventario.cargar(origen)
             actuales = inventario.cargar(cfg.inventario)
             anadidos, sin_cambios, conflictos, sustituidos = [], [], [], []
+            viejos = {}
             for nombre in sorted(nuevos):
                 if nombre not in actuales:
                     anadidos.append(nombre)
@@ -299,10 +354,17 @@ class Herramientas:
                     continue
                 elif sobrescribir:
                     sustituidos.append(nombre)
+                    viejos[nombre] = actuales[nombre]
                 else:
                     conflictos.append(nombre)
                     continue
                 actuales[nombre] = nuevos[nombre]
+            for nombre, viejo in viejos.items():
+                # el host viejo ya no es de nadie: su huella no puede quedar huerfana
+                if ((viejo.host, viejo.port) != (actuales[nombre].host, actuales[nombre].port)
+                        and not any((n.host, n.port) == (viejo.host, viejo.port)
+                                    for n in actuales.values())):
+                    transporte.olvidar_host(cfg, viejo)
             if anadidos or sustituidos:
                 inventario.guardar(cfg.inventario, actuales)
             return {"ok": True, "anadidos": anadidos, "sin_cambios": sin_cambios,

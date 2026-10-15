@@ -13,7 +13,7 @@ from qnap_tools.comandos import Comando, ParametroInvalido  # noqa: E402
 from qnap_tools.logs import comandos as lc  # noqa: E402
 
 EJEMPLOS = {"entero": "20", "fecha": "2026-10-01", "palabra": "Virtualization Station", "nombre": "web-1",
-            "nivel": "3"}
+            "nivel": "3", "pid": "4242"}
 DE_REGISTROS = {"EVT_LISTA", "EVT_PALABRA", "EVT_RECUENTO", "CONN_LISTA", "CONN_EXTREMOS", "NOTICE_LISTA",
                 "NOTICE_RESUMEN"}
 UTILIDADES = ("log_tool", "conn_log_tool", "notice_log_tool")
@@ -24,7 +24,8 @@ SECRETOS = re.compile(r"shadow|smbpasswd|ssh_host|id_rsa|id_ed25519|authorized_k
 
 
 DE_SISTEMA = {"KMSG_NIVELES", "KMSG_LINEAS", "DMESG", "SENSORES", "CHASIS", "FUENTES", "SAI", "CARGA",
-              "FIRMWARE", "FIRMWARE_AUTO", "APPS", "MOTORES", "VOLCADOS", "ALERTAS", "SYSLOG"}
+              "FIRMWARE", "FIRMWARE_AUTO", "APPS", "MOTORES", "VOLCADOS", "ALERTAS", "SYSLOG",
+              "PROCESOS_LISTA", "PROCESOS_DETALLE"}
 
 
 def todos():
@@ -167,3 +168,28 @@ def test_los_parametros_del_kernel_se_validan_antes_de_componer_la_orden(comando
 def test_el_nivel_del_kernel_se_busca_sin_el_signo_mayor():
     # una plantilla no puede llevar ">": el patron usa un punto en su lugar
     assert lc.KMSG_LINEAS.render({"nivel": "3", "lineas": "5"}).count("' <[0-3]. '") == 2
+
+
+def test_la_lista_de_procesos_no_lleva_sudo_ni_parametros_y_el_detalle_si_lleva_sudo_y_un_pid():
+    assert lc.PROCESOS_LISTA.sudo is False and lc.PROCESOS_LISTA.params == {}
+    assert lc.PROCESOS_LISTA.plantilla.startswith(lc.PS_COLUMNAS)
+    assert lc.PROCESOS_DETALLE.sudo is True and lc.PROCESOS_DETALLE.params == {"pid": "pid"}
+
+
+def test_el_detalle_de_un_proceso_no_lee_las_variables_de_entorno_ni_escribe():
+    # environ lleva claves; la orden se lee con tr (sin redirigir con ">") y acotada
+    plantilla = lc.PROCESOS_DETALLE.plantilla
+    assert "environ" not in plantilla and "maps" not in plantilla and "mem" not in plantilla.replace("VmRSS", "")
+    assert ">" not in plantilla.replace("2>&1", "") and "head -c 2000" in plantilla
+    assert plantilla.count("/proc/{pid}") == plantilla.count("{pid}")      # nada fuera del proceso pedido
+
+
+@pytest.mark.parametrize("valor", ["0", "-1", "4194305", "1;reboot", "$(id)", "1 2", "", "abc", "1e3", "../1"])
+def test_el_pid_se_valida_antes_de_componer_la_orden(valor):
+    with pytest.raises(ParametroInvalido):
+        lc.PROCESOS_DETALLE.render({"pid": valor})
+
+
+def test_el_pid_viaja_sin_comillas_porque_son_cifras():
+    orden = lc.PROCESOS_DETALLE.render({"pid": "4242"})
+    assert "/proc/4242/status" in orden and "/proc/4242/fd" in orden and "{pid}" not in orden

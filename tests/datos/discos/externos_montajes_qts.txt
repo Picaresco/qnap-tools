@@ -1,0 +1,5 @@
+==montajes 17
+/dev/sdk1 /share/external/DEV3307_1 vfat rw,relatime,fmask=0022,dmask=0022 0 0
+==df
+Filesystem 1024-blocks Used Available Capacity Mounted on
+/dev/sdk1 4883637168 4400000000 483637168 91% /share/external/DEV3307_1

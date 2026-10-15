@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Las 9 herramientas de discos contra el NAS de laboratorio. Solo con QNAP_TOOLS_PRUEBA_REAL=1.
+"""Las 13 herramientas de discos contra el NAS de laboratorio. Solo con QNAP_TOOLS_PRUEBA_REAL=1.
 
 El alta se hace con instalar_clave=False: la prueba no escribe nada en el NAS. Ninguna
 herramienta lanza pruebas sobre los discos: solo lee lo que el NAS ya tiene.
@@ -97,5 +97,53 @@ def test_las_nueve_herramientas_responden_con_datos(tmp_path):
         conocidos = [d for d in rendimiento["discos"] if d["cabina"] is not None]
         assert len(conocidos) >= len(filas)
         assert all(d["ocupacion_pct"] is not None and 0 <= d["ocupacion_pct"] <= 100 for d in conocidos)
+    finally:
+        ctx.flota.cerrar()
+
+
+def test_las_herramientas_de_rutas_tareas_y_externos_responden(tmp_path):
+    env = real.leer_env()
+    entorno = {"QNAP_TOOLS_USER": env["QNAP_USER"], "QNAP_TOOLS_PASSWORD": env["QNAP_PASSWORD"],
+               "QNAP_TOOLS_DATA": str(tmp_path)}
+    ctx = servidor.Contexto(entorno)
+    nas = real.nas_de_laboratorio()
+    alta = flota_srv.Herramientas(ctx).nas_alta("lab", nas.host, nas.port, instalar_clave=False)
+    assert alta["ok"] is True, alta
+    h = discos_srv.Herramientas(ctx)
+
+    def datos(resultado):
+        (r,) = resultado
+        assert r["ok"] is True, r
+        return r["datos"]
+
+    try:
+        # Public existe en QTS y en QuTS hero; con y sin barra, y bajo /share, es lo mismo
+        ocupa = datos(h.ruta_ocupacion("lab", "Public"))
+        assert ocupa["ruta"] == "/share/Public" and ocupa["ruta_real"].startswith("/share/")
+        assert ocupa["bytes"] >= 0 and ocupa["ficheros"] >= 0 and ocupa["carpetas"] >= 0
+        assert ocupa["es_fichero"] is False and ocupa["bytes_en_disco"] >= 0
+        assert datos(h.ruta_ocupacion("lab", "/share/Public"))["ruta_real"] == ocupa["ruta_real"]
+        (fuera,) = h.ruta_ocupacion("lab", "/share/../etc")
+        assert fuera["ok"] is False
+
+        lista = datos(h.ruta_listar("lab", "/Public", limite=5))
+        assert lista["es_carpeta"] is True and lista["entradas"]["total"] >= len(lista["entradas"]["filas"])
+        assert all(e["tipo"] in ("fichero", "carpeta", "enlace", "otro") and e["permisos"] and e["fecha"]
+                   for e in lista["entradas"]["filas"])
+
+        # una carpeta comparada consigo misma: todo coincide
+        igual = datos(h.ruta_comparar("lab", "Public", "/share/Public"))
+        assert igual["iguales"] is True and igual["coinciden"] == igual["origen"]["ficheros"]
+
+        tareas = datos(h.tareas_file_station("lab"))
+        assert isinstance(tareas, dict)
+
+        fisicos = datos(h.discos_fisicos("lab"))
+        for e in fisicos["externos"]:
+            assert "montaje" in e and "sistema_ficheros" in e
+            if e["montaje"]:
+                assert e["montaje"].startswith("/share/external/") and e["bytes_montaje"] > 0
+        carpetas = datos(h.carpetas_compartidas("lab"))
+        assert all(c["externo"] in (True, False) for c in carpetas["carpetas"]["filas"])
     finally:
         ctx.flota.cerrar()

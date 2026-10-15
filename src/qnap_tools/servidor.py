@@ -6,6 +6,7 @@ servidor arranca aunque falte la credencial y es la propia herramienta la que lo
 chat, en vez de aparecer como un servidor caido.
 """
 import asyncio
+import atexit
 import functools
 import os
 import threading
@@ -60,6 +61,15 @@ class Contexto:
             texto = texto.replace(self._flota.cfg.contrasena, "***")
         return texto
 
+    def sin_contrasena(self, dato):
+        """La contrasena fuera de todo texto de una respuesta (tambien dentro de listas y dicts)."""
+        return self._flota._sin_contrasena(dato) if self._flota is not None else dato
+
+    def cerrar(self):
+        """Cierra las conexiones abiertas, si ya hay flota (al salir el proceso)."""
+        if self._flota is not None:
+            self._flota.cerrar()
+
 
 class Base:
     """Lo comun a las herramientas de cada pata: lanzar una orden y leerla con su parser."""
@@ -71,10 +81,13 @@ class Base:
         """Lanza un Comando y devuelve su salida ya interpretada."""
         salida = self.ctx.flota.lanzar(nas, comando, valores)
         try:
-            return parser(salida)
+            datos = parser(salida)
         except ValueError as e:
             raise ErrorComando("%s: la consulta %s dio una salida inesperada: %s"
                                % (nas.nombre, comando.id, e))
+        if comando.no_probado and isinstance(datos, dict):
+            datos = dict(datos, no_probado=True)       # una sola fuente: la marca del Comando
+        return datos
 
     def _opcional(self, nas, comando, parser, valores=None):
         """Como _leer, para un dato accesorio: si la orden falla, sudo no acepta la
@@ -103,7 +116,10 @@ class Base:
 
 def crear(nombre, instrucciones, entorno=None, fabrica_conexion=Conexion):
     """Servidor MCP vacio y su contexto; cada pata registra despues sus herramientas."""
-    return FastMCP(nombre, instructions=instrucciones), Contexto(entorno, fabrica_conexion)
+    ctx = Contexto(entorno, fabrica_conexion)
+    # al salir, las sesiones SSH se cierran con su DISCONNECT en vez de morir con el proceso
+    atexit.register(ctx.cerrar)
+    return FastMCP(nombre, instructions=instrucciones), ctx
 
 
 def en_hilo(funcion, candado=None):

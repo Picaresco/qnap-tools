@@ -53,7 +53,7 @@ SMART_ATRIBUTOS = Comando("smart_atributos", "cat /tmp/smart/smart_{cabina}_{bah
 SMART_UMBRALES = Comando(
     "smart_umbrales",
     "[ ! -e /tmp/smart_warning.conf ] || grep -E '^\\[|^(policy|enable|value) =' /tmp/smart_warning.conf",
-    valida=rc_cero)
+    valida=rc_cero, no_probado=True)
 
 # Desgaste de cada SSD segun el NAS. Un NAS sin SSD no tiene ficheros, o ni la carpeta.
 SSD_VIDA = Comando(
@@ -203,3 +203,75 @@ CARPETAS_USO = Comando(
 CARPETAS_NFS = Comando("carpetas_nfs", "[ ! -s /etc/exports ] || cat /etc/exports", valida=rc_cero)
 # Solo el primer nivel: cada carpeta compartida es un enlace a su volumen.
 CARPETAS_ENLACES = Comando("carpetas_enlaces", "ls -l /share/")
+
+
+# --- rutas: cuanto ocupan y como se comparan -----------------------------------------------------
+
+# La ruta se resuelve (readlink -f: una carpeta compartida es un enlace en /share) y solo se mide si
+# existe y lo real cuelga de /share/. Con sudo para no dar cifras parciales por carpetas sin
+# permiso; solo lee. Los enlaces de dentro no se siguen (du y find no lo hacen por defecto).
+# "==carpetas" cuenta tambien la propia carpeta (find -type d la incluye); un fichero da 0.
+RUTA_OCUPACION = Comando(
+    "ruta_ocupacion",
+    "r=$(readlink -f {ruta}); if [ -e \"$r\" ] && [ \"${r#/share/}\" != \"$r\" ]; then"
+    " echo \"==real $r\"; du -s -b \"$r\"; echo ==kib; du -s -k \"$r\";"
+    " echo ==ficheros $(find \"$r\" -type f | wc -l); echo ==carpetas $(find \"$r\" -type d | wc -l);"
+    " else echo ==rechazada; fi",
+    {"ruta": "ruta"}, sudo=True, timeout=120)
+# Una lectura recursiva por lado; se interpreta en el ordenador. Literal: sin comillas ni escapes
+# en los nombres. La ruta termina en /. para que ls la liste aunque sea un enlace.
+RUTA_LISTADO = Comando(
+    "ruta_listado",
+    "r=$(readlink -f {ruta}); if [ -d \"$r\" ] && [ \"${r#/share/}\" != \"$r\" ]; then"
+    " echo \"==real $r\"; ls -lnRA --time-style=+%s --quoting-style=literal \"$r/.\";"
+    " else echo ==rechazada; fi",
+    {"ruta": "ruta"}, sudo=True, timeout=120)
+
+
+# --- tareas de File Station ---------------------------------------------------------------------
+
+# File Station guarda en /tmp/wfm un grupo de ficheros de texto por tarea, con el pid del proceso que
+# la hace (legibles sin sudo). De cada uno solo estos campos: de wfm2_remote_parameter no se lee
+# remote_addr (la IP de quien la lanzo) ni nada que no se necesite. "vivo" dice si el proceso sigue
+# en /proc: una tarea en curso cuyo proceso ya no esta se interrumpio. Sin la carpeta (File Station
+# nunca se ha usado) sale ==sin_wfm: no es un error.
+_ESTADO_COPIA = ("copy_file", "percent", "copying", "end_time", "speed", "full_dest", "copy_number",
+                 "files_count", "copy_size", "copied_size", "average_speed")
+TAREAS_FILE_STATION = Comando(
+    "tareas_file_station",
+    "if [ -d /tmp/wfm ]; then echo ==wfm; else echo ==sin_wfm; fi; d=/tmp/wfm;"
+    " for f in $d/wfm2_copy_status*; do if [ -e \"$f\" ]; then n=${f#$d/wfm2_copy_status}; echo \"== $n\";"
+    " grep -E '^(%s) *=' \"$f\" 2>/dev/null;"
+    " grep -E '^(total_size|total_number) *=' $d/wfm_total_file$n 2>/dev/null;"
+    " grep -E '^(from|to|name) *=' $d/wfm_display_file_name$n 2>/dev/null; echo ==remote;"
+    " awk -v n=\"$n\" '$0 == \"[\" n \"]\" {on = 1; next} /^\\[/ {on = 0}"
+    " on && /^(source_path|dest_path|mode|dup|username|func) *=/' $d/wfm2_remote_parameter 2>/dev/null;"
+    " echo ==lista; grep \"^$n|\" $d/wfm_copy_move.list 2>/dev/null;"
+    " if [ -d /proc/$n ]; then echo vivo=1; else echo vivo=0; fi; fi; done" % "|".join(_ESTADO_COPIA))
+
+
+# El contenido de UNA carpeta, sin bajar a las subcarpetas (o el fichero, si la ruta es un fichero), con
+# los mismos controles de ruta que las otras. Sin -n: nombres de propietario y grupo. --block-size=1 da
+# el -s (lo que ocupa en disco) en bytes; el %z de la fecha es el desfase de esa fecha en la hora local
+# del NAS (el cambio de horario sale bien). Literal: sin comillas ni escapes en los nombres. "total N"
+# es la primera linea de una carpeta y no es una entrada.
+_LS_LISTAR = "ls -lAs --block-size=1 --time-style=+%Y-%m-%dT%H:%M:%S%z --quoting-style=literal"
+RUTA_LISTAR = Comando(
+    "ruta_listar",
+    "r=$(readlink -f {ruta}); if [ -e \"$r\" ] && [ \"${r#/share/}\" != \"$r\" ]; then echo \"==real $r\";"
+    " if [ -d \"$r\" ]; then " + _LS_LISTAR + " \"$r/\"; else " + _LS_LISTAR + " \"$r\"; fi;"
+    " else echo ==rechazada; fi",
+    {"ruta": "ruta"}, sudo=True, timeout=60)
+
+
+# --- discos externos: donde estan montados y cuanto ocupan --------------------------------------
+
+# Los montajes de /share/external/ y el df de cada uno. La primera linea cuenta las del fichero:
+# si no se pudo leer, no sale un numero y el parser lo rechaza (un grep sin coincidencias, en
+# cambio, no es un error: no hay externos montados). Sin montajes no se lanza df, que sin
+# argumentos consultaria todos los montajes.
+EXTERNOS_MONTAJES = Comando(
+    "externos_montajes",
+    "echo ==montajes $(grep -c . /proc/mounts); m=$(grep ' /share/external/' /proc/mounts | cut -d' ' -f2);"
+    " grep ' /share/external/' /proc/mounts; echo ==df; [ -z \"$m\" ] || df -P -k $m",
+    timeout=25, valida=no_vacia)

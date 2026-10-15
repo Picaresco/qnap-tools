@@ -11,7 +11,7 @@ import paramiko
 import pytest
 
 import falsos
-from qnap_tools import deteccion, servidor
+from qnap_tools import deteccion, servidor, transporte
 from qnap_tools import inventario as inv
 from qnap_tools.flota import servidor as flota_srv
 from qnap_tools.inventario import Nas
@@ -519,3 +519,201 @@ def test_la_orden_de_instalar_la_clave_no_estropea_lo_que_ya_habia(tmp_path, pre
     r = subprocess.run([SH, "-c", orden], env=dict(os.environ, HOME=str(tmp_path)), capture_output=True)
     assert r.returncode == 0, r.stderr
     assert (ssh / "authorized_keys").read_bytes() == esperado
+
+
+# --- nas_comprobar: con que se entra de verdad -------------------------------------------------
+
+def test_comprobar_avisa_si_un_nas_con_clave_entra_por_contrasena(tmp_path):
+    mundo = nas_simulado(host_fijado=True)          # no acepta la clave (la perdio al rehacer el usuario)
+    h, ctx = montar(tmp_path, {HOST: mundo})
+    falsos.crear_clave(ctx.cfg.clave)
+    inv.guardar(ctx.cfg.inventario, {"casa": Nas("casa", HOST)})              # auth auto
+    datos = h.nas_comprobar("casa")[0]["datos"]
+    assert datos["acceso"] == "contrasena"
+    assert len(datos["avisos"]) == 1 and "nas_enrolar" in datos["avisos"][0]
+
+
+def test_comprobar_no_avisa_si_el_nas_es_solo_contrasena(tmp_path):
+    mundo = nas_simulado(host_fijado=True)
+    h, ctx = montar(tmp_path, {HOST: mundo})
+    falsos.crear_clave(ctx.cfg.clave)
+    inv.guardar(ctx.cfg.inventario, {"casa": Nas("casa", HOST, auth="contrasena")})
+    assert h.nas_comprobar("casa")[0]["datos"]["avisos"] == []
+
+
+def test_comprobar_informa_del_acceso_con_el_que_se_ha_hecho_el_trabajo(tmp_path):
+    mundo = nas_simulado(host_fijado=True)
+    mundo.acepta_clave = True
+    h, ctx = montar(tmp_path, {HOST: mundo})
+    falsos.crear_clave(ctx.cfg.clave)
+    inv.guardar(ctx.cfg.inventario, {"casa": Nas("casa", HOST)})
+    assert h.nas_comprobar("casa")[0]["datos"]["acceso"] == "clave"
+    mundo.cortar()                      # la conexion cacheada murio ...
+    mundo.acepta_clave = False          # ... y el NAS ya no admite la clave
+    datos = h.nas_comprobar("casa")[0]["datos"]
+    assert datos["acceso"] == "contrasena" and len(datos["avisos"]) == 1
+
+
+# --- nas_alta: la prueba de la clave -------------------------------------------------------------
+
+def nas_con_corte_tras_instalar(error):
+    """La clave se instala bien y la conexion de PRUEBA siguiente falla por la red."""
+    mundo = nas_simulado()
+
+    def instala(orden, sudo):
+        mundo.acepta_clave = True
+        mundo.error_conexion = error
+        return ""
+    mundo.respuestas[INSTALAR] = instala
+    return mundo
+
+
+def test_alta_con_un_corte_al_probar_la_clave_deja_auto_y_no_acusa_al_nas(tmp_path):
+    mundo = nas_con_corte_tras_instalar(paramiko.SSHException("Error reading SSH protocol banner"))
+    h, ctx = montar(tmp_path, {HOST: mundo})
+    r = h.nas_alta("casa", HOST)
+    assert r["ok"] is True and r["acceso"] == "contrasena"
+    assert "no se pudo comprobar" in r["avisos"][0] and "no acepta" not in r["avisos"][0]
+    assert "siguiente conexion" in r["avisos"][0]
+    assert guardado(ctx)["casa"].auth == "auto"
+
+
+def test_alta_con_la_clave_de_host_cambiada_al_probar_la_clave_es_error(tmp_path):
+    mundo = nas_simulado()
+
+    def instala(orden, sudo):
+        mundo.acepta_clave = True
+        mundo.host_cambiado = True
+        return ""
+    mundo.respuestas[INSTALAR] = instala
+    h, ctx = montar(tmp_path, {HOST: mundo})
+    r = h.nas_alta("casa", HOST)
+    assert r["ok"] is False and "clave de host" in r["error"]
+    assert guardado(ctx) == {}
+
+
+def test_enrolar_con_un_corte_al_probar_la_clave_no_dice_que_el_nas_la_rechace(tmp_path):
+    mundo = nas_con_corte_tras_instalar(OSError("timed out"))
+    h, ctx = montar(tmp_path, {HOST: mundo})
+    inv.guardar(ctx.cfg.inventario, {"casa": Nas("casa", HOST)})
+    d = h.nas_enrolar()[0]["datos"]
+    assert d["clave_instalada"] is True and d["acceso"] == "contrasena"
+    assert "no se pudo comprobar" in d["aviso"] and "cada conexion" in d["aviso"]
+    assert guardado(ctx)["casa"].auth == "auto"
+
+
+def test_enrolar_con_la_clave_rechazada_deja_el_inventario_y_avisa_de_lo_que_pasara(tmp_path):
+    h, ctx = montar(tmp_path, {HOST: nas_simulado(acepta_la_clave_tras_instalar=False)})
+    inv.guardar(ctx.cfg.inventario, {"casa": Nas("casa", HOST)})
+    d = h.nas_enrolar()[0]["datos"]
+    assert "cada conexion" in d["aviso"]
+    assert guardado(ctx)["casa"].auth == "auto"
+
+
+# --- nas_enrolar de un solo NAS --------------------------------------------------------------------
+
+def test_enrolar_un_nas_concreto_no_toca_los_demas(tmp_path):
+    a, b = nas_simulado(), nas_simulado()
+    h, ctx = montar(tmp_path, {HOST: a, "192.0.2.20": b})
+    inv.guardar(ctx.cfg.inventario, {"a": Nas("a", HOST), "b": Nas("b", "192.0.2.20")})
+    r = h.nas_enrolar("b")
+    assert [x["nas"] for x in r] == ["b"] and r[0]["ok"] is True
+    assert a.clientes == [] and len(instalaciones(b)) == 1
+
+
+def test_enrolar_un_nombre_que_no_existe_lista_los_validos(tmp_path):
+    h, ctx = montar(tmp_path, {HOST: nas_simulado()})
+    inv.guardar(ctx.cfg.inventario, {"casa": Nas("casa", HOST)})
+    r = h.nas_enrolar("nope")
+    assert r[0]["ok"] is False and "casa" in r[0]["error"]
+
+
+# --- nas_alta: equipo repetido, datos saneados, limpieza que falla ---------------------------------------
+
+def test_alta_del_mismo_equipo_con_otro_nombre_no_llega_a_conectar(tmp_path):
+    mundo = nas_simulado()
+    h, ctx = montar(tmp_path, {HOST: mundo})
+    assert h.nas_alta("a", HOST)["ok"] is True
+    conexiones = mundo.conexiones
+    r = h.nas_alta("b", HOST)
+    assert r["ok"] is False and "ya esta en el inventario como a" in r["error"]
+    assert mundo.conexiones == conexiones and list(guardado(ctx)) == ["a"]
+
+
+def test_alta_del_mismo_host_en_otro_puerto_es_otro_equipo(tmp_path):
+    mundo = nas_simulado()
+    h, ctx = montar(tmp_path, {HOST: mundo})
+    assert h.nas_alta("a", HOST)["ok"] is True
+    assert h.nas_alta("b", HOST, port=2222)["ok"] is True
+
+
+def test_alta_no_devuelve_la_contrasena_ni_en_el_perfil(tmp_path):
+    mundo = nas_simulado()
+    mundo.respuestas[DET] = HERO.replace("nombre=NAS-EJEMPLO", "nombre=secreto")
+    h, _ = montar(tmp_path, {HOST: mundo})
+    r = h.nas_alta("casa", HOST)
+    assert r["ok"] is True and r["perfil"]["nombre"] == "***"
+    assert "secreto" not in str(r)
+
+
+def test_alta_fallida_cuyo_olvido_de_la_huella_falla_conserva_el_error(tmp_path, monkeypatch):
+    mundo = nas_simulado()
+    mundo.respuestas["id"] = ID_NORMAL
+    h, ctx = montar(tmp_path, {HOST: mundo})
+
+    def falla(cfg, nas):
+        raise PermissionError(13, "known_hosts en uso")
+    monkeypatch.setattr(transporte, "olvidar_host", falla)
+    r = h.nas_alta("casa", HOST)
+    assert r["ok"] is False
+    assert "administrators" in r["error"]                       # el error de verdad no se pierde
+    assert "known_hosts" in r["error"]                         # y se dice que la huella quedo
+
+
+# --- la huella de host y el inventario -------------------------------------------------------------------
+
+def test_baja_cuyo_olvido_de_la_huella_falla_deja_el_nas_para_repetirla(tmp_path, monkeypatch):
+    h, ctx = montar(tmp_path, {HOST: nas_simulado()})
+    assert h.nas_alta("casa", HOST)["ok"] is True
+    real = transporte.olvidar_host
+
+    def falla(cfg, nas):
+        raise PermissionError(13, "known_hosts en uso")
+    monkeypatch.setattr(transporte, "olvidar_host", falla)
+    r = h.nas_baja("casa")
+    assert r["ok"] is False and "PermissionError" in r["error"]
+    assert "casa" in guardado(ctx)                              # sigue dado de alta
+    monkeypatch.setattr(transporte, "olvidar_host", real)
+    assert h.nas_baja("casa")["ok"] is True                     # y repetirla funciona
+    assert hosts_fijados(ctx) == [] and guardado(ctx) == {}
+
+
+def importado(tmp_path, entradas):
+    fichero = tmp_path / "importar.toml"
+    inv.guardar(fichero, entradas)
+    return str(fichero)
+
+
+def test_importar_con_sobrescribir_y_otro_host_olvida_la_huella_del_viejo(tmp_path):
+    h, ctx = montar(tmp_path, {HOST: nas_simulado()})
+    assert h.nas_alta("casa", HOST)["ok"] is True
+    r = h.inventario_importar(importado(tmp_path, {"casa": Nas("casa", "192.0.2.77")}), sobrescribir=True)
+    assert r["sustituidos"] == ["casa"]
+    assert hosts_fijados(ctx) == []
+
+
+def test_importar_con_otro_host_conserva_la_huella_si_otro_nas_usa_el_viejo(tmp_path):
+    h, ctx = montar(tmp_path, {HOST: nas_simulado()})
+    assert h.nas_alta("casa", HOST)["ok"] is True
+    inv.guardar(ctx.cfg.inventario, dict(guardado(ctx), alias=Nas("alias", HOST)))
+    h.inventario_importar(importado(tmp_path, {"casa": Nas("casa", "192.0.2.77")}), sobrescribir=True)
+    assert hosts_fijados(ctx) == [HOST]
+
+
+def test_importar_sin_cambiar_el_host_no_toca_la_huella(tmp_path):
+    h, ctx = montar(tmp_path, {HOST: nas_simulado()})
+    assert h.nas_alta("casa", HOST)["ok"] is True
+    h.inventario_importar(importado(tmp_path, {"casa": Nas("casa", HOST, auth="contrasena")}),
+                          sobrescribir=True)
+    assert hosts_fijados(ctx) == [HOST]
+    assert guardado(ctx)["casa"].auth == "contrasena"

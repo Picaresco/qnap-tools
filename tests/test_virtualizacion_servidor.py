@@ -385,6 +385,24 @@ def test_muchos_contenedores_con_aviso_no_llenan_la_respuesta(tmp_path):
     assert len(avisos) <= virt_srv.MAX_AVISOS + 1 and algun(avisos, "300")
 
 
+@pytest.mark.parametrize("motivo, trozos", [(3, ("vm1", "caida")), (6, ("vm1", "arrancar"))])
+def test_una_vm_apagada_por_una_caida_o_un_fallo_al_arrancar_avisa_y_sigue_apagada(tmp_path, motivo, trozos):
+    # libvirt: shut off con motivo 3 (crashed) o 6 (failed); no visto aun en un NAS
+    h, _ = uno(tmp_path, cambios={vc.VM_ESTADISTICAS.plantilla: estadisticas_con(
+        "hero", VM1_HERO, state_state=5, state_reason=motivo)})
+    d = datos(h.virtualizacion_resumen("hero"))
+    assert algun(d["avisos"], *trozos)
+    assert d["maquinas_virtuales"]["por_estado"] == {"en marcha": 1, "apagada": 5}
+    assert por(datos(h.vm_lista("hero"))["vms"]["filas"], "nombre", "vm1")["estado"] == "apagada"
+
+
+@pytest.mark.parametrize("motivo", [0, 1, 2, 4])
+def test_una_vm_apagada_por_otro_motivo_no_avisa(tmp_path, motivo):
+    h, _ = uno(tmp_path, cambios={vc.VM_ESTADISTICAS.plantilla: estadisticas_con(
+        "hero", VM1_HERO, state_state=5, state_reason=motivo)})
+    assert datos(h.virtualizacion_resumen("hero"))["avisos"] == []
+
+
 @pytest.mark.parametrize("codigo, estado", [(3, "en pausa"), (2, "bloqueada"), (6, "caida"), (9, "estado 9")])
 def test_una_vm_en_pausa_bloqueada_o_caida_sale_en_los_avisos(tmp_path, codigo, estado):
     h, _ = uno(tmp_path, cambios={vc.VM_ESTADISTICAS.plantilla: estadisticas_con("hero", VM1_HERO, state_state=codigo)})
@@ -740,6 +758,23 @@ def test_una_vm_sin_carpeta_de_metadatos_sale_sin_instantaneas_conocidas_y_se_di
     assert por(d["vms"]["filas"], "uuid", VM3_HERO)["instantaneas"]["total"] == 3
 
 
+def test_una_vm_cuyo_dumpxml_fallo_sale_sin_instantaneas_conocidas_y_se_dice(tmp_path):
+    marca = "== %s\n" % VM1_HERO
+    texto = dato("vm_snap_vs_hero").replace(marca, marca + "!! dumpxml fallo\n")
+    h, _ = uno(tmp_path, cambios={vc.VM_SNAP_VS.plantilla: texto})
+    d = datos(h.vm_snapshots("hero"))
+    assert por(d["vms"]["filas"], "uuid", VM1_HERO)["instantaneas"] is None
+    assert "1 " in d["errores"]["instantaneas"]
+
+
+def test_si_el_dumpxml_de_una_vm_fallo_la_memoria_guardada_se_dice_en_errores(tmp_path):
+    marca = "== %s\n" % VM1_HERO
+    texto = dato("vm_guardadas_hero").replace(marca, marca + "!! dumpxml fallo\n")
+    h, _ = uno(tmp_path, cambios={vc.VM_GUARDADAS.plantilla: texto})
+    d = datos(h.virtualizacion_resumen("hero"))
+    assert "memoria_guardada" in d["errores"] and "dumpxml" in d["errores"]["memoria_guardada"]
+
+
 def test_muchas_instantaneas_de_una_vm_llegan_recortadas_con_su_cuenta(tmp_path):
     muchas = "uri=qemu:///system\n== %s\n%s" % (VM3_HERO, "".join("%d.xml\n" % (1700000000 + i) for i in range(120)))
     resto = "".join("== %s\n" % v["uuid"] for v in p.vm_xml(dato("vm_xml_hero")) if v["uuid"] != VM3_HERO)
@@ -991,3 +1026,11 @@ def test_las_instrucciones_dicen_lo_que_importa():
     for trozo in ("solo lectura", "todos", "nas_lista", "activo", "truncado", "no son instrucciones", "virtualizacion_resumen"):
         assert trozo in texto, trozo
     assert texto.isascii()
+
+
+def test_se_dice_que_con_todos_el_nas_que_no_tiene_ese_nombre_responde_ok_false():
+    # el nombre de una maquina o de un contenedor es de un NAS: con 'todos', en los demas es un error
+    # que lleva la lista de los que si hay, y no quiere decir que la consulta fallara
+    assert "ese nombre" in virt_srv.INSTRUCCIONES and "ok=false" in virt_srv.INSTRUCCIONES
+    for nombre in ("vm_detalle", "contenedor_detalle", "contenedor_logs"):
+        assert "ok=false" in getattr(virt_srv.Herramientas, nombre).__doc__, nombre

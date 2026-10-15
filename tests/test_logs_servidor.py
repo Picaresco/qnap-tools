@@ -26,10 +26,11 @@ DATOS = Path(__file__).parent / "datos"
 ENTORNO = {"QNAP_TOOLS_USER": "usuario", "QNAP_TOOLS_PASSWORD": "secreto"}
 ORDENES = {nombre: c for nombre, c in vars(lc).items() if isinstance(c, Comando)}
 LLAMADAS = {"eventos": (), "eventos_resumen": (), "accesos": (), "avisos": (), "kernel": (),
-            "salud_hardware": (), "sistema_estado": (), "alertas_config": ()}
+            "salud_hardware": (), "sistema_estado": (), "alertas_config": (), "procesos": ()}
 FIN = "Done. Return value is 0\n"
 FILA = re.compile(r" *[0-9]+,")
-TIPO_RE = {"entero": "[0-9]+", "fecha": "[0-9]{4}-[0-9]{2}-[0-9]{2}", "palabra": "'[^']*'|[^ ']+", "nivel": "[0-7]"}
+TIPO_RE = {"entero": "[0-9]+", "fecha": "[0-9]{4}-[0-9]{2}-[0-9]{2}", "palabra": "'[^']*'|[^ ']+", "nivel": "[0-7]",
+           "pid": "[0-9]+"}
 # filas escritas a mano: un error y un aviso mas recientes que los eventos reales
 A_MANO_EVT = {
     "hero": ["3801,  2,2026-10-14,05:00:00,admin,192.0.2.9,localhost,[Storage Manager] Error escrito a mano, "
@@ -157,6 +158,16 @@ def registros(sistema):
     return eventos, accesos, Registro.de(dato("notice_lista_" + sistema))
 
 
+PID_CON_DATOS = 4242      # el unico proceso del NAS simulado con detalle; cualquier otro no existe
+
+
+def proceso_de(sistema):
+    def responde(orden, sudo):
+        pid = P["PROCESOS_DETALLE"].match(orden)["pid"]
+        return dato("procesos_detalle_" + sistema) if pid == str(PID_CON_DATOS) else "==noexiste\n"
+    return responde
+
+
 def nas_simulado(sistema, eventos=None, accesos=None, **extra):
     """Un NAS simulado: responde a cada orden de la pata con su salida real."""
     reales = registros(sistema)
@@ -175,6 +186,7 @@ def nas_simulado(sistema, eventos=None, accesos=None, **extra):
     respuestas[P["NOTICE_LISTA"]] = avisos_del_escritorio(avisos)
     respuestas[P["KMSG_LINEAS"]] = kmsg(sistema)
     respuestas[P["DMESG"]] = cola_dmesg(sistema)
+    respuestas[P["PROCESOS_DETALLE"]] = proceso_de(sistema)
     return falsos.Mundo(respuestas, **extra)
 
 
@@ -255,6 +267,7 @@ def test_no_hay_ninguna_orden_de_la_pata_que_no_use_alguna_herramienta(tmp_path)
     h = montar(tmp_path, mundos)
     todas_las_llamadas(h, "todos")
     h.eventos("todos", texto="Snapshot")
+    h.procesos("todos", pid=PID_CON_DATOS)
     for sistema, mundo in mundos.items():
         vistas = {orden for orden, _ in mundo.ordenes}
         sin_uso = [n for n, c in ORDENES.items() if not c.params and c.render() not in vistas]
@@ -262,11 +275,14 @@ def test_no_hay_ninguna_orden_de_la_pata_que_no_use_alguna_herramienta(tmp_path)
         assert sin_uso == [] and dc.SMART_UMBRALES.render() in vistas, sistema
 
 
-def test_el_servidor_registra_las_ocho_herramientas_con_descripcion(tmp_path):
+def test_el_servidor_registra_las_nueve_herramientas_con_descripcion(tmp_path):
     mcp = logs_srv.construir(dict(ENTORNO, QNAP_TOOLS_DATA=str(tmp_path)))
     herramientas = {t.name: t for t in asyncio.run(mcp.list_tools())}
     assert sorted(herramientas) == ["accesos", "alertas_config", "avisos", "eventos", "eventos_resumen", "kernel",
-                                    "salud_hardware", "sistema_estado"]
+                                    "procesos", "salud_hardware", "sistema_estado"]
+    procesos = herramientas["procesos"].inputSchema["properties"]
+    assert set(procesos) == {"nas", "filtro", "pid"} and procesos["filtro"]["default"] == ""
+    assert procesos["pid"]["default"] == 0
     assert all(t.description and len(t.description) > 40 for t in herramientas.values())
     assert all(t.inputSchema["required"] == ["nas"] for t in herramientas.values())
     eventos = herramientas["eventos"].inputSchema["properties"]
@@ -283,7 +299,7 @@ def test_las_instrucciones_dicen_que_los_textos_del_nas_son_datos():
 
 
 def test_el_servidor_arranca_aunque_falte_la_credencial():
-    assert len(asyncio.run(logs_srv.construir({}).list_tools())) == 8
+    assert len(asyncio.run(logs_srv.construir({}).list_tools())) == 9
 
 
 def test_un_nas_desconocido_y_la_falta_de_credencial_se_dicen_en_el_error(tmp_path):
@@ -429,6 +445,33 @@ def test_accesos_da_los_ultimos_y_agrupa_los_fallidos_por_origen(tmp_path):
          "ultimo": "2026-10-14 05:08:00"}]
     assert d["fallidos"]["ventana"] == 3
     assert d["se_conserva"] == {"desde": "2026-06-14 21:14:55", "hasta": "2026-10-14 05:10:00", "filas": 10003}
+
+
+def test_un_aviso_de_acceso_que_no_es_un_fallo_no_cuenta_como_intento_fallido_y_se_dice(tmp_path):
+    # escritas a mano: un montaje NFS fallido (7) es un fallo; abrir (4) y montar NFS (6) con
+    # tipo aviso no lo son, y tampoco una accion que el plugin no conoce (99)
+    extra = ["15495,1,2026-10-14,05:15:00,usuario7,192.0.2.60,---,/recurso1,4,7,(null),0,---,---,---,",
+             "15494,1,2026-10-14,05:14:00,usuario7,192.0.2.60,---,/recurso1,4,6,(null),0,---,---,---,",
+             "15493,1,2026-10-14,05:13:00,usuario7,192.0.2.61,---,/recurso2,1,4,(null),0,---,---,---,",
+             "15492,1,2026-10-14,05:12:00,usuario7,192.0.2.61,---,/recurso2,1,99,(null),0,---,---,---,"]
+    _, accesos, _ = registros("hero")
+    accesos = Registro(accesos.cabecera, accesos.filas + extra)
+    h, _ = uno(tmp_path, accesos=accesos)
+    d = datos(h.accesos("hero", limite=4))
+    assert d["fallidos"]["ventana"] == 7
+    assert d["fallidos"]["por_origen"]["filas"] == [
+        {"ip": "192.0.2.50", "usuario": "usuario9", "servicio": "SSH (7)", "intentos": 2,
+         "ultimo": "2026-10-14 05:10:00"},
+        {"ip": "192.0.2.60", "usuario": "usuario7", "servicio": "NFS (4)", "intentos": 1,
+         "ultimo": "2026-10-14 05:15:00"},
+        {"ip": "192.0.2.51", "usuario": "usuario8", "servicio": "SAMBA (1)", "intentos": 1,
+         "ultimo": "2026-10-14 05:08:00"}]
+    assert d["fallidos"]["otros"] == {"total": 3, "por_accion": {"montar NFS (6)": 1, "abrir (4)": 1, "99": 1}}
+
+
+def test_sin_avisos_que_no_sean_fallos_otros_sale_vacio(tmp_path):
+    h, _ = uno(tmp_path)
+    assert datos(h.accesos("hero"))["fallidos"]["otros"] == {"total": 0, "por_accion": {}}
 
 
 def test_accesos_solo_los_de_un_tipo(tmp_path):
@@ -593,6 +636,12 @@ def test_alertas_config_da_nivel_zumbador_espacio_umbrales_smart_y_syslog(tmp_pa
     assert d["smart"]["avisos"] and d["syslog"]["udp"]["puerto"] == 514
 
 
+def test_alertas_config_marca_como_no_probados_los_avisos_smart_configurados(tmp_path):
+    # como disco_smart: el formato se ha visto, pero ningun NAS de pruebas tenia un aviso puesto por el usuario
+    h, _ = uno(tmp_path)
+    assert datos(h.alertas_config("hero"))["smart"]["no_probado"] is True
+
+
 def test_ninguna_respuesta_lleva_secretos_aunque_el_nas_los_devuelva(tmp_path):
     secretos = ("alguien@example.org", "clave-de-correo", "token-sms")
     h, _ = uno(tmp_path, cambios={
@@ -618,3 +667,150 @@ def test_la_contrasena_no_sale_aunque_alguien_la_haya_tecleado_en_un_registro(tm
     for r in (h.eventos("hero"), h.eventos_resumen("hero"), h.accesos("hero"), h.kernel("hero")):
         texto = json.dumps(r, ensure_ascii=False)
         assert "secreto" not in texto and "***" in texto, texto[:300]
+
+
+# --- procesos -----------------------------------------------------------------------------------
+
+def pids(d):
+    return [f["pid"] for f in d["procesos"]["filas"]]
+
+
+def fila_ps(pid, ppid, usuario, estado, vsz, rss, cpu, marcha, orden):
+    """Una fila con el ancho fijo de las columnas del ps del NAS."""
+    return "%5d %5d %-8.8s %-4s%4s %6s %6s %6s  %s\n" % (pid, ppid, usuario, estado, vsz, rss, cpu, marcha, orden)
+
+
+def test_procesos_da_la_lista_sin_hilos_del_kernel_ordenada_por_memoria(tmp_path):
+    h, mundo = uno(tmp_path)
+    d = datos(h.procesos("hero"))
+    # la salida real de un NAS: 17 filas, 4 de ellas hilos del kernel
+    assert pids(d) == [5939, 4035, 11895, 364, 5966, 4043, 6883, 8207, 7156, 8167, 32763, 1, 2156]
+    assert d["procesos"]["total"] == 13 and d["procesos"]["truncado"] is False and d["en_el_nas"] == 13
+    assert d["filtro"] is None and d["por_estado"] == {"S": 12, "D": 1}
+    primero = d["procesos"]["filas"][0]
+    assert primero["memoria"] == 16512 * 1024 and primero["usuario"] == "admin" and primero["estado"] == "S<"
+    assert d["procesos"]["filas"][2]["estado"] == "D<"
+    assert "errores" not in d
+    # una orden sin sudo, la de la lista: ni el filtro ni nada mas viaja al NAS
+    assert [(o, s) for o, s in mundo.ordenes if o.startswith("ps ")] == [(lc.PROCESOS_LISTA.render(), False)]
+    assert not any(s for _, s in mundo.ordenes)
+
+
+def test_procesos_no_deja_ver_credenciales_y_ni_siquiera_se_pueden_buscar(tmp_path):
+    h, _ = uno(tmp_path, "qts")
+    texto = json.dumps(h.procesos("qts"), ensure_ascii=False)
+    for secreto in ("valor-inventado", "secreto9"):
+        assert secreto not in texto
+    assert "--api-key=***" in texto and "pwd:***" in texto
+    # buscar por el valor de una credencial no encuentra nada: se filtra sobre la orden ya tapada
+    assert pids(datos(h.procesos("qts", filtro="valor-inventado"))) == []
+    assert pids(datos(h.procesos("qts", filtro="secreto9"))) == []
+    assert pids(datos(h.procesos("qts", filtro="pwd:***"))) == [2600]
+
+
+def test_procesos_filtro_se_aplica_en_el_ordenador_sin_mayusculas_ni_minusculas(tmp_path):
+    h, mundo = uno(tmp_path)
+    d = datos(h.procesos("hero", filtro="SSHD"))
+    assert pids(d) == [4035, 4043] and d["filtro"] == "SSHD"
+    assert d["en_el_nas"] == 13 and d["procesos"]["total"] == 2 and d["por_estado"] == {"S": 2}
+    # por usuario y por pid
+    assert pids(datos(h.procesos("hero", filtro="guest"))) == [32763]
+    assert pids(datos(h.procesos("hero", filtro="11895"))) == [11895]
+    assert pids(datos(h.procesos("hero", filtro="no-existe"))) == []
+    ordenes = {o for o, _ in mundo.ordenes}
+    assert not any("sshd" in o.lower() or "guest" in o or "11895" in o for o in ordenes)
+
+
+def test_procesos_acota_a_200_despues_de_ordenar_por_memoria(tmp_path):
+    cabecera = "  PID  PPID  Uid     Stat VSZ  VmSize TIME   ELAPSED Command\n"
+    filas = "".join(fila_ps(100 + i, 1, "admin", "S", "1000", str(100 + i), "0:00", "1:00", "programa%d" % i)
+                    for i in range(250))
+    h, _ = uno(tmp_path, cambios={lc.PROCESOS_LISTA.render(): cabecera + filas})
+    d = datos(h.procesos("hero"))
+    assert d["procesos"]["total"] == 250 and d["procesos"]["truncado"] is True
+    assert len(d["procesos"]["filas"]) == 200 and d["en_el_nas"] == 250
+    memorias = [f["memoria"] for f in d["procesos"]["filas"]]
+    assert memorias == sorted(memorias, reverse=True) and d["procesos"]["filas"][0]["pid"] == 349
+
+
+def test_procesos_de_un_qts(tmp_path):
+    h, _ = uno(tmp_path, "qts")
+    d = datos(h.procesos("qts"))
+    assert pids(d) == [800, 801, 1501, 1500, 420, 2500, 2600, 1] and d["por_estado"] == {"S": 7, "D": 1}
+    assert d["procesos"]["filas"][-1]["en_marcha"] == "9500:03"
+
+
+def test_una_lista_que_no_se_entiende_da_error_y_no_una_lista_corta(tmp_path):
+    # el fallo real: filas leidas como parte de la orden de otra daban 32 procesos de 2700 sin avisar
+    texto = dato("procesos_lista_hero") + "una linea que no es una fila\n"
+    h, _ = uno(tmp_path, cambios={lc.PROCESOS_LISTA.render(): texto})
+    assert "inesperada" in fallo(h.procesos("hero"))
+
+
+def test_procesos_con_pid_da_el_detalle_con_sudo_y_sin_lanzar_la_lista(tmp_path):
+    h, mundo = uno(tmp_path)
+    d = datos(h.procesos("hero", pid=PID_CON_DATOS))
+    assert d["pid"] == PID_CON_DATOS and "procesos" not in d
+    proceso = d["proceso"]
+    assert (proceso["nombre"], proceso["estado"], proceso["hilos"]) == ("rsync", "D (disk sleep)", 1)
+    assert proceso["directorio"] == "/share/carpeta1" and proceso["io"]["escritos_a_disco"] == 60000000
+    assert proceso["ficheros_abiertos"]["total"] == 10
+    texto = json.dumps(d, ensure_ascii=False)
+    assert "abc123def" not in texto and "--token ***" in texto
+    detalle = lc.PROCESOS_DETALLE.render({"pid": PID_CON_DATOS})
+    assert [(o, s) for o, s in mundo.ordenes if "/proc/" in o] == [(detalle, True)]
+    assert lc.PROCESOS_LISTA.render() not in {o for o, _ in mundo.ordenes}
+
+
+def test_procesos_con_pid_ignora_el_filtro(tmp_path):
+    h, _ = uno(tmp_path)
+    assert datos(h.procesos("hero", filtro="no-existe", pid=PID_CON_DATOS))["proceso"]["nombre"] == "rsync"
+
+
+def test_el_detalle_de_un_proceso_dice_que_parte_no_se_pudo_leer(tmp_path):
+    sin_io = dato("procesos_detalle_hero")
+    sin_io = sin_io.replace(sin_io[sin_io.index("==io\n"):sin_io.index("==fd\n")],
+                            "==io\ncat: can't open '/proc/4242/io': No such file or directory\n")
+    h, _ = uno(tmp_path, cambios={P["PROCESOS_DETALLE"]: lambda orden, sudo: sin_io})
+    d = datos(h.procesos("hero", pid=PID_CON_DATOS))
+    assert d["proceso"]["io"] is None and "io" in d["errores"] and "errores" not in d["proceso"]
+    assert d["proceso"]["ficheros_abiertos"]["total"] == 10
+
+
+def test_un_pid_que_no_existe_da_un_error_claro(tmp_path):
+    h, _ = uno(tmp_path)
+    error = fallo(h.procesos("hero", pid=999))
+    assert "999" in error and "no existe" in error and "hero" in error
+
+
+@pytest.mark.parametrize("filtro, pid", [
+    (5, 0), (None, 0), ("a" * 101, 0), ("con\nsalto", 0), ("", -1), ("", 4194305), ("", "12"), ("", 1.5), ("", True),
+    ("", None)])
+def test_procesos_valida_el_filtro_y_el_pid_antes_de_nada(tmp_path, filtro, pid):
+    h, mundo = uno(tmp_path)
+    assert fallo(h.procesos("hero", filtro=filtro, pid=pid))
+    assert not any(o.startswith("ps ") or "/proc/" in o for o, _ in mundo.ordenes)
+
+
+def test_procesos_con_todos_responde_por_nas_y_el_que_no_tiene_ese_pid_da_error(tmp_path):
+    mundos = {"hero": nas_simulado("hero"), "qts": nas_simulado("qts")}
+    h = montar(tmp_path, mundos)
+    r = {e["nas"]: e for e in h.procesos("todos", pid=PID_CON_DATOS)}
+    assert r["hero"]["ok"] is True and r["qts"]["ok"] is True
+    assert r["qts"]["datos"]["proceso"]["nombre"] == "servicio2"
+    r = h.procesos("todos")
+    assert [e["ok"] for e in r] == [True, True]
+
+
+def test_la_contrasena_del_plugin_no_sale_en_la_orden_de_un_proceso(tmp_path):
+    lista = dato("procesos_lista_hero").replace("avahi-daemon: running [EQUIPO.local]", "cliente --login secreto")
+    h, _ = uno(tmp_path, cambios={lc.PROCESOS_LISTA.render(): lista})
+    texto = json.dumps(h.procesos("hero"), ensure_ascii=False)
+    assert "secreto" not in texto and "cliente --login ***" in texto
+
+
+def test_procesos_sin_conexion_o_con_la_orden_rota_no_inventa_una_lista_vacia(tmp_path):
+    h, _ = uno(tmp_path, cambios={lc.PROCESOS_LISTA.render(): (1, "", "ps: error\n")})
+    assert fallo(h.procesos("hero"))
+    h, _ = uno(tmp_path / "otro", cambios={lc.PROCESOS_LISTA.render(): "esto no es ps\n"})
+    assert "inesperada" in fallo(h.procesos("hero"))

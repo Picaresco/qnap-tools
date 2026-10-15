@@ -36,6 +36,7 @@ TEXTO_XML = re.compile(r">([^<]*)<")
 ENTIDADES = (("&lt;", "<"), ("&gt;", ">"), ("&quot;", '"'), ("&apos;", "'"), ("&amp;", "&"))
 FICHERO_SNAP = re.compile(r"([0-9]{9,11})\.(xml|state)")
 SIN_LEER = "!! "                    # lo que una orden escribe cuando no encuentra lo que iba a leer
+DUMPXML_FALLO = "!! dumpxml fallo"  # virsh no pudo dar la definicion de una VM
 
 
 # --- utilidades -----------------------------------------------------------------------------
@@ -161,10 +162,11 @@ def vm_estadisticas(texto):
             raise _no_reconocida(que, "VM %s sin estado" % uuid)
         codigo = _entero(c["state.state"], "el estado")
         estado = ESTADOS_VM.get(codigo, "estado %d" % codigo)
-        if codigo == APAGADA and _numero(c, "state.reason", "el motivo del estado") == GUARDADA:
+        motivo = _numero(c, "state.reason", "el motivo del estado") if codigo == APAGADA else None
+        if motivo == GUARDADA:
             estado = "suspendida"
         vms.append({
-            "uuid": uuid, "estado": estado, "estado_codigo": codigo,
+            "uuid": uuid, "estado": estado, "estado_codigo": codigo, "motivo_apagado": motivo,
             "cpu_ns": _numero(c, "cpu.time"), "vcpus": _numero(c, "vcpu.current"),
             "memoria": _kib(c, "balloon.current"), "memoria_max": _kib(c, "balloon.maximum"),
             "memoria_residente": _kib(c, "balloon.rss"),
@@ -192,6 +194,9 @@ def vm_guardadas(texto):
     for uuid, lineas in _por_vm(_de_libvirt(texto, que), que):
         salida[uuid] = None
         for linea in lineas:
+            if linea.startswith(DUMPXML_FALLO):
+                raise ValueError("%s: virsh dumpxml fallo con la VM %s: no se sabe si tiene memoria guardada"
+                                 % (que, uuid))
             if linea.startswith(SIN_LEER):
                 continue
             m = GUARDADA_EN_DISCO.fullmatch(linea.strip())
@@ -349,11 +354,15 @@ def vm_ip(texto):
     lineas = _lineas(texto)
     if len(lineas) < 2 or lineas[0].split()[:1] != ["Name"] or not lineas[1].startswith("---"):
         raise _no_reconocida(que, lineas[0] if lineas else "")
-    direcciones = []
+    direcciones, anterior = [], None
     for linea in lineas[2:]:
         campos = linea.split()
+        if len(campos) == 4 and campos[:2] == ["-", "-"] and anterior:
+            # la segunda direccion de una interfaz: virsh no repite su nombre ni su MAC
+            campos[:2] = anterior
         if len(campos) != 4 or not re.fullmatch(r"(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}", campos[1]):
             raise _no_reconocida(que, linea)
+        anterior = campos[:2]
         direcciones.append({"interfaz": campos[0], "mac": campos[1].lower(), "protocolo": campos[2],
                             "direccion": campos[3].rsplit("/", 1)[0]})
     return direcciones

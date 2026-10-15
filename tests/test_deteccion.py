@@ -70,6 +70,13 @@ def test_salida_insuficiente_es_deteccion_fallida(tmp_path, salida):
     assert "casa" in str(e.value)
 
 
+def test_un_codigo_de_salida_distinto_de_cero_es_deteccion_fallida(tmp_path):
+    con, _ = conexion(tmp_path, (1, leer("deteccion_hero.txt"), ""))
+    with pytest.raises(deteccion.DeteccionFallida) as e:
+        deteccion.detectar(con)
+    assert "casa" in str(e.value) and "codigo 1" in str(e.value)
+
+
 def test_tiempo_agotado_es_deteccion_fallida(tmp_path, monkeypatch):
     con, _ = conexion(tmp_path, falsos.CUELGA)
     monkeypatch.setattr(deteccion, "DETECCION", deteccion.DETECCION.__class__(

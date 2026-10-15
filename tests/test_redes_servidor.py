@@ -171,7 +171,7 @@ def test_interfaces_de_una_sola_da_enlace_controlador_y_errores(tmp_path):
     assert d["enlace"]["velocidad_mbps"] == 1000 and d["enlace"]["velocidad_maxima_mbps"] == 2500
     assert d["controlador"] == {"driver": "r8125", "version": "9.013.02-NAPI-RSS", "firmware": None,
                                 "bus": "0000:0c:00.0"}
-    assert d["errores"] == {"disponible": True, "contadores": 39, "errores": {"rx_mac_missed": 817}}
+    assert d["contadores_error"] == {"disponible": True, "contadores": 39, "distintos_de_cero": {"rx_mac_missed": 817}}
     assert con_sudo(mundo)["ethtool eth0"] is False
 
 
@@ -201,7 +201,7 @@ def test_interfaces_de_una_virtual_no_falla_por_no_tener_controlador(tmp_path):
     d = r["datos"]
     assert d["enlace"]["enlace"] is True and d["enlace"]["velocidad_mbps"] is None
     assert "Operation not supported" in d["controlador"]["error"]
-    assert d["errores"] == {"disponible": False, "contadores": 0, "errores": {}}
+    assert d["contadores_error"] == {"disponible": False, "contadores": 0, "distintos_de_cero": {}}
 
 
 # --- red_conmutadores ---------------------------------------------------------------------------
@@ -576,3 +576,60 @@ def test_el_servidor_registra_las_nueve_herramientas_con_descripcion(tmp_path):
 
 def test_el_servidor_arranca_aunque_falte_la_credencial():
     assert len(asyncio.run(redes_srv.construir({}).list_tools())) == 9
+
+
+# --- un bloque que falla no tumba el resto de la respuesta ----------------------------------------------
+
+SUDO_RECHAZADO = (1, "", "Sorry, try again.\nsudo: 1 incorrect password attempt\n")
+
+
+def test_servicios_si_sudo_no_acepta_la_contrasena_solo_falla_el_bloque_de_los_puertos(tmp_path):
+    mundo = nas_hero()
+    mundo.respuestas["netstat -tlnp"] = SUDO_RECHAZADO
+    mundo.respuestas["netstat -ulnp"] = SUDO_RECHAZADO
+    h, _ = uno_solo(tmp_path, mundo)
+    (r,) = h.red_servicios("casa")
+    assert r["ok"] is True and r["datos"]["configurados"]["ssh"] == {"activo": True, "puerto": 22}
+    assert "sudo" in r["datos"]["en_escucha"]["error"] and "filas" not in r["datos"]["en_escucha"]
+
+
+def test_servicios_si_falla_solo_el_udp_no_da_los_puertos_a_medias(tmp_path):
+    mundo = nas_hero()
+    mundo.respuestas["netstat -ulnp"] = SUDO_RECHAZADO
+    h, _ = uno_solo(tmp_path, mundo)
+    (r,) = h.red_servicios("casa")
+    assert r["ok"] is True and "error" in r["datos"]["en_escucha"] and "filas" not in r["datos"]["en_escucha"]
+
+
+def test_cortafuegos_si_sudo_no_acepta_la_contrasena_solo_falla_el_bloque_de_iptables(tmp_path):
+    mundo = nas_hero()
+    mundo.respuestas["iptables-save"] = SUDO_RECHAZADO
+    mundo.respuestas[rc.QUFIREWALL.plantilla] = dato("qufirewall_activo_hero")
+    h, _ = uno_solo(tmp_path, mundo)
+    (r,) = h.red_cortafuegos("casa")
+    d = r["datos"]
+    assert r["ok"] is True and "sudo" in d["iptables"]["error"]
+    assert d["bloqueo_ip"]["activo"] is True
+    assert d["qufirewall"]["cortafuegos"] is True and d["qufirewall"]["reglas"] is None
+
+
+def test_acceso_remoto_si_ddns_no_se_puede_leer_lo_dice_en_su_bloque_y_da_lo_demas(tmp_path):
+    mundo = nas_hero()
+    mundo.respuestas[rc.DDNS.plantilla] = (2, "", "grep: /etc/config.local/ddns.conf: Permission denied\n")
+    h, _ = uno_solo(tmp_path, mundo)
+    (r,) = h.red_acceso_remoto("casa")
+    d = r["datos"]
+    assert r["ok"] is True and "Permission denied" in d["ddns"]["error"] and "myqnapcloud" not in d["ddns"]
+    assert d["upnp"] == {"activo": False} and "tuneles" in d["vpn"]
+
+
+# --- mensajes y convenciones ----------------------------------------------------------------------------
+
+def test_interfaces_el_nombre_no_valido_se_llama_interfaz_en_el_mensaje(tmp_path):
+    h, _ = uno_solo(tmp_path)
+    (r,) = h.red_interfaces("casa", interfaz="eth0; reboot")
+    assert "interfaz no valida" in r["error"] and "iface" not in r["error"]
+
+
+def test_las_instrucciones_explican_donde_va_el_fallo_de_un_bloque():
+    assert '{"error"' in redes_srv.INSTRUCCIONES

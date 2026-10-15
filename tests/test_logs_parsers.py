@@ -499,6 +499,245 @@ def test_la_configuracion_de_alertas():
         p.alertas("nivel=\nzumbador=\naviso_espacio=\nespacio_minimo=\n")
 
 
+# ==== procesos ==================================================================================
+
+CAB_PS = "  PID  PPID  Uid     Stat VSZ  VmSize TIME   ELAPSED Command\n"
+PS_PROPIO = "ps -o pid,ppid,user,stat,vsz,rss,time,etime,args"
+# los 13 procesos de la muestra real, sin los 4 hilos del kernel (2, 3, 4 y 11)
+PIDS_DE_LA_MUESTRA = [1, 364, 2156, 4035, 4043, 5939, 5966, 6883, 7156, 8167, 8207, 11895, 32763]
+
+
+def fila_ps(pid, ppid, usuario, estado, vsz, rss, cpu, marcha, orden):
+    """Una fila con el ancho fijo de las columnas del ps del NAS (comprobado con la salida real)."""
+    return "%5d %5d %-8.8s %-4s%4s %6s %6s %6s  %s\n" % (pid, ppid, usuario, estado, vsz, rss, cpu, marcha, orden)
+
+
+def test_el_formato_de_fila_de_las_pruebas_es_el_de_la_salida_real():
+    reales = dato("procesos_lista_hero").splitlines()
+    assert fila_ps(364, 1, "admin", "S N", "907m", "12760", "0:00", "268:44",
+                   "/usr/local/medialibrary/bin/myidbserver -n -d") == reales[6] + "\n"
+    assert fila_ps(2, 0, "admin", "SW", "0", "", "0:00", "273:14", "[kthreadd]") == reales[2] + "\n"
+
+
+def test_la_muestra_real_da_exactamente_sus_procesos_sin_hilos_del_kernel():
+    # 17 filas: 4 hilos del kernel y 13 procesos; ninguna fila se pega a la orden de otra
+    texto = dato("procesos_lista_hero")
+    assert len(texto.splitlines()) == 18
+    ps = p.procesos_lista(texto)
+    assert [x["pid"] for x in ps] == PIDS_DE_LA_MUESTRA
+    assert not any(x["orden"].startswith("[") for x in ps)
+    # y la orden de ninguno lleva la fila de otro (usuario de la fila pegada)
+    assert not any("admin" in x["orden"] or "guest" in x["orden"] for x in ps)
+
+
+def test_la_lista_de_procesos_lee_las_columnas_de_la_salida_real():
+    por = {x["pid"]: x for x in p.procesos_lista(dato("procesos_lista_hero"))}
+    assert por[1] == {"pid": 1, "ppid": 0, "usuario": "admin", "estado": "S", "memoria_virtual": 4896 * 1024,
+                      "memoria": 2176 * 1024, "tiempo_cpu": "0:04", "en_marcha": "250:44", "orden": "init"}
+    # estado con un espacio en medio: "S N" y "S <" (prioridad baja y alta) y "D <" (esperando al disco)
+    assert (por[364]["estado"], por[5939]["estado"], por[11895]["estado"]) == ("SN", "S<", "D<")
+    # el VSZ con sufijo: 907m = 907 MiB, en una fila con el estado partido
+    assert por[364]["memoria_virtual"] == 907 * 1024 * 1024 and por[364]["memoria"] == 12760 * 1024
+    assert por[364]["orden"] == "/usr/local/medialibrary/bin/myidbserver -n -d"
+    assert por[5966]["memoria_virtual"] == 280 * 1024 * 1024 and por[5966]["ppid"] == 5939
+    # pid y ppid de cinco cifras, usuario distinto y tiempo de arranque corto
+    assert (por[4035]["ppid"], por[4043]["usuario"], por[4043]["en_marcha"]) == (30937, "usuario", "31:27")
+    assert (por[11895]["pid"], por[11895]["ppid"], por[11895]["memoria"]) == (11895, 9001, 14220 * 1024)
+    # la orden se queda con sus espacios y con unos corchetes que no la empiezan
+    assert por[4035]["orden"] == "sshd: usuario [priv]"
+    assert por[32763]["usuario"] == "guest" and por[32763]["orden"] == "avahi-daemon: running [EQUIPO.local]"
+    assert por[5939]["orden"] == "/usr/sbin/fs-service -s 0123456789abcdefghijklmnopqrstuv"
+
+
+def test_la_lista_de_procesos_de_un_qts():
+    ps = p.procesos_lista(dato("procesos_lista_qts"))
+    # fuera: [kthreadd] y el sh y el ps de la propia consulta
+    assert [x["pid"] for x in ps] == [1, 420, 800, 801, 1500, 1501, 2500, 2600]
+    por = {x["pid"]: x for x in ps}
+    assert (por[801]["estado"], por[1500]["estado"]) == ("D<", "SN")
+    assert por[420]["memoria_virtual"] == 13 * 1024 * 1024 and por[1]["en_marcha"] == "9500:03"
+    # un tiempo en marcha mas ancho que su columna no descuadra el resto de la fila
+    assert por[800]["orden"].startswith("/usr/local/sbin/servicio2 --api-key=") and por[800]["tiempo_cpu"] == "80:41"
+
+
+@pytest.mark.parametrize("sufijo, factor", [("", 1), ("k", 1), ("m", 1024), ("g", 1024 ** 2), ("t", 1024 ** 3)])
+def test_la_memoria_acepta_los_sufijos_de_busybox(sufijo, factor):
+    # el VSZ cabe en 4 caracteres y la memoria residente en 6; si no, sale con k, m, g o t (base KiB)
+    (x,) = p.procesos_lista(CAB_PS + fila_ps(77, 1, "admin", "S", "12" + sufijo, "345" + sufijo, "0:00", "1:00", "prog"))
+    assert x["memoria_virtual"] == 12 * factor * 1024 and x["memoria"] == 345 * factor * 1024
+
+
+def test_la_memoria_con_decimales_de_la_salida_real():
+    # filas reales del NAS de laboratorio: por encima de 999m, BusyBox da un decimal ("2.2g", "1.3g")
+    reales = (" 6909     1 admin    S   2.2g  22464   8:35 281:43  /sbin/hal_daemon -f\n"
+              "16982     1 admin    S < 1.3g  16364   0:11 276:15  /usr/sbin/libvirtd -d -l\n")
+    a, b = p.procesos_lista(CAB_PS + reales)
+    assert a["memoria_virtual"] == int(2.2 * 1024 ** 3) and a["memoria"] == 22464 * 1024
+    assert (b["estado"], b["memoria_virtual"]) == ("S<", int(1.3 * 1024 ** 3))
+
+
+def test_una_columna_mas_ancha_que_la_suya_desplaza_la_fila_y_se_lee_igual():
+    # la fila de pid 32763 de la salida real ya viene desplazada un caracter desde el estado; aqui, un
+    # usuario de 12 caracteres (ps no lo recorta) y un pid de 6 cifras, sin cortar por posiciones
+    ancho = "%5d %5d %s %-4s%4s %6s %6s %6s  %s\n" % (123456, 1234567, "usuario.larg", "S N", "12m", "345", "0:01",
+                                                       "2:03", "programa --opcion x")
+    (x,) = p.procesos_lista(CAB_PS + ancho)
+    assert (x["pid"], x["ppid"], x["usuario"], x["estado"]) == (123456, 1234567, "usuario.larg", "SN")
+    assert x["memoria_virtual"] == 12 * 1024 * 1024 and x["memoria"] == 345 * 1024
+    assert (x["tiempo_cpu"], x["en_marcha"], x["orden"]) == ("0:01", "2:03", "programa --opcion x")
+    desplazada = {x["pid"]: x for x in p.procesos_lista(dato("procesos_lista_hero"))}[32763]
+    assert desplazada["memoria_virtual"] == 4116 * 1024 and desplazada["memoria"] == 3328 * 1024
+
+
+def test_las_credenciales_de_la_orden_de_un_proceso_se_tapan():
+    qts = {x["pid"]: x["orden"] for x in p.procesos_lista(dato("procesos_lista_qts"))}
+    assert qts[800] == "/usr/local/sbin/servicio2 --api-key=*** --config /etc/config/servicio2.conf"
+    assert qts[2600] == "db_client user=ejemplo pwd:*** host=192.0.2.9"
+    texto = CAB_PS + fila_ps(655, 1, "admin", "S", "30m", "14500", "1:15", "250:20",
+                             '/usr/sbin/smbd --password=clave-inventada-1 --secret "dos palabras" --token abc123def')
+    (x,) = p.procesos_lista(texto)
+    assert x["orden"] == "/usr/sbin/smbd --password=*** --secret *** --token ***"
+
+
+@pytest.mark.parametrize("texto, tapado", [
+    ("mi --password=abc", "mi --password=***"), ("mi --PASSWORD abc", "mi --PASSWORD ***"),
+    ("x passwd: abc y", "x passwd: *** y"), ("x pass = abc", "x pass = ***"), ("x pwd=abc", "x pwd=***"),
+    ("x token=abc", "x token=***"), ("x --secret abc", "x --secret ***"), ("x apikey=abc", "x apikey=***"),
+    ("x key:abc", "x key:***"), ("x password='dos palabras' y", "x password=*** y"),
+    ('x password="dos palabras" y', 'x password=*** y'), ("x MYSQL_PWD=abc mysql", "x MYSQL_PWD=*** mysql"),
+    ("curl http://usuario1:abc123@192.0.2.5/x", "curl http://usuario1:***@192.0.2.5/x"),
+    # sin credencial: no se toca
+    ("passenger start", "passenger start"), ("keyboard -l es", "keyboard -l es"),
+    ("--key-file /etc/x", "--key-file /etc/x"), ("sleep 3600", "sleep 3600"),
+])
+def test_tapar_credenciales(texto, tapado):
+    assert p.tapar_credenciales(texto) == tapado
+
+
+def test_la_orden_de_un_proceso_se_recorta_a_300_caracteres_despues_de_taparla():
+    larga = "programa " + "a" * 400
+    assert len(p.tapar_credenciales(larga)) == 300
+    ps = p.procesos_lista(CAB_PS + fila_ps(77, 1, "admin", "S", "100", "100", "0:00", "1:00", larga))
+    assert len(ps[0]["orden"]) == 300
+    # el valor de una credencial que empieza antes del corte no se asoma aunque la orden se corte
+    sensible = "x " * 140 + "--password=" + "s" * 50
+    assert "s" * 5 not in p.tapar_credenciales(sensible)
+
+
+def test_un_proceso_sin_memoria_residente_que_no_es_del_kernel_sale_con_memoria_sin_valor():
+    # a mano: la columna de memoria residente vacia con una orden que no va entre corchetes
+    (x,) = p.procesos_lista(CAB_PS + fila_ps(77, 1, "admin", "Z", "0", "", "0:00", "1:00", "programa"))
+    assert x["memoria"] is None and x["memoria_virtual"] == 0 and x["orden"] == "programa"
+
+
+@pytest.mark.parametrize("texto", [
+    "",
+    "error: algo\n",
+    "  PID  PPID  USER  COMMAND\n    1     0 admin S init\n",                  # no es la cabecera
+    "  PID  PPID  Uid     Stat VSZ  VmSize TIME   ELAPSED\n",                    # le falta la columna de la orden
+    "    1     0 admin    S   4896   2176   0:04 250:44  init\n",                # sin cabecera
+])
+def test_la_lista_de_procesos_rechaza_una_cabecera_que_no_reconoce(texto):
+    with pytest.raises(ValueError):
+        p.procesos_lista(texto)
+
+
+@pytest.mark.parametrize("fila", [
+    "esto no es una fila\n",
+    "  continua --token abc\n",                                       # una linea suelta no se pega a la anterior
+    fila_ps(77, 1, "admin", "S", "100", "100", "0:00", "1:00", "prog").replace("   77", "    x"),    # pid
+    fila_ps(77, 1, "admin", "S", "100", "100", "0:00", "1:00", "prog").replace("     1 ", "     x "),  # ppid
+    fila_ps(77, 1, "admin", "S", "12x", "100", "0:00", "1:00", "prog"),                               # VSZ
+    fila_ps(77, 1, "admin", "S", "100", "9z", "0:00", "1:00", "prog"),                                 # rss
+    fila_ps(77, 1, "admin", "12", "100", "100", "0:00", "1:00", "prog"),                               # estado
+    fila_ps(77, 1, "admin", "S", "100", "100", "0:00", "prog", "").rstrip() + "\n",                    # faltan campos
+    "    77\n",
+])
+def test_una_linea_que_no_cuadra_es_un_error_y_no_se_pega_a_la_anterior(fila):
+    buena = fila_ps(1, 0, "admin", "S", "4896", "2176", "0:04", "250:44", "init")
+    for texto in (CAB_PS + fila, CAB_PS + buena + fila, CAB_PS + buena + fila + buena):
+        with pytest.raises(ValueError):
+            p.procesos_lista(texto)
+
+
+def test_una_lista_de_procesos_con_solo_hilos_del_kernel_es_una_lista_vacia():
+    assert p.procesos_lista(CAB_PS + fila_ps(2, 0, "admin", "SW", "0", "", "0:00", "250:44", "[kthreadd]")) == []
+
+
+def test_el_detalle_de_un_proceso():
+    d = p.procesos_detalle(dato("procesos_detalle_hero"))
+    assert (d["nombre"], d["estado"], d["ppid"], d["uid"], d["hilos"]) == ("rsync", "D (disk sleep)", 1, 1000, 1)
+    assert d["memoria"] == 9004 * 1024
+    # --password-file lleva una ruta, no la contrasena; --token si se tapa
+    assert d["orden"] == "rsync -a /share/carpeta1/origen /share/carpeta2/destino --password-file=/root/clave-inventada --token ***"
+    assert d["directorio"] == "/share/carpeta1"
+    assert d["io"] == {"leidos": 90000000, "escritos": 80000000, "leidos_de_disco": 70000000,
+                       "escritos_a_disco": 60000000}
+    abiertos = d["ficheros_abiertos"]
+    assert (abiertos["total"], abiertos["tuberias"], abiertos["sockets"], abiertos["otros"]) == (10, 2, 1, 1)
+    assert abiertos["rutas"] == {"filas": [
+        "/dev/null", "/share/carpeta1/origen/fichero1.bin", "/share/carpeta2/destino/.fichero1.bin.AbC123 (deleted)",
+        "/share/carpeta1/origen/fichero2 con espacios -> y flecha.bin"], "total": 4, "truncado": False}
+    assert "errores" not in d
+
+
+def test_el_detalle_de_un_proceso_de_un_qts():
+    d = p.procesos_detalle(dato("procesos_detalle_qts"))
+    assert (d["nombre"], d["uid"], d["hilos"], d["memoria"]) == ("servicio2", 0, 14, 96300 * 1024)
+    assert d["orden"] == "/usr/local/sbin/servicio2 --api-key=*** --config /etc/config/servicio2.conf"
+    abiertos = d["ficheros_abiertos"]
+    # un ls -l con el ano en lugar de la hora tambien se lee
+    assert abiertos["total"] == 5 and abiertos["sockets"] == 2 and abiertos["tuberias"] == 0
+    assert abiertos["rutas"]["filas"] == ["/dev/null", "/var/log/servicio2.log"]
+
+
+def test_las_rutas_de_ficheros_abiertos_se_acotan_a_100_y_se_cuentan():
+    fds = "".join("lr-x------ 1 admin administrators 64 Oct 15 10:00 %d -> /share/carpeta1/f%d.bin\n" % (i + 3, i)
+                  for i in range(130))
+    texto = dato("procesos_detalle_qts").split("==fd\n")[0] + "==fd\ntotal 0\n" + fds + "==fin\n"
+    abiertos = p.procesos_detalle(texto)["ficheros_abiertos"]
+    assert abiertos["total"] == 130 and abiertos["rutas"]["total"] == 130
+    assert len(abiertos["rutas"]["filas"]) == 100 and abiertos["rutas"]["truncado"] is True
+
+
+def test_un_pid_que_no_existe_no_tiene_detalle():
+    assert p.procesos_detalle("==noexiste\n") is None
+
+
+def test_un_hilo_del_kernel_se_lee_sin_memoria_ni_orden():
+    texto = ("==status\nName:\tkworker/0:1\nState:\tI (idle)\nPPid:\t2\nUid:\t0\t0\t0\t0\nThreads:\t1\n"
+             "==cmdline\n\n==cwd\n/\n==io\nrchar: 0\nwchar: 0\nsyscr: 0\nsyscw: 0\nread_bytes: 0\n"
+             "write_bytes: 0\ncancelled_write_bytes: 0\n==fd\ntotal 0\n==fin\n")
+    d = p.procesos_detalle(texto)
+    assert d["memoria"] is None and d["orden"] is None and d["ficheros_abiertos"]["total"] == 0
+
+
+def test_el_io_o_los_ficheros_que_no_se_pueden_leer_salen_sin_valor_y_se_dicen():
+    texto = dato("procesos_detalle_hero")
+    sin_io = texto.replace(texto[texto.index("==io\n"):texto.index("==fd\n")],
+                           "==io\ncat: can't open '/proc/4242/io': No such file or directory\n")
+    d = p.procesos_detalle(sin_io)
+    assert d["io"] is None and "io" in d["errores"] and d["ficheros_abiertos"]["total"] == 10
+    sin_fd = texto.replace(texto[texto.index("==fd\n"):texto.index("==fin\n")],
+                           "==fd\nls: cannot access '/proc/4242/fd': No such file or directory\n")
+    d = p.procesos_detalle(sin_fd)
+    assert d["ficheros_abiertos"] is None and "ficheros" in d["errores"] and d["io"] is not None
+
+
+@pytest.mark.parametrize("cambio", [
+    ("==fin\n", ""),                                    # la consulta se corto
+    ("Name:\trsync\n", ""),                             # sin nombre: el proceso acabo mientras se leia
+    ("PPid:\t1\n", "PPid:\tabc\n"),
+    ("Threads:\t1\n", "Threads:\t\n"),
+    ("==cwd\n", "==directorio\n"),                      # falta una parte
+])
+def test_el_detalle_de_un_proceso_rechaza_lo_que_no_reconoce(cambio):
+    with pytest.raises(ValueError):
+        p.procesos_detalle(dato("procesos_detalle_hero").replace(*cambio))
+    with pytest.raises(ValueError):
+        p.procesos_detalle("")
+
+
 def test_el_servidor_syslog_solo_da_sus_claves_conocidas():
     s = p.syslog(dato("syslog_hero"))
     assert s == {"activo": True, "tcp": {"activo": True, "puerto": 514}, "udp": {"activo": True, "puerto": 514},

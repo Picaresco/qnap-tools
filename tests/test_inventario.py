@@ -134,3 +134,19 @@ def test_clave_desconocida_da_error(tmp_path):
     with pytest.raises(inv.InventarioInvalido) as e:
         inv.cargar(ruta)
     assert "puerto" in str(e.value)
+
+
+def test_un_inventario_que_no_se_puede_leer_da_error_de_inventario(tmp_path):
+    ruta = tmp_path / "inventario.toml"
+    ruta.mkdir()                          # PermissionError en Windows, IsADirectoryError en POSIX
+    with pytest.raises(inv.InventarioInvalido) as e:
+        inv.cargar(ruta)
+    assert "inventario.toml" in str(e.value) and "no se pudo leer" in str(e.value)
+
+
+def test_un_inventario_que_no_es_utf8_da_error_de_inventario(tmp_path):
+    ruta = tmp_path / "inventario.toml"
+    ruta.write_bytes(b'[nas.casa]\nhost = "\xff\xfe"\n')
+    with pytest.raises(inv.InventarioInvalido) as e:
+        inv.cargar(ruta)
+    assert "inventario.toml" in str(e.value)

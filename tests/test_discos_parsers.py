@@ -300,11 +300,18 @@ def test_los_atributos_no_se_inventan_si_no_se_reconoce_el_fichero(texto):
 
 @pytest.mark.parametrize("texto", [
     "", "ls: /tmp/smart/: Permission denied\n", "25,0,0,100,0,0,0,0,38,0x0000,2,10,0\n",
-    "== /tmp/smart/otro.info\n1,0,0,100,0,0,0,0,40,0x0000,2,255,0\n",
-    "== /tmp/smart/smart_0_1.info\n== /tmp/smart/smart_0_2.info\n1,0,0,100,0,0,0,0,40,0x0000,2,255,0\n"])
+    "== /tmp/smart/otro.info\n1,0,0,100,0,0,0,0,40,0x0000,2,255,0\n"])
 def test_smart_todos_no_inventa_nada_si_no_reconoce_la_salida(texto):
     with pytest.raises(ValueError):
         p.smart_todos(texto)
+
+
+def test_smart_todos_con_un_fichero_vacio_lo_marca_con_error_y_lee_el_siguiente():
+    # antes tiraba la lectura entera; ahora solo ese disco queda sin datos (ver test_discos_revision)
+    r = p.smart_todos("== /tmp/smart/smart_0_1.info\n== /tmp/smart/smart_0_2.info\n"
+                      "1,0,0,100,0,0,0,0,40,0x0000,2,255,0\n")
+    assert [(x["bahia"], "error" in x) for x in r] == [(1, True), (2, False)]
+    assert r[1]["temperatura"] == 40
 
 
 # --- avisos configurados y vida de los SSD ------------------------------------------------------
@@ -1001,7 +1008,7 @@ def test_dm_estado_da_la_ocupacion_de_datos_y_metadatos_de_cada_pool_ligero():
     dm = p.dm_estado(dato("dm_estado_qts"))
     assert por(dm, "tipo", "thin-pool") == {
         "nombre": "vg1-tp1-tpool", "tipo": "thin-pool", "pool": 1, "bytes": 28773572608 * 512,
-        "datos_pct": 51.4, "metadatos_pct": 1.1, "modo": "rw", "fallo": False}
+        "datos_pct": 51.4, "metadatos_pct": 1.1, "modo": "rw", "fallo": False, "necesita_comprobar": False}
     varios = [d for d in p.dm_estado(dato("dm_estado_qts2")) if d["tipo"] == "thin-pool"]
     assert [(d["pool"], d["datos_pct"], d["metadatos_pct"]) for d in varios] == [
         (4, 73.0, 4.5), (3, 89.6, 1.5), (2, 85.5, 4.0), (1, 88.0, 0.1)]
@@ -1010,7 +1017,7 @@ def test_dm_estado_da_la_ocupacion_de_datos_y_metadatos_de_cada_pool_ligero():
 def test_dm_estado_da_la_ocupacion_de_la_cache_ssd():
     assert por(p.dm_estado(dato("dm_estado_qts")), "tipo", "cache") == {
         "nombre": "vg256-lv256", "tipo": "cache", "pool": 256, "bytes": 159686656 * 512, "usado_pct": 100.0,
-        "metadatos_pct": 0.1}
+        "metadatos_pct": 0.1, "fallo": False, "necesita_comprobar": False}
     assert por(p.dm_estado(dato("dm_estado_qts2")), "tipo", "cache")["usado_pct"] == 99.8
 
 
@@ -1029,7 +1036,8 @@ def test_un_pool_ligero_averiado_o_en_solo_lectura_queda_marcado():
         "vg2-tp2-tpool: 0 2000 thin-pool 7 10/100 990/1000 - out_of_data_space no_discard_passdown\n"
         "ce_cachedev1: 0 3000 crypt \ncachedev1: 0 3000 linear \nvg1-snap-1: 0 500 snapshot 16/100 16\n")
     assert dm[0] == {"nombre": "vg1-tp1-tpool", "tipo": "thin-pool", "pool": 1, "bytes": 512000,
-                     "datos_pct": None, "metadatos_pct": None, "modo": None, "fallo": True}
+                     "datos_pct": None, "metadatos_pct": None, "modo": None, "fallo": True,
+                     "necesita_comprobar": False}
     assert (dm[1]["datos_pct"], dm[1]["metadatos_pct"], dm[1]["modo"], dm[1]["fallo"]) == (
         99.0, 10.0, "out_of_data_space", False)
     assert dm[2] == {"nombre": "ce_cachedev1", "tipo": "crypt", "pool": None, "bytes": 1536000}

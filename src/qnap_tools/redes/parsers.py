@@ -288,7 +288,7 @@ def ethtool_errores(texto):
         if sep and valor.strip().isdigit():
             todos[nombre.strip()] = int(valor)
     return {"disponible": bool(todos), "contadores": len(todos),
-            "errores": {n: v for n, v in todos.items() if v and CONTADOR_DE_ERROR.search(n)}}
+            "distintos_de_cero": {n: v for n, v in todos.items() if v and CONTADOR_DE_ERROR.search(n)}}
 
 
 def bonding(texto):
@@ -510,7 +510,10 @@ def dhcp_concesiones(texto):
             if not campos:
                 continue
             if campos[0] == "==lineas":
-                if len(campos) == 2 and campos[1].isdigit() and int(campos[1]) > LINEAS_LEASES:
+                if len(campos) != 2 or not campos[1].isdigit():
+                    # sin cuenta no se sabe si llega recortado, y no es lo mismo que "sin concesiones"
+                    raise _no_reconocida("dhcpd.leases", linea)
+                if int(campos[1]) > LINEAS_LEASES:
                     recortado.append(interfaz)
             elif campos[0] == "lease" and len(campos) == 3 and campos[2] == "{":
                 actual = {"interfaz": interfaz, "ip": campos[1], "mac": None, "estado": None,

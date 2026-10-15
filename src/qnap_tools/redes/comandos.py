@@ -123,12 +123,15 @@ SERVICIOS_BLOQUEO = (
     ("http", "Http  Ban Enabled"), ("smb", "Samba Ban Enabled"), ("afp", "AFP   Ban Enabled"),
     ("nfs", "NFS   Ban Enabled"), ("rtrr", "RTRR  Ban Enabled"), ("rsync", "Rsync Ban Enabled"),
 )
+# Las listas son ficheros opcionales (ausente = vacia), pero si existen y no se pueden leer la
+# orden termina con error en vez de dar una lista vacia. Cada fichero va en un subshell
+# encadenado con &&: el codigo de salida de la orden es el del primero que falle.
 BLOQUEO_IP = Comando(
     "bloqueo_ip",
     _campos(ULINUX, [("Ban Engine", "Ban Enabled"), ("Ban Engine", "Account Ban Enabled")]
             + [("Ban Engine", clave) for _, clave in SERVICIOS_BLOQUEO])
-    + "; echo ==permitidas; cat /etc/config/ipsec_allow.conf 2>/dev/null"
-    + "; echo ==denegadas; cat /etc/config/ipsec_deny.conf 2>/dev/null; true")
+    + "; echo ==permitidas; ( [ ! -e /etc/config/ipsec_allow.conf ] || cat /etc/config/ipsec_allow.conf )"
+    + " && echo ==denegadas && ( [ ! -e /etc/config/ipsec_deny.conf ] || cat /etc/config/ipsec_deny.conf )")
 
 # Que el paquete QuFirewall este activo no quiere decir que el cortafuegos este encendido:
 # recien instalado sigue apagado y sin perfil (validado en el NAS de laboratorio). Eso lo dice
@@ -143,14 +146,16 @@ QUFIREWALL = Comando(
 # --- acceso remoto ----------------------------------------------------------------------------------
 
 # De ddns.conf solo se leen los nombres de proveedor y sus campos enable y hostname:
-# el resto (usuario, URL de actualizacion) no sale del NAS.
+# el resto (usuario, URL de actualizacion) no sale del NAS. Ausente o sin coincidencias (grep
+# termina con 1) no es un error; ilegible (grep termina con 2) si.
 DDNS = Comando(
     "ddns",
     CARPETA_RED + "echo ==myqnapcloud; "
     + _campos("/etc/config/qnapddns.conf", [
         ("QNAP DDNS Service", "Enable"), ("QNAP DDNS Service", "Host Name"),
         ("QNAP DDNS Service", "Domain Name Server")])
-    + "; echo ==ddns; grep -E '^\\[|^(enable|hostname) *=' $c/ddns.conf 2>/dev/null; true")
+    + "; echo ==ddns; [ ! -e $c/ddns.conf ] || ( grep -E '^\\[|^(enable|hostname) *=' $c/ddns.conf;"
+    + " [ $? -le 1 ] )")
 UPNP = Comando("upnp", "echo activo=$(getcfg 'UPnP Service' Enable -f %s)" % ULINUX)
 # Solo si el paquete QVPN esta activo. Los tuneles levantados salen de ENLACES; la
 # configuracion de las VPN son claves y no se lee.
