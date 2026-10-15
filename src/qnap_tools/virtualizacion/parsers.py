@@ -565,10 +565,16 @@ def disco_info(texto):
     return {"fichero": fichero, "capas": capas, "base_sin_leer": capas[-1]["base"], "cortada": cortada}
 
 
+TIPO_DE_QEMU = re.compile(r"==tipo ([0-9]+) (.*)")
+MAX_TIPOS_DE_QEMU = 20
+
+
 def disco_check(texto):
     """El resultado de qemu-img check --output=json de una imagen: errores de la comprobacion,
     corrupciones, fugas y donde acaba la imagen. 'soportado' es false si el formato no se puede
-    comprobar (un raw). Una salida sin JSON y con otro codigo es un error."""
+    comprobar (un raw). Una salida sin JSON y con otro codigo es un error. Las lineas que qemu-img
+    escribe ademas (una por cluster con problema) llegan acotadas por la orden: 'avisos_de_qemu' da
+    las primeras, cuantas hubo y la cuenta de cada tipo de linea."""
     que = "la comprobacion de la imagen"
     lineas = texto.splitlines()
     fichero = _real_de(lineas, que, RECHAZADA_RUTA)
@@ -576,15 +582,34 @@ def disco_check(texto):
     rc = MARCA_RC.fullmatch(ultima)
     if len(lineas) < 3 or lineas[1].strip() != "==check" or not rc:
         raise _no_reconocida(que, texto.strip()[:80])
-    cuerpo = "\n".join(lineas[2:-1])
+    muestras, tipos, resto = [], [], []
+    for linea in lineas[2:-1]:
+        if linea.startswith("==linea "):
+            muestras.append(_acotado(linea[len("==linea "):], MAX_LINEA))
+        elif linea.startswith("=="):
+            tipo = TIPO_DE_QEMU.fullmatch(linea)
+            if not tipo:
+                raise _no_reconocida(que, linea[:80])
+            tipos.append({"tipo": _acotado(tipo.group(2), MAX_LINEA), "lineas": int(tipo.group(1))})
+        else:
+            resto.append(linea)
+    total = sum(t["lineas"] for t in tipos)
+    if len(muestras) > total:
+        raise _no_reconocida(que, "%d lineas de qemu-img y %d contadas" % (len(muestras), total))
+    tipos.sort(key=lambda t: (-t["lineas"], t["tipo"]))
+    avisos = {"filas": muestras, "total": total, "truncado": total > len(muestras),
+              "por_tipo": {"filas": tipos[:MAX_TIPOS_DE_QEMU], "total": len(tipos),
+                           "truncado": len(tipos) > MAX_TIPOS_DE_QEMU}}
+    cuerpo = "\n".join(resto)
     salida = int(rc.group(1))
     inicio = cuerpo.find("{")
     if inicio < 0:
-        if salida == 63 or "does not support" in cuerpo:
+        mensaje = "\n".join(muestras + [cuerpo.strip()]).strip()
+        if salida == 63 or "does not support" in mensaje:
             return {"fichero": fichero, "soportado": False, "codigo_de_salida": salida,
-                    "mensaje": _acotado(cuerpo.strip(), MAX_LINEA)}
+                    "mensaje": _acotado(mensaje, MAX_LINEA)}
         raise ValueError("%s: qemu-img check no dio resultado (codigo %d): %s"
-                         % (que, salida, _acotado(cuerpo.strip(), MAX_LINEA) or "sin salida"))
+                         % (que, salida, _acotado(mensaje, MAX_LINEA) or "sin salida"))
     try:
         c, _ = json.JSONDecoder().raw_decode(cuerpo, inicio)
     except ValueError:
@@ -602,8 +627,7 @@ def disco_check(texto):
                           "asignados": _entero_o_nada(c.get("allocated-clusters")),
                           "fragmentados": _entero_o_nada(c.get("fragmented-clusters")),
                           "comprimidos": _entero_o_nada(c.get("compressed-clusters"))},
-                codigo_de_salida=salida,
-                avisos_de_qemu=[_acotado(linea, MAX_LINEA) for linea in cuerpo[:inicio].splitlines() if linea.strip()])
+                codigo_de_salida=salida, avisos_de_qemu=avisos)
 
 
 # ==== la definicion de una VM sin registrar (su <uuid>.xml) =====================================

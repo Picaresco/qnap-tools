@@ -212,7 +212,8 @@ QEMU_FICHERO_DE_PEGA = """\
 for a in "$@"; do ultimo="$a"; done
 echo "$*" >> "$PEGA/llamadas"
 nombre=$(basename "$ultimo")
-if [ "$1" = check ]; then cat "$PEGA/chk/$nombre"; exit $(cat "$PEGA/chk/rc"); fi
+if [ "$1" = check ]; then [ ! -e "$PEGA/chk/$nombre.err" ] || cat "$PEGA/chk/$nombre.err" >&2
+  cat "$PEGA/chk/$nombre"; exit $(cat "$PEGA/chk/rc"); fi
 [ ! -e "$PEGA/img/$nombre" ] || cat "$PEGA/img/$nombre"
 """
 XML_VM = """\
@@ -293,10 +294,13 @@ class Share:
         capa.update(campos)
         (img / nombre.rsplit("/", 1)[-1]).write_text(json.dumps(capa, indent=4) + "\n", encoding="utf-8", newline="\n")
 
-    def comprobacion(self, nombre, rc, salida):
+    def comprobacion(self, nombre, rc, salida, errores=""):
+        """Lo que da qemu-img check de esa imagen: 'salida' por stdout, 'errores' por stderr."""
         chk = self.tmp / "pega" / "chk"
         chk.mkdir(parents=True, exist_ok=True)
         (chk / nombre.rsplit("/", 1)[-1]).write_text(salida, encoding="utf-8", newline="\n")
+        if errores:
+            (chk / (nombre.rsplit("/", 1)[-1] + ".err")).write_text(errores, encoding="utf-8", newline="\n")
         (chk / "rc").write_text(str(rc), encoding="utf-8", newline="\n")
 
     def llamadas(self):
@@ -368,6 +372,43 @@ def test_la_comprobacion_da_el_codigo_de_salida_y_nunca_repara(tmp_path):
     assert comprobacion["corrupciones"] == 2 and comprobacion["codigo_de_salida"] == 2
     (llamada,) = s.llamadas()
     assert llamada.startswith("check -U --output=json ") and " -r" not in llamada and "--repair" not in llamada
+
+
+def test_la_comprobacion_acota_en_el_nas_las_lineas_de_qemu_y_las_cuenta_por_tipo(tmp_path):
+    """Como la imagen sin cerrar del USB: una linea por cluster. Por la conexion solo viajan 20 y la cuenta
+    de cada tipo (con los numeros cambiados por N, salvo los valores de refcount y reference), y el codigo de
+    salida sigue siendo el de qemu-img aunque pase por awk."""
+    s = Share(tmp_path)
+    s.fichero("vm/disco.img")
+    fichero = s.ruta("vm/disco.img")[1]
+    errores = "".join("ERROR cluster %d refcount=0 reference=1\n" % (5000 + i) for i in range(3000))
+    errores += "".join("ERROR OFLAG_COPIED data cluster: l2_entry=80000000%08x refcount=0\n" % (0x50000 + i * 0x10000)
+                       for i in range(3000))
+    errores += "Leaked cluster 77 refcount=1 reference=0\nLeaked cluster 78 refcount=1 reference=0\n"
+    salida_qemu = json.dumps({"image-end-offset": 4096, "total-clusters": 16, "check-errors": 0, "corruptions": 6000,
+                              "leaks": 2, "filename": fichero, "format": "qcow2"}, indent=4) + "\n"
+    s.comprobacion("disco.img", 3, salida_qemu, errores)
+    rc, salida = s.lanzar(vc.DISCO_CHECK, "vm/disco.img", qemu=QEMU_FICHERO_DE_PEGA)
+    assert rc == 0 and salida.rstrip().endswith("==rc 3") and len(salida) < 4000
+    c = p.disco_check(salida.replace(s.real, "/share"))
+    a = c["avisos_de_qemu"]
+    assert a["total"] == 6002 and a["truncado"] is True and len(a["filas"]) == 20
+    assert a["filas"][0] == "ERROR cluster 5000 refcount=0 reference=1"
+    assert a["por_tipo"]["filas"] == [
+        {"tipo": "ERROR OFLAG_COPIED data cluster: l2_entry=N refcount=0", "lineas": 3000},
+        {"tipo": "ERROR cluster N refcount=0 reference=1", "lineas": 3000},
+        {"tipo": "Leaked cluster N refcount=1 reference=0", "lineas": 2}]
+    assert (c["corrupciones"], c["fugas"], c["codigo_de_salida"]) == (6000, 2, 3)
+
+
+def test_la_comprobacion_no_da_mas_de_cincuenta_y_un_tipos_de_linea(tmp_path):
+    s = Share(tmp_path)
+    s.fichero("vm/disco.img")
+    errores = "".join("mensaje raro %s\n" % "".join(chr(97 + int(d)) for d in str(i)) for i in range(200))
+    s.comprobacion("disco.img", 1, "", errores)
+    rc, salida = s.lanzar(vc.DISCO_CHECK, "vm/disco.img", qemu=QEMU_FICHERO_DE_PEGA)
+    assert rc == 0 and salida.count("==tipo ") == 51 and salida.count("==linea ") == 20
+    assert "==tipo 150 (otros tipos)" in salida and salida.rstrip().endswith("==rc 1")
 
 
 def escribe_vm(s, carpeta="Mis VMs/maquina 1", xml=None):

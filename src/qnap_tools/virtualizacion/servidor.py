@@ -216,6 +216,24 @@ def ruta_de_share(ruta):
     return ruta if ruta == "/share" or ruta.startswith("/share/") else "/share" + ruta
 
 
+# Con lazy-refcounts QEMU no escribe la cuenta de referencias de los clusters que asigna hasta cerrar la
+# imagen: si no se cerro, qemu-img check (que con -U no repara) ve clusters en uso con refcount=0 y los
+# cuenta como corrupciones. Son estas dos lineas, una por cluster; QEMU las rehace al abrir la imagen.
+CUENTAS_PENDIENTES = ("ERROR cluster N refcount=0 reference=1", "ERROR OFLAG_COPIED data cluster: l2_entry=N refcount=0")
+
+
+def solo_cuentas_pendientes(info, comprobacion):
+    """True si todas las corrupciones de la comprobacion son cuentas sin escribir de una imagen que no se
+    cerro limpia con lazy-refcounts: la capa comprobada lo dice, no esta marcada como corrupta y cada
+    corrupcion es una linea ERROR de esos dos tipos (si se contaron todas y no hay otro tipo de ERROR)."""
+    capa = next((c for c in info["capas"] if c["fichero"] == comprobacion["fichero"]), None)
+    por_tipo = comprobacion["avisos_de_qemu"]["por_tipo"]
+    errores = [t for t in por_tipo["filas"] if t["tipo"].startswith("ERROR")]
+    return bool(capa and capa["dirty"] and capa["lazy_refcounts"] and not capa["corrupt"] and not por_tipo["truncado"]
+                and errores and all(t["tipo"] in CUENTAS_PENDIENTES for t in errores)
+                and sum(t["lineas"] for t in errores) == comprobacion["corrupciones"])
+
+
 def avisos_de_disco(info, comprobacion):
     """Lo que conviene mirar de una imagen: marca de sucia, corrupta, corrupciones y fugas."""
     avisos = []
@@ -230,9 +248,16 @@ def avisos_de_disco(info, comprobacion):
     if info["cortada"]:
         avisos.append("la cadena de imagenes tiene mas capas de las que se leen (%d)" % len(info["capas"]))
     if comprobacion and comprobacion["soportado"]:
+        pendientes = comprobacion["corrupciones"] and solo_cuentas_pendientes(info, comprobacion)
+        if pendientes:
+            avisos.append(
+                "la comprobacion de %s da %d cuentas de referencia sin escribir (clusters en uso con refcount=0): "
+                "es lo esperado en una imagen que no se cerro limpia con lazy-refcounts y no son datos danados; "
+                "QEMU las rehace al abrirla y 'qemu-img check -r' tambien, pero eso escribe"
+                % (comprobacion["fichero"], comprobacion["corrupciones"]))
         for clave, texto in (("corrupciones", "corrupciones"), ("fugas", "fugas de clusters"),
                              ("errores_de_comprobacion", "errores al comprobarla")):
-            if comprobacion[clave]:
+            if comprobacion[clave] and not (clave == "corrupciones" and pendientes):
                 avisos.append("la comprobacion de %s da %d %s" % (comprobacion["fichero"], comprobacion[clave], texto))
         if comprobacion["codigo_de_salida"] == 1:
             avisos.append("qemu-img check termino con un error interno (codigo 1) en %s" % comprobacion["fichero"])
@@ -628,7 +653,10 @@ class Herramientas(servidor.Base):
         base) con formato y version, tamano virtual y real, cluster, si QEMU la dejo sin cerrar
         limpia (dirty, con lazy_refcounts), si esta corrupta, bits de los contadores e
         instantaneas internas; y el resultado de qemu-img check de la capa pedida: errores,
-        corrupciones, fugas y donde acaba la imagen. Todo con -U (sin bloquear la imagen, aunque la
+        corrupciones, fugas y donde acaba la imagen; las lineas que escribe qemu-img (una por cluster con
+        problema) vienen acotadas: las 20 primeras, cuantas hubo y la cuenta por tipo. Si la imagen no se
+        cerro limpia con lazy-refcounts y todo son clusters en uso con refcount=0, el aviso lo dice: son
+        cuentas sin escribir, no datos danados. Todo con -U (sin bloquear la imagen, aunque la
         maquina este en marcha) y SIN reparar nunca: qemu-img check -r escribe. Con la maquina en
         marcha la comprobacion puede dar fugas o errores falsos. Una imagen grande tarda en
         comprobarse (hasta 120 s); si no termina, la informacion sale igual y el error va en 'errores'.

@@ -531,7 +531,8 @@ def test_la_comprobacion_de_una_imagen_limpia():
     assert c == {"fichero": "/share/ruta1/vm1/disco1.1790544225", "formato": "qcow2", "soportado": True,
                  "errores_de_comprobacion": 0, "corrupciones": 0, "fugas": 0, "fin_de_imagen": 4390912,
                  "clusters": {"total": 2097152, "asignados": 66, "fragmentados": 3, "comprimidos": 0},
-                 "codigo_de_salida": 0, "avisos_de_qemu": []}
+                 "codigo_de_salida": 0, "avisos_de_qemu": {"filas": [], "total": 0, "truncado": False,
+                                                           "por_tipo": {"filas": [], "total": 0, "truncado": False}}}
     assert p.disco_check(dato("disco_check_qts"))["fin_de_imagen"] == 10 * GIB
 
 
@@ -546,11 +547,44 @@ def test_la_comprobacion_con_fugas_o_corrupciones():
 def test_un_formato_sin_comprobacion_sale_como_no_soportado():
     c = p.disco_check(CHECK_CABECERA + "This image format does not support checks\n==rc 63\n")
     assert c["soportado"] is False and c["codigo_de_salida"] == 63 and "does not support" in c["mensaje"]
+    mensaje = "This image format does not support checks"
+    c = p.disco_check(CHECK_CABECERA + "==linea %s\n==tipo 1 %s\n==rc 63\n" % (mensaje, mensaje))
+    assert c["soportado"] is False and c["mensaje"] == mensaje
 
 
 def test_los_avisos_de_qemu_antes_del_json_no_lo_rompen():
-    texto = CHECK_CABECERA + "qemu-img: aviso de ejemplo\n" + json.dumps({"check-errors": 0, "format": "qcow2"}) + "\n==rc 0\n"
-    assert p.disco_check(texto)["avisos_de_qemu"] == ["qemu-img: aviso de ejemplo"]
+    texto = (CHECK_CABECERA + "==linea qemu-img: aviso de ejemplo\n" + json.dumps({"check-errors": 0, "format": "qcow2"})
+             + "\n==tipo 1 qemu-img: aviso de ejemplo\n==rc 0\n")
+    assert p.disco_check(texto)["avisos_de_qemu"] == {
+        "filas": ["qemu-img: aviso de ejemplo"], "total": 1, "truncado": False,
+        "por_tipo": {"filas": [{"tipo": "qemu-img: aviso de ejemplo", "lineas": 1}], "total": 1, "truncado": False}}
+
+
+def test_miles_de_lineas_de_qemu_llegan_acotadas_con_su_cuenta_por_tipo():
+    """Una imagen sin cerrar con lazy-refcounts da una linea por cluster (23.550 en una de 78 GB): la orden
+    trae las 20 primeras y la cuenta de cada tipo; la respuesta no puede crecer con la imagen."""
+    muestras = ["ERROR cluster %d refcount=0 reference=1" % (1000 + i) for i in range(20)]
+    texto = (CHECK_CABECERA + "".join("==linea %s\n" % m for m in muestras)
+             + json.dumps({"check-errors": 0, "corruptions": 23550, "format": "qcow2"}, indent=4)
+             + "\n==tipo 11775 ERROR OFLAG_COPIED data cluster: l2_entry=N refcount=0"
+             + "\n==tipo 11775 ERROR cluster N refcount=0 reference=1\n==tipo 3 Leaked cluster N refcount=1 reference=0"
+             + "\n==rc 2\n")
+    c = p.disco_check(texto)
+    a = c["avisos_de_qemu"]
+    assert a["filas"] == muestras and a["total"] == 23553 and a["truncado"] is True
+    assert a["por_tipo"] == {"filas": [
+        {"tipo": "ERROR OFLAG_COPIED data cluster: l2_entry=N refcount=0", "lineas": 11775},
+        {"tipo": "ERROR cluster N refcount=0 reference=1", "lineas": 11775},
+        {"tipo": "Leaked cluster N refcount=1 reference=0", "lineas": 3}], "total": 3, "truncado": False}
+    assert c["corrupciones"] == 23550 and c["codigo_de_salida"] == 2
+
+
+def test_los_tipos_de_linea_de_qemu_tambien_se_acotan():
+    tipos = "".join("==tipo %d mensaje %d\n" % (i + 1, i) for i in range(p.MAX_TIPOS_DE_QEMU + 5))
+    c = p.disco_check(CHECK_CABECERA + json.dumps({"check-errors": 0, "format": "qcow2"}) + "\n" + tipos + "==rc 0\n")
+    por_tipo = c["avisos_de_qemu"]["por_tipo"]
+    assert len(por_tipo["filas"]) == p.MAX_TIPOS_DE_QEMU and por_tipo["total"] == p.MAX_TIPOS_DE_QEMU + 5
+    assert por_tipo["truncado"] is True and por_tipo["filas"][0]["lineas"] == p.MAX_TIPOS_DE_QEMU + 5
 
 
 @pytest.mark.parametrize("texto", [
@@ -561,6 +595,9 @@ def test_los_avisos_de_qemu_antes_del_json_no_lo_rompen():
     CHECK_CABECERA + "{\"check-errors\": \n==rc 0\n",                  # JSON a medias
     CHECK_CABECERA + json.dumps({"leaks": "muchas"}) + "\n==rc 3\n",   # un contador que no es un numero
     "==check\n{}\n==rc 0\n",                                           # sin la ruta
+    CHECK_CABECERA + "{}\n==tipo muchas ERROR x\n==rc 0\n",            # cuenta de un tipo que no es un numero
+    CHECK_CABECERA + "{}\n==otra cosa\n==rc 0\n",                      # marca desconocida
+    CHECK_CABECERA + "==linea ERROR x\n==linea ERROR y\n{}\n==tipo 1 ERROR N\n==rc 0\n",   # mas muestras que lineas
 ])
 def test_la_comprobacion_rechaza_lo_que_no_reconoce(texto):
     with pytest.raises(ValueError):

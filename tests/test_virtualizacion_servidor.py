@@ -1055,6 +1055,50 @@ def test_disco_info_avisa_de_corrupciones_fugas_y_errores_de_la_comprobacion(tmp
     assert algun(d["avisos"], "3 corrupciones") and algun(d["avisos"], "7 fugas") and algun(d["avisos"], "2 errores")
 
 
+CUENTA_PENDIENTE = "ERROR cluster N refcount=0 reference=1"
+COPIED_PENDIENTE = "ERROR OFLAG_COPIED data cluster: l2_entry=N refcount=0"
+
+
+def check_con_lineas(tipos, **campos):
+    """check_con con las cuentas por tipo de linea que da la orden ({tipo: lineas})."""
+    texto = check_con(**campos)
+    cola = "".join("==tipo %d %s\n" % (n, t) for t, n in tipos.items())
+    return texto.replace("\n==rc ", "\n" + cola + "==rc ")
+
+
+def pedida_sin_cerrar(dirty=True, lazy=True):
+    """disco_info de hero con la capa pedida (la primera) sin cerrar limpia y con lazy-refcounts."""
+    texto = dato("disco_info_hero")
+    texto = texto.replace('"lazy-refcounts": false', '"lazy-refcounts": %s' % ("true" if lazy else "false"), 1)
+    return texto.replace('"dirty-flag": false', '"dirty-flag": %s' % ("true" if dirty else "false"), 1)
+
+
+def test_las_cuentas_pendientes_de_una_imagen_sin_cerrar_no_se_dan_por_corrupciones(tmp_path):
+    """dirty + lazy-refcounts y solo clusters en uso con refcount=0: son las cuentas que QEMU no llego a escribir
+    (las rehace al abrir la imagen), no datos danados; el aviso no puede decir 'corrupciones' a secas."""
+    check = check_con_lineas({CUENTA_PENDIENTE: 3, COPIED_PENDIENTE: 3}, corruptions=6, rc=2)
+    h, _ = uno(tmp_path, cambios={P_INFO: pedida_sin_cerrar(), P_CHECK: check})
+    d = datos(h.disco_info("hero", "/Vms/carpeta/disco1.img"))
+    assert d["comprobacion"]["corrupciones"] == 6
+    assert not algun(d["avisos"], "6 corrupciones")
+    assert algun(d["avisos"], "disco1.1790544225", "6", "cuentas de referencia", "lazy-refcounts", "no se cerro")
+
+
+@pytest.mark.parametrize("info, tipos, corrupciones", [
+    (pedida_sin_cerrar(), {CUENTA_PENDIENTE: 3, COPIED_PENDIENTE: 3, "ERROR cluster N refcount=2 reference=1": 1}, 7),
+    (pedida_sin_cerrar(dirty=False), {CUENTA_PENDIENTE: 3, COPIED_PENDIENTE: 3}, 6),       # se cerro limpia
+    (pedida_sin_cerrar(lazy=False), {CUENTA_PENDIENTE: 3, COPIED_PENDIENTE: 3}, 6),        # sin lazy-refcounts
+    (pedida_sin_cerrar(), {CUENTA_PENDIENTE: 3, COPIED_PENDIENTE: 3}, 9),                  # hay mas de las que se ven
+    (pedida_sin_cerrar().replace('"corrupt": false', '"corrupt": true', 1), {CUENTA_PENDIENTE: 6}, 6),
+])
+def test_si_no_son_solo_cuentas_pendientes_se_avisa_de_corrupciones(tmp_path, info, tipos, corrupciones):
+    check = check_con_lineas(tipos, corruptions=corrupciones, rc=2)
+    h, _ = uno(tmp_path, cambios={P_INFO: info, P_CHECK: check})
+    d = datos(h.disco_info("hero", "/Vms/carpeta/disco1.img"))
+    assert algun(d["avisos"], "%d corrupciones" % corrupciones)
+    assert not algun(d["avisos"], "cuentas de referencia")
+
+
 def test_una_imagen_marcada_como_corrupta_avisa(tmp_path):
     corrupta = dato("disco_info_qts").replace('"corrupt": false', '"corrupt": true')
     h, _ = uno(tmp_path, "qts", cambios={P_INFO: corrupta})

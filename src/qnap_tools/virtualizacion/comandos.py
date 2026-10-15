@@ -138,10 +138,25 @@ DISCO_INFO = Comando(
 # La comprobacion de la capa superior (qemu-img check, SOLO LECTURA: -U y sin -r, que repara y
 # ESCRIBE; la guardia lo veta). Lee las tablas de la imagen entera: en una grande tarda. El codigo
 # de salida de qemu-img dice mucho (0 bien, 2 corrupciones, 3 fugas, 63 formato sin comprobacion).
+# qemu-img check escribe una linea por cluster con problema (una imagen de 78 GB sin cerrar con
+# lazy-refcounts dio 23.550, 1,4 MB): awk deja pasar el JSON (lineas que empiezan por llave, espacio o
+# vacias), da las 20 primeras de las demas como "==linea" y la cuenta de cada tipo como "==tipo N texto"
+# (los numeros de cluster y los valores tras "=" pasan a N, salvo los de refcount y reference, que dicen
+# que clase de error es; como mucho 50 tipos y el resto en "(otros tipos)"). El codigo de salida es el
+# de qemu-img (se escribe dentro del subshell) y awk lo pone al final.
+FILTRO_CHECK = (
+    "awk '/^==rc / { rc = $0; next } /^[ }{]|^$/ { print; next }"
+    " { if (n != 20) { n++; print \"==linea \" substr($0, 1, 300) }"
+    " t = $0; gsub(/refcount=/, \"refcount#\", t); gsub(/reference=/, \"reference#\", t);"
+    " gsub(/=(0x)?[0-9a-fA-F]+/, \"=N\", t); gsub(/ [0-9]+ /, \" N \", t); gsub(/ [0-9]+$/, \" N\", t);"
+    " gsub(/#/, \"=\", t); t = substr(t, 1, 200);"
+    " if (!(t in k)) { if (nk == 50) t = \"(otros tipos)\"; else nk++ } k[t]++ }"
+    " END { for (t in k) print \"==tipo \" k[t] \" \" t; print rc }'")
 DISCO_CHECK = Comando(
     "disco_check",
     ("f=$(readlink -f {ruta}); if " + EN_SHARE + "; then echo \"==fichero $f\"; echo ==check; "
-     "%s check -U --output=json \"$f\" 2>&1; echo ==rc $?; else echo ==rechazada; fi") % QEMU_IMG,
+     "(%s check -U --output=json \"$f\"; echo \"==rc $?\") 2>&1 | %s; else echo ==rechazada; fi")
+    % (QEMU_IMG, FILTRO_CHECK),
     {"ruta": "ruta"}, timeout=120, valida=rc_cero)
 
 # La definicion de una VM que NO esta registrada, de su <uuid>.xml: el fichero mismo, su carpeta de
